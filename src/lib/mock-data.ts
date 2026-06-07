@@ -15,6 +15,7 @@ export const events: Event[] = [
     subdomain: "mavie1ano",
     title: "Mavie - 1 ano",
     theme: "Jardim Encantado",
+    eventType: "festa_infantil",
     hostName: "Camila Andrade",
     date: "2026-03-14",
     startsAt: "15:00",

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { EventSettingsForms } from "@/components/dashboard/event-settings-forms";
+import { CoverGenerator } from "@/components/dashboard/cover-generator";
 import { OwnerMediaControls } from "@/components/event/owner-media-controls";
 import { AppNav } from "@/components/layout/app-nav";
 import { canManageEvent } from "@/lib/auth/permissions";
@@ -15,6 +16,7 @@ export default async function EventDashboardPage({ params }: { params: Promise<{
 
   const media = await repositories.media.listPublishedByEvent(event.id);
   const eventMembers = await repositories.members.listByEvent(event.id);
+  const guestRsvps = await repositories.guestRsvps.listByEvent(event.id);
   const membership = await repositories.members.findMembership(event.id, session.user.id);
   const allowed = canManageEvent(session.user, membership ?? undefined);
 
@@ -91,6 +93,35 @@ export default async function EventDashboardPage({ params }: { params: Promise<{
                 </p>
               </article>
             </section>
+
+            <CoverGenerator eventId={event.id} currentCoverUrl={event.coverImageUrl} />
+
+            <article className="card" style={{ padding: 22 }}>
+              <span className="pill">confirmações de presença</span>
+              <h2 className="display" style={{ fontSize: 28, margin: "12px 0" }}>
+                {guestRsvps.length} confirmado{guestRsvps.length !== 1 ? "s" : ""}
+              </h2>
+              {guestRsvps.length === 0 ? (
+                <p style={{ color: "var(--ink-soft)" }}>Nenhum convidado confirmou presença ainda. Compartilhe o link do evento!</p>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 8 }}>
+                  {guestRsvps.map((rsvp) => (
+                    <div key={rsvp.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: "1px solid var(--line)" }}>
+                      <div>
+                        <strong>{rsvp.guestName}</strong>
+                        {rsvp.phone && <span style={{ color: "var(--ink-soft)", fontSize: 13, marginLeft: 10 }}>{rsvp.phone}</span>}
+                      </div>
+                      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                        {rsvp.wantsCapsule && <span className="pill" style={{ background: "var(--green)", color: "#fff", fontSize: 11 }}>cápsula</span>}
+                        <span style={{ color: "var(--ink-soft)", fontSize: 12 }}>
+                          {new Date(rsvp.confirmedAt).toLocaleDateString("pt-BR")}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </article>
 
             <EventSettingsForms event={event} members={eventMembers} />
             <OwnerMediaControls items={media} />

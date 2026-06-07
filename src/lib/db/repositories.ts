@@ -1,15 +1,24 @@
-import type { Event, EventMember, MediaItem, User } from "@/types/domain";
+import type { Event, EventMember, EventType, GuestRsvp, MediaItem, User } from "@/types/domain";
 
 export type CreateEventInput = {
   ownerId: string;
   title: string;
   theme: string;
+  eventType: EventType;
+  hostName: string;
   date: string;
   startsAt: string;
   endsAt: string;
   venueName: string;
   venueAddress: string;
   city: string;
+};
+
+export type CreateGuestRsvpInput = {
+  eventId: string;
+  guestName: string;
+  phone?: string;
+  wantsCapsule: boolean;
 };
 
 export type CreateMediaInput = {
@@ -57,6 +66,11 @@ export interface MediaRepository {
 
 export interface LikeRepository {
   toggleLike(eventId: string, mediaId: string, userId: string): Promise<{ liked: boolean; likesCount: number }>;
+}
+
+export interface GuestRsvpRepository {
+  create(input: CreateGuestRsvpInput): Promise<GuestRsvp>;
+  listByEvent(eventId: string): Promise<GuestRsvp[]>;
 }
 
 export interface AuditRepository {

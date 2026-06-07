@@ -1,5 +1,6 @@
 export type EventVisibility = "private" | "public";
 export type EventPhase = "before" | "live" | "memory";
+export type EventType = "festa_infantil" | "casamento" | "aniversario" | "formatura" | "corporativo" | "outros";
 export type MemberRole = "owner" | "manager" | "guest" | "viewer";
 export type RSVPStatus = "pending" | "confirmed" | "declined";
 export type AccessStatus = "active" | "blocked";
@@ -30,7 +31,10 @@ export type Event = {
   subdomain?: string;
   title: string;
   theme: string;
+  eventType: EventType;
   hostName: string;
+  hostPhotoUrl?: string;
+  coverImageUrl?: string;
   date: string;
   startsAt: string;
   endsAt: string;
@@ -43,6 +47,15 @@ export type Event = {
   storageUsedGb: number;
   pix?: PixSettings;
   screen: ScreenSettings;
+};
+
+export type GuestRsvp = {
+  id: string;
+  eventId: string;
+  guestName: string;
+  phone?: string;
+  wantsCapsule: boolean;
+  confirmedAt: string;
 };
 
 export type EventMember = {

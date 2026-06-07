@@ -2,15 +2,17 @@ import { getSql } from "@/lib/db/client";
 import type {
   AuditRepository,
   CreateEventInput,
+  CreateGuestRsvpInput,
   CreateMediaInput,
   EventRepository,
+  GuestRsvpRepository,
   LikeRepository,
   MediaRepository,
   MemberRepository,
   UserRepository
 } from "@/lib/db/repositories";
 import { bytesFromGb, PLANS } from "@/lib/plans";
-import type { Event, EventMember, MediaItem, User } from "@/types/domain";
+import type { Event, EventMember, EventType, GuestRsvp, MediaItem, User } from "@/types/domain";
 
 function rowToUser(row: Record<string, unknown>): User {
   return {
@@ -30,7 +32,10 @@ function rowToEvent(row: Record<string, unknown>): Event {
     subdomain: row.subdomain ? String(row.subdomain) : undefined,
     title: String(row.title),
     theme: String(row.theme),
+    eventType: (row.event_type as Event["eventType"]) ?? "outros",
     hostName: String(row.host_name ?? row.owner_name ?? "Responsavel"),
+    hostPhotoUrl: row.host_photo_url ? String(row.host_photo_url) : undefined,
+    coverImageUrl: row.cover_image_url ? String(row.cover_image_url) : undefined,
     date: String(row.date),
     startsAt: String(row.starts_at),
     endsAt: String(row.ends_at),
@@ -165,14 +170,14 @@ export const postgresEvents: EventRepository = {
     const slug = input.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
     const rows = await sql`
       insert into events (
-        owner_id, slug, free_code, title, theme, date, starts_at, ends_at, venue_name,
-        venue_address, city, plan_tier, storage_limit_bytes, retention_until
+        owner_id, slug, free_code, title, theme, event_type, host_name, date, starts_at, ends_at,
+        venue_name, venue_address, city, plan_tier, storage_limit_bytes, retention_until
       )
       values (
         ${input.ownerId}, ${slug}, ${Math.random().toString(36).slice(2, 8)}, ${input.title},
-        ${input.theme}, ${input.date}, ${input.startsAt}, ${input.endsAt}, ${input.venueName},
-        ${input.venueAddress}, ${input.city}, ${plan.tier}, ${bytesFromGb(plan.storageGb)},
-        now() + interval '36 months'
+        ${input.theme}, ${input.eventType}, ${input.hostName}, ${input.date}, ${input.startsAt},
+        ${input.endsAt}, ${input.venueName}, ${input.venueAddress}, ${input.city},
+        ${plan.tier}, ${bytesFromGb(plan.storageGb)}, now() + interval '36 months'
       )
       returning *
     `;
@@ -403,6 +408,36 @@ export const postgresLikes: LikeRepository = {
   }
 };
 
+function rowToGuestRsvp(row: Record<string, unknown>): GuestRsvp {
+  return {
+    id: String(row.id),
+    eventId: String(row.event_id),
+    guestName: String(row.guest_name),
+    phone: row.phone ? String(row.phone) : undefined,
+    wantsCapsule: Boolean(row.wants_capsule),
+    confirmedAt: new Date(String(row.confirmed_at)).toISOString()
+  };
+}
+
+export const postgresGuestRsvps: GuestRsvpRepository = {
+  async create(input: CreateGuestRsvpInput): Promise<GuestRsvp> {
+    const sql = getSql();
+    const rows = await sql`
+      insert into guest_rsvps (event_id, guest_name, phone, wants_capsule)
+      values (${input.eventId}, ${input.guestName}, ${input.phone ?? null}, ${input.wantsCapsule})
+      returning *
+    `;
+    return rowToGuestRsvp(rows[0]);
+  },
+  async listByEvent(eventId: string): Promise<GuestRsvp[]> {
+    const sql = getSql();
+    const rows = await sql`
+      select * from guest_rsvps where event_id = ${eventId} order by confirmed_at desc
+    `;
+    return rows.map(rowToGuestRsvp);
+  }
+};
+
 export const postgresAudit: AuditRepository = {
   async record(input) {
     const sql = getSql();
@@ -423,5 +458,6 @@ export const postgresRepositories = {
   members: postgresMembers,
   media: postgresMedia,
   likes: postgresLikes,
-  audit: postgresAudit
+  audit: postgresAudit,
+  guestRsvps: postgresGuestRsvps
 };

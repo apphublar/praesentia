@@ -3,15 +3,17 @@ import { randomUUID } from "node:crypto";
 import type {
   AuditRepository,
   CreateEventInput,
+  CreateGuestRsvpInput,
   CreateMediaInput,
   EventRepository,
+  GuestRsvpRepository,
   LikeRepository,
   MediaRepository,
   MemberRepository,
   UserRepository
 } from "@/lib/db/repositories";
 import { PLANS } from "@/lib/plans";
-import type { Event, EventMember, MediaItem } from "@/types/domain";
+import type { Event, GuestRsvp, MediaItem } from "@/types/domain";
 
 function createId(prefix: string) {
   return `${prefix}_${randomUUID()}`;
@@ -49,7 +51,8 @@ export const inMemoryEvents: EventRepository = {
       freeCode: Math.random().toString(36).slice(2, 8),
       title: input.title,
       theme: input.theme,
-      hostName: users.find((user) => user.id === input.ownerId)?.name ?? "Responsavel",
+      eventType: input.eventType,
+      hostName: input.hostName || users.find((user) => user.id === input.ownerId)?.name || "Responsavel",
       date: input.date,
       startsAt: input.startsAt,
       endsAt: input.endsAt,
@@ -273,11 +276,32 @@ export const inMemoryAudit: AuditRepository = {
   }
 };
 
+const guestRsvpStore: GuestRsvp[] = [];
+
+export const inMemoryGuestRsvps: GuestRsvpRepository = {
+  async create(input: CreateGuestRsvpInput): Promise<GuestRsvp> {
+    const rsvp: GuestRsvp = {
+      id: createId("rsvp"),
+      eventId: input.eventId,
+      guestName: input.guestName,
+      phone: input.phone,
+      wantsCapsule: input.wantsCapsule,
+      confirmedAt: new Date().toISOString()
+    };
+    guestRsvpStore.push(rsvp);
+    return rsvp;
+  },
+  async listByEvent(eventId: string): Promise<GuestRsvp[]> {
+    return guestRsvpStore.filter((r) => r.eventId === eventId);
+  }
+};
+
 export const repositories = {
   users: inMemoryUsers,
   events: inMemoryEvents,
   members: inMemoryMembers,
   media: inMemoryMedia,
   likes: inMemoryLikes,
-  audit: inMemoryAudit
+  audit: inMemoryAudit,
+  guestRsvps: inMemoryGuestRsvps
 };
