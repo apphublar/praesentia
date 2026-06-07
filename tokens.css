@@ -1,0 +1,186 @@
+/* Memories — tokens de design */
+
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Bricolage+Grotesque:opsz,wght@12..96,300..800&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root {
+  /* Direção A — Festa (scrapbook acolhedor) */
+  --a-bg: #F7EEDB;
+  --a-bg-2: #EFE2C6;
+  --a-card: #FFFAF0;
+  --a-ink: #1B1209;
+  --a-ink-2: #5A4A36;
+  --a-line: #1B1209;
+  --a-coral: #FF6B5C;
+  --a-sol: #FFB23E;
+  --a-ceu: #6AB7E8;
+  --a-uva: #B69AE8;
+  --a-jardim: #6FBF73;
+  --a-tape: #FFE26B;
+
+  /* Direção B — Cápsula (pop editorial) */
+  --b-bg: #EFEAD8;
+  --b-card: #FFFFFF;
+  --b-ink: #0E0B14;
+  --b-ink-2: #5C5366;
+  --b-magenta: #E83E8C;
+  --b-azul: #2A5BFF;
+  --b-mostarda: #FFC93C;
+  --b-jade: #00B27A;
+  --b-ametista: #6B3AE8;
+  --b-noite: #131022;
+}
+
+* { box-sizing: border-box; }
+
+.font-a-display { font-family: 'DM Serif Display', Georgia, serif; font-weight: 400; letter-spacing: -0.01em; }
+.font-a-display-i { font-family: 'DM Serif Display', Georgia, serif; font-style: italic; font-weight: 400; }
+.font-a-body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
+
+.font-b-display { font-family: 'Bricolage Grotesque', system-ui, sans-serif; font-weight: 700; letter-spacing: -0.035em; }
+.font-b-body { font-family: 'Instrument Serif', Georgia, serif; }
+.font-b-sans { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
+.font-mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+
+/* ---- generic helpers used inside artboards ---- */
+.scroll { overflow: auto; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { scrollbar-width: none; }
+
+/* Striped placeholder (per default aesthetic rule for imagery) */
+.ph-stripes {
+  background-image: repeating-linear-gradient(
+    135deg,
+    rgba(0,0,0,0.06) 0 6px,
+    transparent 6px 12px
+  );
+}
+.ph-label {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(0,0,0,0.45);
+}
+
+/* Tape / scrapbook flourish for direction A */
+.tape {
+  position: absolute;
+  width: 78px; height: 22px;
+  background: rgba(255, 226, 107, 0.85);
+  box-shadow: inset 0 0 0 0.5px rgba(0,0,0,0.06);
+}
+.tape::before, .tape::after {
+  content: '';
+  position: absolute; top: 0; bottom: 0; width: 6px;
+  background-image: linear-gradient(90deg, rgba(0,0,0,0.05) 0 1px, transparent 1px),
+                    radial-gradient(circle at 50% 50%, rgba(255,255,255,0.45), transparent 60%);
+}
+.tape::before { left: -3px; }
+.tape::after { right: -3px; }
+
+/* polaroid */
+.polaroid {
+  background: #fff;
+  padding: 10px 10px 36px 10px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.10), 0 1.5px 3px rgba(0,0,0,0.08);
+  border-radius: 2px;
+}
+
+/* hand-drawn underline */
+.hand-underline {
+  background-image: linear-gradient(transparent 78%, currentColor 78%, currentColor 90%, transparent 90%);
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  padding: 0 2px;
+}
+
+/* dotted divider */
+.dotted {
+  background-image: radial-gradient(currentColor 0.8px, transparent 0.9px);
+  background-size: 6px 6px;
+  background-repeat: repeat-x;
+  background-position: 0 50%;
+  height: 6px;
+}
+
+/* ring badges for direction B */
+.ring-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 64px; height: 64px; border-radius: 999px;
+  border: 1.5px solid currentColor;
+  position: relative;
+}
+.ring-badge::before {
+  content: ''; position: absolute; inset: 5px; border-radius: 999px;
+  border: 1.5px solid currentColor;
+}
+.ring-badge::after {
+  content: ''; position: absolute; inset: 10px; border-radius: 999px;
+  border: 1.5px solid currentColor;
+}
+
+/* dashed perforation (ticket) */
+.perf-y {
+  background-image: linear-gradient(currentColor 50%, transparent 50%);
+  background-size: 2px 6px;
+  background-repeat: repeat-y;
+  width: 2px;
+}
+
+/* glyph dot grid for capsule headers */
+.capsule-grid {
+  background-image:
+    radial-gradient(rgba(14,11,20,0.35) 1px, transparent 1.4px);
+  background-size: 14px 14px;
+}
+
+/* button base */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: 8px; cursor: pointer; user-select: none;
+  font-family: inherit; border: 0; outline: 0;
+}
+
+/* timeline thread */
+.thread {
+  background: repeating-linear-gradient(180deg,
+    currentColor 0 3px, transparent 3px 9px);
+  width: 2px;
+}
+
+/* tiny pill */
+.pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 10px; border-radius: 999px;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* status dot blink */
+@keyframes blink { 0%, 60% { opacity: 1 } 70%, 100% { opacity: 0.25 } }
+.live-dot { animation: blink 1.4s ease-in-out infinite; }
+
+/* gentle float */
+@keyframes float { 0%, 100% { transform: translateY(0) } 50% { transform: translateY(-4px) } }
+.float { animation: float 4s ease-in-out infinite; }
+
+/* spinning ring (used in chat) */
+@keyframes spin { to { transform: rotate(360deg) } }
+.spin { animation: spin 4s linear infinite; }
+
+/* ─── responsive helpers for the site ─── */
+@media (max-width: 880px) {
+  .grid-collapse { grid-template-columns: 1fr !important; }
+  .grid-collapse-2 { grid-template-columns: 1fr !important; }
+  .nav-links { display: none !important; }
+  .mural-cols { column-count: 2 !important; }
+}
+@media (max-width: 640px) {
+  .grid-collapse-3 { grid-template-columns: 1fr !important; }
+  .grid-collapse-4 { grid-template-columns: 1fr 1fr !important; }
+  .mural-cols { column-count: 1 !important; }
+}
+@media (max-width: 1080px) and (min-width: 881px) {
+  .grid-collapse-4 { grid-template-columns: 1fr 1fr !important; }
+  .mural-cols { column-count: 3 !important; }
+}

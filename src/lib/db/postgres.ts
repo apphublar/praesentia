@@ -1,0 +1,427 @@
+import { getSql } from "@/lib/db/client";
+import type {
+  AuditRepository,
+  CreateEventInput,
+  CreateMediaInput,
+  EventRepository,
+  LikeRepository,
+  MediaRepository,
+  MemberRepository,
+  UserRepository
+} from "@/lib/db/repositories";
+import { bytesFromGb, PLANS } from "@/lib/plans";
+import type { Event, EventMember, MediaItem, User } from "@/types/domain";
+
+function rowToUser(row: Record<string, unknown>): User {
+  return {
+    id: String(row.id),
+    name: String(row.name),
+    email: String(row.email),
+    role: row.role as User["role"]
+  };
+}
+
+function rowToEvent(row: Record<string, unknown>): Event {
+  const plan = PLANS[row.plan_tier as keyof typeof PLANS] ?? PLANS.free;
+  return {
+    id: String(row.id),
+    slug: String(row.slug),
+    freeCode: row.free_code ? String(row.free_code) : undefined,
+    subdomain: row.subdomain ? String(row.subdomain) : undefined,
+    title: String(row.title),
+    theme: String(row.theme),
+    hostName: String(row.host_name ?? row.owner_name ?? "Responsavel"),
+    date: String(row.date),
+    startsAt: String(row.starts_at),
+    endsAt: String(row.ends_at),
+    venueName: String(row.venue_name),
+    venueAddress: String(row.venue_address),
+    city: String(row.city),
+    visibility: row.visibility as Event["visibility"],
+    phase: row.phase as Event["phase"],
+    plan,
+    storageUsedGb: Number(row.storage_used_bytes ?? 0) / 1024 / 1024 / 1024,
+    pix: row.pix_enabled
+      ? {
+          enabled: Boolean(row.pix_enabled),
+          receiverName: String(row.pix_receiver_name),
+          key: String(row.pix_key_encrypted),
+          suggestedAmount: row.pix_suggested_amount_cents ? Number(row.pix_suggested_amount_cents) / 100 : undefined,
+          message: row.pix_message ? String(row.pix_message) : undefined
+        }
+      : undefined,
+    screen: {
+      enabled: Boolean(row.screen_enabled),
+      token: "stored-as-hash",
+      paused: Boolean(row.screen_paused),
+      showQrCode: row.screen_show_qr_code !== false,
+      showVideos: row.screen_show_videos !== false,
+      showMessages: row.screen_show_messages !== false,
+      layout: "recent_plus_top3"
+    }
+  };
+}
+
+function rowToMember(row: Record<string, unknown>): EventMember {
+  return {
+    id: String(row.id),
+    eventId: String(row.event_id),
+    userId: String(row.user_id),
+    role: row.role as EventMember["role"],
+    rsvpStatus: row.rsvp_status as EventMember["rsvpStatus"],
+    accessStatus: row.access_status as EventMember["accessStatus"],
+    joinedAt: new Date(String(row.joined_at)).toISOString()
+  };
+}
+
+function rowToMedia(row: Record<string, unknown>): MediaItem {
+  return {
+    id: String(row.id),
+    eventId: String(row.event_id),
+    userId: String(row.user_id),
+    authorName: String(row.author_name ?? "Convidado"),
+    type: row.type as MediaItem["type"],
+    status: row.status as MediaItem["status"],
+    visibleOnScreen: Boolean(row.visible_on_screen),
+    r2Key: row.r2_key ? String(row.r2_key) : undefined,
+    url: row.url ? String(row.url) : undefined,
+    thumbnailUrl: row.thumbnail_url ? String(row.thumbnail_url) : undefined,
+    text: row.text ? String(row.text) : undefined,
+    byteSize: Number(row.byte_size ?? 0),
+    likesCount: Number(row.likes_count ?? 0),
+    createdAt: new Date(String(row.created_at)).toISOString()
+  };
+}
+
+export const postgresUsers: UserRepository = {
+  async findById(id) {
+    const sql = getSql();
+    const rows = await sql`select id, name, email, role from users where id = ${id} limit 1`;
+    return rows[0] ? rowToUser(rows[0]) : null;
+  },
+  async findByEmail(email) {
+    const sql = getSql();
+    const rows = await sql`select id, name, email, role from users where email = ${email} limit 1`;
+    return rows[0] ? rowToUser(rows[0]) : null;
+  }
+};
+
+export const postgresEvents: EventRepository = {
+  async findById(id) {
+    const sql = getSql();
+    const rows = await sql`
+      select e.*, u.name as owner_name, p.enabled as pix_enabled, p.receiver_name as pix_receiver_name,
+        p.key_encrypted as pix_key_encrypted, p.suggested_amount_cents as pix_suggested_amount_cents,
+        p.message as pix_message, s.enabled as screen_enabled, s.paused as screen_paused,
+        s.show_qr_code as screen_show_qr_code, s.show_videos as screen_show_videos,
+        s.show_messages as screen_show_messages
+      from events e
+      join users u on u.id = e.owner_id
+      left join pix_settings p on p.event_id = e.id
+      left join screen_settings s on s.event_id = e.id
+      where e.id = ${id}
+      limit 1
+    `;
+    return rows[0] ? rowToEvent(rows[0]) : null;
+  },
+  async findBySlugOrCode(slugOrCode) {
+    const sql = getSql();
+    const rows = await sql`
+      select e.*, u.name as owner_name, p.enabled as pix_enabled, p.receiver_name as pix_receiver_name,
+        p.key_encrypted as pix_key_encrypted, p.suggested_amount_cents as pix_suggested_amount_cents,
+        p.message as pix_message, s.enabled as screen_enabled, s.paused as screen_paused,
+        s.show_qr_code as screen_show_qr_code, s.show_videos as screen_show_videos,
+        s.show_messages as screen_show_messages
+      from events e
+      join users u on u.id = e.owner_id
+      left join pix_settings p on p.event_id = e.id
+      left join screen_settings s on s.event_id = e.id
+      where e.slug = ${slugOrCode} or e.free_code = ${slugOrCode}
+      limit 1
+    `;
+    return rows[0] ? rowToEvent(rows[0]) : null;
+  },
+  async listByOwner(userId) {
+    const sql = getSql();
+    const rows = await sql`
+      select e.*, u.name as owner_name, p.enabled as pix_enabled, p.receiver_name as pix_receiver_name,
+        p.key_encrypted as pix_key_encrypted, p.suggested_amount_cents as pix_suggested_amount_cents,
+        p.message as pix_message, s.enabled as screen_enabled, s.paused as screen_paused,
+        s.show_qr_code as screen_show_qr_code, s.show_videos as screen_show_videos,
+        s.show_messages as screen_show_messages
+      from events e
+      join users u on u.id = e.owner_id
+      join event_members m on m.event_id = e.id
+      left join pix_settings p on p.event_id = e.id
+      left join screen_settings s on s.event_id = e.id
+      where m.user_id = ${userId} and m.role in ('owner', 'manager')
+      order by e.created_at desc
+    `;
+    return rows.map(rowToEvent);
+  },
+  async create(input: CreateEventInput) {
+    const sql = getSql();
+    const plan = PLANS.free;
+    const slug = input.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+    const rows = await sql`
+      insert into events (
+        owner_id, slug, free_code, title, theme, date, starts_at, ends_at, venue_name,
+        venue_address, city, plan_tier, storage_limit_bytes, retention_until
+      )
+      values (
+        ${input.ownerId}, ${slug}, ${Math.random().toString(36).slice(2, 8)}, ${input.title},
+        ${input.theme}, ${input.date}, ${input.startsAt}, ${input.endsAt}, ${input.venueName},
+        ${input.venueAddress}, ${input.city}, ${plan.tier}, ${bytesFromGb(plan.storageGb)},
+        now() + interval '36 months'
+      )
+      returning *
+    `;
+    await sql`
+      insert into event_members (event_id, user_id, role, rsvp_status)
+      values (${rows[0].id}, ${input.ownerId}, 'owner', 'confirmed')
+    `;
+    return (await this.findById(String(rows[0].id))) as Event;
+  },
+  async setVisibility(eventId, visibility) {
+    const sql = getSql();
+    await sql`update events set visibility = ${visibility}, updated_at = now() where id = ${eventId}`;
+    return (await this.findById(eventId)) as Event;
+  },
+  async updatePixSettings(eventId, _actorUserId, input) {
+    const sql = getSql();
+    if (!input) {
+      await sql`delete from pix_settings where event_id = ${eventId}`;
+      return (await this.findById(eventId)) as Event;
+    }
+    await sql`
+      insert into pix_settings (event_id, enabled, receiver_name, key_encrypted, suggested_amount_cents, message)
+      values (
+        ${eventId}, ${input.enabled}, ${input.receiverName}, ${input.key},
+        ${input.suggestedAmount ? Math.round(input.suggestedAmount * 100) : null}, ${input.message ?? null}
+      )
+      on conflict (event_id) do update set
+        enabled = excluded.enabled,
+        receiver_name = excluded.receiver_name,
+        key_encrypted = excluded.key_encrypted,
+        suggested_amount_cents = excluded.suggested_amount_cents,
+        message = excluded.message,
+        updated_at = now()
+    `;
+    return (await this.findById(eventId)) as Event;
+  },
+  async updateScreenSettings(eventId, _actorUserId, input) {
+    const sql = getSql();
+    await sql`
+      insert into screen_settings (
+        event_id, enabled, token_hash, paused, show_qr_code, show_videos, show_messages
+      )
+      values (
+        ${eventId}, ${input.enabled}, ${input.token}, ${input.paused}, ${input.showQrCode},
+        ${input.showVideos}, ${input.showMessages}
+      )
+      on conflict (event_id) do update set
+        enabled = excluded.enabled,
+        paused = excluded.paused,
+        show_qr_code = excluded.show_qr_code,
+        show_videos = excluded.show_videos,
+        show_messages = excluded.show_messages,
+        updated_at = now()
+    `;
+    return (await this.findById(eventId)) as Event;
+  }
+};
+
+export const postgresMembers: MemberRepository = {
+  async findMembership(eventId, userId) {
+    const sql = getSql();
+    const rows = await sql`select * from event_members where event_id = ${eventId} and user_id = ${userId} limit 1`;
+    return rows[0] ? rowToMember(rows[0]) : null;
+  },
+  async listByEvent(eventId) {
+    const sql = getSql();
+    const rows = await sql`select * from event_members where event_id = ${eventId} order by joined_at desc`;
+    return rows.map(rowToMember);
+  },
+  async confirmRsvp(eventId, userId) {
+    const sql = getSql();
+    const rows = await sql`
+      update event_members set rsvp_status = 'confirmed', updated_at = now()
+      where event_id = ${eventId} and user_id = ${userId}
+      returning *
+    `;
+    if (!rows[0]) throw new Error("MEMBER_NOT_FOUND");
+    return rowToMember(rows[0]);
+  },
+  async blockGuest(eventId, userId, actorUserId) {
+    const sql = getSql();
+    const rows = await sql.begin(async (tx) => {
+      const updated = await tx`
+        update event_members
+        set access_status = 'blocked', blocked_at = now(), blocked_by_user_id = ${actorUserId}, updated_at = now()
+        where event_id = ${eventId} and user_id = ${userId}
+        returning *
+      `;
+      await tx`
+        update media_items
+        set status = 'archived', visible_on_screen = false, archived_at = now(), updated_at = now()
+        where event_id = ${eventId} and user_id = ${userId} and status = 'published'
+      `;
+      return updated;
+    });
+    if (!rows[0]) throw new Error("MEMBER_NOT_FOUND");
+    return rowToMember(rows[0]);
+  },
+  async unblockGuest(eventId, userId) {
+    const sql = getSql();
+    const rows = await sql`
+      update event_members
+      set access_status = 'active', blocked_at = null, blocked_by_user_id = null, updated_at = now()
+      where event_id = ${eventId} and user_id = ${userId}
+      returning *
+    `;
+    if (!rows[0]) throw new Error("MEMBER_NOT_FOUND");
+    return rowToMember(rows[0]);
+  }
+};
+
+export const postgresMedia: MediaRepository = {
+  async listPublishedByEvent(eventId) {
+    const sql = getSql();
+    const rows = await sql`
+      select m.*, u.name as author_name
+      from media_items m
+      join users u on u.id = m.user_id
+      where m.event_id = ${eventId} and m.status = 'published'
+      order by m.created_at desc
+    `;
+    return rows.map(rowToMedia);
+  },
+  async create(input: CreateMediaInput) {
+    const sql = getSql();
+    const byteSize = input.byteSize ?? 0;
+    const rows = await sql.begin(async (tx) => {
+      const inserted = await tx`
+        insert into media_items (event_id, user_id, type, r2_key, url, thumbnail_url, text, byte_size)
+        values (
+          ${input.eventId}, ${input.userId}, ${input.type}, ${input.r2Key ?? null}, ${input.url ?? null},
+          ${input.thumbnailUrl ?? null}, ${input.text ?? null}, ${byteSize}
+        )
+        returning *
+      `;
+      if (byteSize > 0) {
+        await tx`
+          update events
+          set storage_used_bytes = storage_used_bytes + ${byteSize}, updated_at = now()
+          where id = ${input.eventId}
+        `;
+      }
+      return inserted;
+    });
+    const user = await postgresUsers.findById(input.userId);
+    return rowToMedia({ ...rows[0], author_name: user?.name ?? "Convidado" });
+  },
+  async archive(mediaId) {
+    const sql = getSql();
+    const rows = await sql`
+      update media_items
+      set status = 'archived', visible_on_screen = false, archived_at = now(), updated_at = now()
+      where id = ${mediaId}
+      returning *
+    `;
+    if (!rows[0]) throw new Error("MEDIA_NOT_FOUND");
+    return rowToMedia(rows[0]);
+  },
+  async archiveByUser(eventId, userId) {
+    const sql = getSql();
+    const rows = await sql`
+      update media_items
+      set status = 'archived', visible_on_screen = false, archived_at = now(), updated_at = now()
+      where event_id = ${eventId} and user_id = ${userId} and status = 'published'
+      returning id
+    `;
+    return rows.length;
+  },
+  async delete(mediaId) {
+    const sql = getSql();
+    await sql.begin(async (tx) => {
+      const rows = await tx`
+        update media_items
+        set status = 'deleted', visible_on_screen = false, deleted_at = now(), updated_at = now()
+        where id = ${mediaId} and status <> 'deleted'
+        returning event_id, byte_size
+      `;
+      const row = rows[0];
+      if (row && Number(row.byte_size ?? 0) > 0) {
+        await tx`
+          update events
+          set storage_used_bytes = greatest(0, storage_used_bytes - ${Number(row.byte_size)}), updated_at = now()
+          where id = ${String(row.event_id)}
+        `;
+      }
+    });
+  },
+  async setScreenVisibility(mediaId, visible) {
+    const sql = getSql();
+    const rows = await sql`
+      update media_items set visible_on_screen = ${visible}, updated_at = now()
+      where id = ${mediaId}
+      returning *
+    `;
+    if (!rows[0]) throw new Error("MEDIA_NOT_FOUND");
+    return rowToMedia(rows[0]);
+  }
+};
+
+export const postgresLikes: LikeRepository = {
+  async toggleLike(eventId, mediaId, userId) {
+    const sql = getSql();
+    return sql.begin(async (tx) => {
+      const existing = await tx`
+        select 1 from media_likes where event_id = ${eventId} and media_id = ${mediaId} and user_id = ${userId}
+      `;
+      if (existing[0]) {
+        await tx`delete from media_likes where event_id = ${eventId} and media_id = ${mediaId} and user_id = ${userId}`;
+        const rows = await tx`
+          update media_items set likes_count = greatest(0, likes_count - 1)
+          where id = ${mediaId} and event_id = ${eventId}
+          returning likes_count
+        `;
+        return { liked: false, likesCount: Number(rows[0]?.likes_count ?? 0) };
+      }
+
+      await tx`
+        insert into media_likes (event_id, media_id, user_id)
+        values (${eventId}, ${mediaId}, ${userId})
+      `;
+      const rows = await tx`
+        update media_items set likes_count = likes_count + 1
+        where id = ${mediaId} and event_id = ${eventId}
+        returning likes_count
+      `;
+      return { liked: true, likesCount: Number(rows[0]?.likes_count ?? 0) };
+    });
+  }
+};
+
+export const postgresAudit: AuditRepository = {
+  async record(input) {
+    const sql = getSql();
+    const metadata = JSON.stringify(input.metadata ?? {});
+    await sql`
+      insert into audit_logs (actor_user_id, event_id, action, target_type, target_id, metadata)
+      values (
+        ${input.actorUserId}, ${input.eventId}, ${input.action}, ${input.targetType},
+        ${input.targetId ?? null}, ${metadata}::jsonb
+      )
+    `;
+  }
+};
+
+export const postgresRepositories = {
+  users: postgresUsers,
+  events: postgresEvents,
+  members: postgresMembers,
+  media: postgresMedia,
+  likes: postgresLikes,
+  audit: postgresAudit
+};

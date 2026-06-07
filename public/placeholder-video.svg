@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="720" viewBox="0 0 960 720" role="img" aria-label="Video do evento">
+  <rect width="960" height="720" fill="#D9E8F4"/>
+  <rect x="160" y="96" width="640" height="480" rx="24" fill="#1B1209" fill-opacity=".82"/>
+  <path d="M430 268v136l116-68z" fill="#FFB23E"/>
+  <text x="480" y="650" text-anchor="middle" font-family="Arial, sans-serif" font-size="28" fill="#5A4A36">video do evento</text>
+</svg>

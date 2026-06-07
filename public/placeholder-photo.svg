@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="720" viewBox="0 0 960 720" role="img" aria-label="Foto do evento">
+  <rect width="960" height="720" fill="#F1D8C9"/>
+  <path d="M0 96h960M0 192h960M0 288h960M0 384h960M0 480h960M0 576h960" stroke="#1B1209" stroke-opacity=".08" stroke-width="18"/>
+  <circle cx="682" cy="222" r="76" fill="#FFB23E"/>
+  <path d="M160 548 334 344l138 154 92-110 236 160z" fill="#6FBF73"/>
+  <text x="480" y="650" text-anchor="middle" font-family="Arial, sans-serif" font-size="28" fill="#5A4A36">foto do evento</text>
+</svg>

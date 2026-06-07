@@ -1,0 +1,86 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { repositories } from "@/lib/db";
+import { createSessionToken, SESSION_COOKIE_NAME, sessionCookieOptions } from "@/lib/auth/session-cookie";
+import { sanitizeText } from "@/lib/security/sanitize";
+
+export type AuthActionState = {
+  error?: string;
+  notice?: string;
+};
+
+function sanitizeRedirectPath(value: FormDataEntryValue | null) {
+  const next = typeof value === "string" ? value : "";
+  if (!next.startsWith("/") || next.startsWith("//")) return "/dashboard";
+  return next;
+}
+
+async function issuePraesentiaSession(userId: string, nextPath: string) {
+  const user = await repositories.users.findById(userId);
+  if (!user) {
+    return {
+      error: "Perfil ainda nao esta pronto. Aguarde alguns segundos e tente novamente."
+    };
+  }
+
+  const cookieStore = await cookies();
+  const token = createSessionToken({ userId: user.id, role: user.role, reauth: true });
+  cookieStore.set(SESSION_COOKIE_NAME, token, sessionCookieOptions);
+
+  revalidatePath("/", "layout");
+  redirect(nextPath);
+}
+
+export async function loginWithSupabase(_state: AuthActionState, formData: FormData): Promise<AuthActionState> {
+  const email = sanitizeText(formData.get("email"), 180).toLowerCase();
+  const password = String(formData.get("password") ?? "");
+  const nextPath = sanitizeRedirectPath(formData.get("next"));
+
+  if (!email || password.length < 6) {
+    return { error: "Informe email e senha para entrar." };
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+  if (error || !data.user) {
+    return { error: "Email ou senha invalidos." };
+  }
+
+  return issuePraesentiaSession(data.user.id, nextPath);
+}
+
+export async function signUpWithSupabase(_state: AuthActionState, formData: FormData): Promise<AuthActionState> {
+  const name = sanitizeText(formData.get("name"), 120);
+  const email = sanitizeText(formData.get("email"), 180).toLowerCase();
+  const password = String(formData.get("password") ?? "");
+  const nextPath = sanitizeRedirectPath(formData.get("next"));
+
+  if (!name || !email || password.length < 8) {
+    return { error: "Informe nome, email e uma senha com pelo menos 8 caracteres." };
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: { name },
+      emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/auth/callback?next=${encodeURIComponent(nextPath)}`
+    }
+  });
+
+  if (error) {
+    return { error: "Nao foi possivel criar sua conta agora." };
+  }
+
+  if (!data.session || !data.user) {
+    return { notice: "Conta criada. Confira seu email para confirmar o acesso." };
+  }
+
+  return issuePraesentiaSession(data.user.id, nextPath);
+}
