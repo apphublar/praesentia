@@ -25,11 +25,11 @@ function contentSecurityPolicy() {
     "frame-ancestors 'self'",
     "form-action 'self'",
     "script-src 'self' 'unsafe-inline'",
-    "style-src 'self' 'unsafe-inline'",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     `img-src ${imageSources.join(" ")}`,
     `media-src ${mediaSources.join(" ")}`,
     `connect-src ${connectSources.join(" ")}`,
-    "font-src 'self' data:",
+    "font-src 'self' data: https://fonts.gstatic.com",
     "upgrade-insecure-requests"
   ].join("; ");
 }
