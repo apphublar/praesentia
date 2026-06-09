@@ -27,11 +27,11 @@ export default async function LoginPage({
           <h1 className="display-i">Login da Praesentia</h1>
           {showDevLogin ? (
             <p>
-              Este ambiente esta com login de desenvolvimento habilitado explicitamente para testar o fluxo do responsavel e do admin.
+              Este ambiente está com login de desenvolvimento habilitado explicitamente para testar o fluxo do responsável e do admin.
             </p>
           ) : (
             <p>
-              Entre com uma conta Supabase Auth para acessar dashboard, administracao e criacao de eventos.
+              Entre com uma conta Supabase Auth para acessar dashboard, administração e criação de eventos.
             </p>
           )}
         </section>

@@ -1,18 +1,19 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { EventSettingsForms } from "@/components/dashboard/event-settings-forms";
 import { CoverGenerator } from "@/components/dashboard/cover-generator";
-import { InviteTextGenerator } from "@/components/dashboard/invite-text-generator";
+import { EventSettingsForms } from "@/components/dashboard/event-settings-forms";
+import { EventSharePanel } from "@/components/dashboard/event-share-panel";
 import { GuestListPanel } from "@/components/dashboard/guest-list-panel";
+import { InviteTextEditor } from "@/components/dashboard/invite-text-editor";
+import { LockedCapsulePreview } from "@/components/dashboard/locked-capsule-preview";
 import { PlanUpgradePanel } from "@/components/dashboard/plan-upgrade-panel";
-import { StoragePanel } from "@/components/dashboard/storage-panel";
 import { OwnerMediaControls } from "@/components/event/owner-media-controls";
 import { AppNav } from "@/components/layout/app-nav";
 import { canManageEvent } from "@/lib/auth/permissions";
 import { requireSession } from "@/lib/auth/session";
 import { repositories } from "@/lib/db";
+import { getEventProfile } from "@/lib/events/event-profile";
 import { getAiCoverQuota, getAiTextQuota, hasCapsuleAccess } from "@/lib/plans/features";
-import { resolveStorageContext } from "@/lib/storage/context";
 
 export default async function EventDashboardPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await requireSession();
@@ -20,6 +21,7 @@ export default async function EventDashboardPage({ params }: { params: Promise<{
   const event = await repositories.events.findById(id);
   if (!event) notFound();
 
+  const profile = getEventProfile(event.eventType);
   const media = await repositories.media.listPublishedByEvent(event.id);
   const eventMembers = await repositories.members.listByEvent(event.id);
   const guestRsvps = await repositories.guestRsvps.listByEvent(event.id);
@@ -27,81 +29,79 @@ export default async function EventDashboardPage({ params }: { params: Promise<{
   const subscription = await repositories.subscriptions.findActiveByUser(session.user.id);
   const allowed = canManageEvent(session.user, membership ?? undefined);
   const capsuleActive = hasCapsuleAccess(event);
-  const aiQuota = getAiCoverQuota(event);
   const textQuota = getAiTextQuota(event);
-  const storageContext = capsuleActive ? await resolveStorageContext(event) : null;
+  const coverQuota = getAiCoverQuota(event);
 
   return (
     <>
       <AppNav />
-      <main className="shell paper" style={{ padding: "42px 0 90px" }}>
-        <span className="pill">gestao do evento · {event.plan.label}</span>
-        <h1 className="display-i" style={{ fontSize: "clamp(48px, 7vw, 88px)", lineHeight: 0.94, margin: "14px 0 22px" }}>
+      <main className="shell paper dashboard-main" style={{ padding: "42px 0 90px" }}>
+        <span className="pill">painel do evento · {event.plan.label}</span>
+        <h1 className="display-i" style={{ fontSize: "clamp(36px, 6vw, 72px)", lineHeight: 0.94, margin: "14px 0 22px" }}>
           {event.title}
         </h1>
 
         {!allowed && (
-          <section className="card" style={{ padding: 22, marginBottom: 24, borderColor: "var(--coral)" }}>
+          <section className="card dashboard-card" style={{ borderColor: "var(--coral)" }}>
             <h2 style={{ marginTop: 0 }}>Acesso negado</h2>
             <p style={{ color: "var(--ink-soft)", lineHeight: 1.55 }}>
-              Apenas o responsavel ou um gestor do evento pode acessar este painel.
+              Apenas o responsável ou um gestor do evento pode acessar este painel.
             </p>
           </section>
         )}
 
         {allowed && (
-          <>
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 24 }}>
+          <div className="dashboard-stack">
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
               <Link className="btn" href={`/evento/${event.slug}`}>
-                Abrir convite
+                Abrir {profile.isFundraising ? "vaquinha" : "convite"} público
+              </Link>
+              <Link className="btn secondary" href={`/criar/continuar/${event.id}`}>
+                Editar texto e imagem
               </Link>
               {capsuleActive && (
                 <Link className="btn secondary" href={`/evento/${event.slug}/telao`}>
-                  Abrir telao
+                  Abrir telão
                 </Link>
               )}
             </div>
 
-            <PlanUpgradePanel event={event} subscription={subscription} />
-
-            <section className="grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", marginBottom: 24 }}>
-              <Metric label="Confirmados (RSVP)" value={String(guestRsvps.length)} />
+            <section className="grid dashboard-metrics">
+              {profile.needsRsvp && <Metric label="Confirmados (RSVP)" value={String(guestRsvps.length)} />}
+              {!profile.isFundraising && (
+                <Metric label="Formato" value={event.eventFormat === "online" ? "Online" : event.eventFormat === "fundraising" ? "Vaquinha" : "Presencial"} />
+              )}
+              {profile.isFundraising && event.pix?.suggestedAmount ? (
+                <Metric label="Meta Pix" value={`R$ ${event.pix.suggestedAmount.toLocaleString("pt-BR")}`} />
+              ) : null}
               {capsuleActive && (
                 <>
-                  <Metric label="Midias publicadas" value={String(media.length)} />
+                  <Metric label="Mídias publicadas" value={String(media.length)} />
                   <Metric label="Curtidas totais" value={String(media.reduce((sum, item) => sum + item.likesCount, 0))} />
-                  <Metric
-                    label="Armazenamento"
-                    value={
-                      storageContext
-                        ? `${storageContext.snapshot.usedGb.toFixed(1)}/${storageContext.snapshot.contractedGb} GB`
-                        : `${event.storageUsedGb.toFixed(1)}/${event.plan.storageGb} GB`
-                    }
-                  />
                 </>
               )}
-              {!capsuleActive && <Metric label="Formato" value={event.eventFormat === "online" ? "Online" : "Presencial"} />}
             </section>
 
-            {capsuleActive && storageContext && (
-              <section className="grid-collapse" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18, marginBottom: 24 }}>
-                <StoragePanel eventId={event.id} snapshot={storageContext.snapshot} />
-                <article className="card" style={{ padding: 22, background: "var(--bg-soft)" }}>
-                  <span className="pill">mural ao vivo</span>
-                  <h2 className="display" style={{ fontSize: 30, margin: "12px 0" }}>Cápsula ativa</h2>
-                  <p style={{ color: "var(--ink-soft)", lineHeight: 1.55 }}>
-                    Convidados confirmados podem publicar fotos e recados. Somente o responsável pode enviar vídeos.
-                    O telao atualiza em tempo real. Apos o evento, o mesmo link vira cápsula do tempo por 36 meses.
-                  </p>
-                </article>
-              </section>
+            <div id={`ativar-capsula-${event.id}`}>
+              <PlanUpgradePanel event={event} subscription={subscription} />
+            </div>
+
+            {!capsuleActive && <LockedCapsulePreview eventId={event.id} />}
+
+            {capsuleActive && (
+              <article className="card dashboard-card" style={{ background: "var(--bg-soft)" }}>
+                <span className="pill">mural ao vivo</span>
+                <h2 className="display" style={{ fontSize: 30, margin: "12px 0" }}>Cápsula ativa</h2>
+                <p style={{ color: "var(--ink-soft)", lineHeight: 1.55 }}>
+                  Convidados confirmados podem publicar fotos e recados. Somente o responsável pode enviar vídeos.
+                </p>
+              </article>
             )}
 
-            <InviteTextGenerator
+            <InviteTextEditor
               eventId={event.id}
               eventSlug={event.slug}
-              capsuleActive={capsuleActive}
-              planTier={event.plan.tier}
+              isFundraising={profile.isFundraising}
               initialCopy={event.inviteCopy}
               initialQuota={textQuota}
             />
@@ -115,14 +115,24 @@ export default async function EventDashboardPage({ params }: { params: Promise<{
               coverSource={event.coverSource}
               pendingUrls={event.aiCoverPendingUrls}
               inviteWhatsappText={event.inviteCopy?.whatsapp}
-              initialQuota={aiQuota}
+              initialQuota={coverQuota}
             />
 
-            <GuestListPanel eventId={event.id} initialRsvps={guestRsvps} />
+            <EventSharePanel
+              eventSlug={event.slug}
+              eventTitle={event.title}
+              coverUrl={event.coverImageUrl}
+              whatsappText={event.inviteCopy?.whatsapp}
+              headline={event.inviteCopy?.headline}
+              message={event.inviteCopy?.message}
+            />
+
+            {profile.needsRsvp && <GuestListPanel eventId={event.id} initialRsvps={guestRsvps} />}
 
             <EventSettingsForms event={event} members={eventMembers} />
+
             {capsuleActive && <OwnerMediaControls items={media} />}
-          </>
+          </div>
         )}
       </main>
     </>
@@ -131,7 +141,7 @@ export default async function EventDashboardPage({ params }: { params: Promise<{
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <article className="card" style={{ padding: 20 }}>
+    <article className="card dashboard-card">
       <div style={{ color: "var(--ink-soft)", fontSize: 12, textTransform: "uppercase", fontWeight: 800 }}>{label}</div>
       <div className="display" style={{ fontSize: 42, marginTop: 8, lineHeight: 1 }}>{value}</div>
     </article>

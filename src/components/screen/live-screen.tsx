@@ -79,7 +79,7 @@ export function LiveScreen({ event, initialItems }: { event: Event; initialItems
             </h1>
             <div style={{ display: "flex", gap: 10, marginTop: 12, flexWrap: "wrap" }}>
               <span style={{ border: "1px solid rgba(247,238,219,.18)", borderRadius: 999, padding: "6px 10px", color: "rgba(247,238,219,.72)", fontSize: 12 }}>
-                ultima memória entra no destaque
+                última memória entra no destaque
               </span>
               <span style={{ border: "1px solid rgba(247,238,219,.18)", borderRadius: 999, padding: "6px 10px", color: "rgba(247,238,219,.72)", fontSize: 12 }}>
                 ranking por curtidas confidenciais
@@ -107,10 +107,10 @@ export function LiveScreen({ event, initialItems }: { event: Event; initialItems
         {!latest && (
           <div style={{ border: "1px solid rgba(247,238,219,.16)", borderRadius: 18, padding: 28, color: "rgba(247,238,219,.72)" }}>
             <h2 className="display-i" style={{ color: "#f7eedb", fontSize: 42, margin: 0 }}>
-              {liveEvent.screen.paused ? "Telão pausado." : "Aguardando memorias."}
+              {liveEvent.screen.paused ? "Telão pausado." : "Aguardando memórias."}
             </h2>
             <p style={{ marginBottom: 0 }}>
-              {liveEvent.screen.enabled ? "As proximas publicacoes aprovadas para o telao aparecem aqui." : "O responsavel desativou o telao deste evento."}
+              {liveEvent.screen.enabled ? "As próximas publicações aprovadas para o telão aparecem aqui." : "O responsável desativou o telão deste evento."}
             </p>
           </div>
         )}

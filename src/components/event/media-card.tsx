@@ -33,7 +33,7 @@ export function MediaCard({
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={item.thumbnailUrl || item.url}
-          alt={`Conteudo compartilhado por ${item.authorName}`}
+          alt={`Conteúdo compartilhado por ${item.authorName}`}
           style={{ width: "100%", aspectRatio: featured ? "16 / 10" : "4 / 3", objectFit: "cover", borderRadius: 8 }}
         />
       )}

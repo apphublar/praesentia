@@ -16,7 +16,7 @@ const VIDEO_ACCEPT = "video/mp4,video/quicktime";
 
 async function readJson(response: Response) {
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data.error ?? "Nao foi possivel enviar agora.");
+  if (!response.ok) throw new Error(data.error ?? "Não foi possível enviar agora.");
   return data;
 }
 
@@ -56,9 +56,9 @@ export function GuestContributionPanel({
     try {
       const res = await fetch(`/api/events/${eventId}/media/${mediaId}`, { method: "DELETE" });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error ?? "Nao foi possivel excluir.");
+      if (!res.ok) throw new Error(data.error ?? "Não foi possível excluir.");
       onDeleted?.(mediaId);
-      setState({ loading: false, message: "Conteudo excluido.", tone: "ok" });
+      setState({ loading: false, message: "Conteúdo excluído.", tone: "ok" });
     } catch (error) {
       setState({
         loading: false,
@@ -78,7 +78,7 @@ export function GuestContributionPanel({
       }));
       onCreated(data.item);
       setText("");
-      setState({ loading: false, message: "Recado enviado para a capsula.", tone: "ok" });
+      setState({ loading: false, message: "Recado enviado para a cápsula.", tone: "ok" });
     } catch (error) {
       setState({ loading: false, message: error instanceof Error ? error.message : "Falha ao enviar recado.", tone: "error" });
     }
@@ -91,7 +91,7 @@ export function GuestContributionPanel({
     }
 
     if (!canUploadVideo && file.type.startsWith("video/")) {
-      setState({ loading: false, message: "Somente o responsavel do evento pode enviar videos.", tone: "error" });
+      setState({ loading: false, message: "Somente o responsável do evento pode enviar vídeos.", tone: "error" });
       return;
     }
 
@@ -129,7 +129,7 @@ export function GuestContributionPanel({
 
       onCreated(data.item);
       setFile(null);
-      setState({ loading: false, message: "Memoria enviada para o mural.", tone: "ok" });
+      setState({ loading: false, message: "Memória enviada para o mural.", tone: "ok" });
     } catch (error) {
       setState({ loading: false, message: error instanceof Error ? error.message : "Falha ao enviar arquivo.", tone: "error" });
     }

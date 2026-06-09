@@ -11,11 +11,7 @@ export type EventType =
   | "cha_casa_nova"
   | "cha_pet"
   | "natal"
-  | "bar_mitzva"
-  | "bat_mitzva"
-  | "brit_mila"
   | "vaquinha"
-  | "caixinha_gratidao"
   | "casamento"
   | "corporativo"
   | "eventos_diversos"
@@ -26,7 +22,7 @@ export type AccessStatus = "active" | "blocked";
 export type MediaType = "photo" | "video" | "message";
 export type MediaStatus = "published" | "archived" | "deleted";
 export type PlanTier = "free" | "capsule" | "family";
-export type EventFormat = "in_person" | "online";
+export type EventFormat = "in_person" | "online" | "fundraising";
 export type CoverSource = "ai" | "custom";
 
 export type InviteCopy = {

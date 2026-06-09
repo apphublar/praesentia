@@ -12,7 +12,7 @@ export function EventSummary({ event }: { event: Event }) {
         <strong>{event.theme}</strong>.
       </p>
       <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", marginTop: 24 }}>
-        <Info label="Quando" value={`${event.date} - ${event.startsAt} as ${event.endsAt}`} />
+        <Info label="Quando" value={`${event.date} - ${event.startsAt} às ${event.endsAt}`} />
         <Info label="Onde" value={`${event.venueName}, ${event.city}`} />
         <Info label="Plano" value={`${event.plan.label} - ${event.plan.storageGb} GB`} />
       </div>

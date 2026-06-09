@@ -8,7 +8,7 @@ import { isValidPixKey, sanitizeText } from "@/lib/security/sanitize";
 export async function GET(_request: Request, context: { params: Promise<{ eventId: string }> }) {
   const { eventId } = await context.params;
   const event = await repositories.events.findById(eventId);
-  if (!event) return NextResponse.json({ error: "Evento nao encontrado." }, { status: 404 });
+  if (!event) return NextResponse.json({ error: "Evento não encontrado." }, { status: 404 });
 
   const media = await repositories.media.listPublishedByEvent(eventId);
   return NextResponse.json({ event, media });
@@ -20,10 +20,10 @@ export async function PATCH(request: Request, context: { params: Promise<{ event
 
   const { eventId } = await context.params;
   const session = await getCurrentSession();
-  if (!session) return NextResponse.json({ error: "Conta obrigatoria." }, { status: 401 });
+  if (!session) return NextResponse.json({ error: "Conta obrigatória." }, { status: 401 });
 
   const event = await repositories.events.findById(eventId);
-  if (!event) return NextResponse.json({ error: "Evento nao encontrado." }, { status: 404 });
+  if (!event) return NextResponse.json({ error: "Evento não encontrado." }, { status: 404 });
 
   const member = await repositories.members.findMembership(event.id, session.user.id);
   if (!canManageEvent(session.user, member ?? undefined)) return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
@@ -35,19 +35,19 @@ export async function PATCH(request: Request, context: { params: Promise<{ event
     try {
       requireRecentAuthentication(session);
     } catch {
-      return NextResponse.json({ error: "Reautenticacao necessaria para esta acao." }, { status: 428 });
+      return NextResponse.json({ error: "Reautenticação necessária para esta ação." }, { status: 428 });
     }
   }
 
   if (body.pix) {
     const key = sanitizeText(body.pix.key, 120);
     if (body.pix.enabled && !isValidPixKey(key)) {
-      return NextResponse.json({ error: "Chave Pix invalida." }, { status: 400 });
+      return NextResponse.json({ error: "Chave Pix inválida." }, { status: 400 });
     }
   }
 
   if (body.visibility === "public" && body.acceptedPublicTerms !== true) {
-    return NextResponse.json({ error: "Aceite os termos para tornar o evento publico." }, { status: 400 });
+    return NextResponse.json({ error: "Aceite os termos para tornar o evento público." }, { status: 400 });
   }
 
   if (body.visibility === "public" || body.visibility === "private") {

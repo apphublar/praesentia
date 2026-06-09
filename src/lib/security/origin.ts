@@ -13,7 +13,7 @@ export function assertTrustedOrigin(request: Request) {
   if (host) allowedOrigins.add(`https://${host}`);
 
   if (!origin || !allowedOrigins.has(origin)) {
-    return NextResponse.json({ error: "Origem da requisicao nao autorizada." }, { status: 403 });
+    return NextResponse.json({ error: "Origem da requisição não autorizada." }, { status: 403 });
   }
 
   return null;

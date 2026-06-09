@@ -25,7 +25,7 @@ export function LiveMural({ items }: { items: MediaItem[] }) {
         <div className="card" style={{ padding: 18 }}>
           <h2 style={{ margin: 0 }}>Favoritos do momento</h2>
           <p style={{ color: "var(--ink-soft)", fontSize: 13 }}>
-            Curtidas sao confidenciais: aparece apenas a quantidade total.
+            Curtidas são confidenciais: aparece apenas a quantidade total.
           </p>
           <div className="grid">
             {top3.map((item) => (

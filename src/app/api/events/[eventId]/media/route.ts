@@ -20,20 +20,20 @@ export async function POST(request: Request, context: { params: Promise<{ eventI
 
   const { eventId } = await context.params;
   const session = await getCurrentSession();
-  if (!session) return NextResponse.json({ error: "Conta obrigatoria." }, { status: 401 });
+  if (!session) return NextResponse.json({ error: "Conta obrigatória." }, { status: 401 });
 
   const limit = checkRateLimit(`media:${session.user.id}:${eventId}`, 12, 60_000);
   if (!limit.ok) return NextResponse.json({ error: "Muitas tentativas. Aguarde um pouco." }, { status: 429 });
 
   const event = await repositories.events.findById(eventId);
-  if (!event) return NextResponse.json({ error: "Evento nao encontrado." }, { status: 404 });
+  if (!event) return NextResponse.json({ error: "Evento não encontrado." }, { status: 404 });
 
   const member = await repositories.members.findMembership(event.id, session.user.id);
   if (!canContribute(event, member ?? undefined)) {
     if (!event.capsuleActivatedAt) {
       return NextResponse.json({ error: "Mural ao vivo disponível apenas com a Cápsula ativa." }, { status: 403 });
     }
-    return NextResponse.json({ error: "Somente convidados confirmados podem compartilhar memorias." }, { status: 403 });
+    return NextResponse.json({ error: "Somente convidados confirmados podem compartilhar memórias." }, { status: 403 });
   }
 
   const body = await request.json().catch(() => null);
@@ -54,7 +54,7 @@ export async function POST(request: Request, context: { params: Promise<{ eventI
     const size = Number(body?.size || 0);
     const validation = validateUploadRequest(contentType, size);
     if (!validation.ok) return NextResponse.json({ error: validation.error }, { status: 400 });
-    if (!isEventMediaKey(eventId, key)) return NextResponse.json({ error: "Chave de arquivo invalida." }, { status: 400 });
+    if (!isEventMediaKey(eventId, key)) return NextResponse.json({ error: "Chave de arquivo inválida." }, { status: 400 });
 
     const mediaType = contentType.startsWith("video/") ? "video" : "photo";
     if (mediaType === "video" && !canUploadVideo(session.user, member ?? undefined)) {

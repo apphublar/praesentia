@@ -2,13 +2,13 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 const faqs = [
-  ["Quanto custa de verdade?", "O plano Gratuito cria o convite, RSVP e link compartilhavel. Cápsula custa R$59, com 5 GB e 36 meses. Cápsula Plus custa R$197/ano, com até 6 eventos e 20 GB compartilhados."],
-  ["O link realmente não expira?", "Cápsulas pagas ficam armazenadas por 36 meses, com opção de expansão de espaço. O plano gratuito e temporario para validar o evento."],
-  ["E a privacidade das crianças?", "Eventos nascem privados. O responsável controla convidados, conteúdos, bloqueios, telão e acesso a cápsula."],
-  ["Como a IA cria o convite?", "O responsável informa tipo de festa, data, local, tema e tom. A Praesentia gera texto, paleta, capa e mensagens editaveis."],
+  ["Quanto custa de verdade?", "O plano Gratuito cria o convite, RSVP e link compartilhável. Cápsula custa R$59, com 5 GB e 36 meses. Cápsula Plus custa R$197/ano, com até 6 eventos e 20 GB compartilhados."],
+  ["O link realmente não expira?", "Cápsulas pagas ficam armazenadas por 36 meses, com opção de expansão de espaço. O plano gratuito é temporário para validar o evento."],
+  ["E a privacidade das crianças?", "Eventos nascem privados. O responsável controla convidados, conteúdos, bloqueios, telão e acesso à cápsula."],
+  ["Como a IA cria o convite?", "O responsável informa tipo de festa, data, local, tema e tom. A Praesentia gera texto, paleta, capa e mensagens editáveis."],
   ["Quanto espaço eu tenho na cápsula?", "Cápsula tem 5 GB. Cápsula Plus tem 20 GB compartilhados entre até 6 eventos no ano. Cada evento continua separado e privado."],
-  ["O que vai pra cápsula do tempo?", "Fotos, vídeos, recados, presenças, curtidas confidenciais e a timeline do evento, tudo com controle do responsável."],
-  ["Funciona offline?", "A primeira versao sera web/PWA. O envio resiliente para conexoes ruins entra na evolucao tecnica do produto."]
+  ["O que vai para a cápsula do tempo?", "Fotos, vídeos, recados, presenças, curtidas confidenciais — a timeline do evento, tudo com controle do responsável."],
+  ["Funciona offline?", "A primeira versão será web/PWA. O envio resiliente para conexões ruins entra na evolução técnica do produto."]
 ];
 
 const storagePlans = [
@@ -31,7 +31,7 @@ const storagePlans = [
     label: "Cápsula Plus",
     capacity: "20 GB",
     note: "compartilhados - 36 meses por evento",
-    desc: "Capacidade para até 6 eventos por ano. O GB e compartilhado, mas as cápsulas não misturam seus conteúdos.",
+    desc: "Capacidade para até 6 eventos por ano. O GB é compartilhado, mas as cápsulas não misturam seus conteúdos.",
     dark: false,
     rows: [["fotos HD", "~ 7.500", 62], ["vídeos curtos", "~ 300", 28], ["recados", "~ 1.000", 10]]
   }
@@ -39,9 +39,9 @@ const storagePlans = [
 
 const privacyItems = [
   ["Modo família", "Eventos privados por padrão, com acesso controlado pelo responsável."],
-  ["Sem indexação", "Cápsulas privadas não devem aparecer em buscadores nem em paginas publicas."],
-  ["Exportavel", "O responsável pode baixar arquivos e metadados quando precisar."],
-  ["Moderacao humana", "Sem moderacao previa no envio, mas o dono arquiva, exclui e bloqueia convidados."],
+  ["Sem indexação", "Cápsulas privadas não devem aparecer em buscadores nem em páginas públicas."],
+  ["Exportável", "O responsável pode baixar arquivos e metadados quando precisar."],
+  ["Moderação humana", "Sem moderação prévia no envio, mas o dono arquiva, exclui e bloqueia convidados."],
   ["Quem tem acesso", "Somente convidados confirmados e com conta podem postar fotos, vídeos e recados."],
   ["Aos 18 dela", "A timeline pode ser preparada para virar acervo pessoal quando a criança crescer."]
 ];
@@ -52,7 +52,7 @@ const plans = [
     price: "R$0",
     meta: "sem cartão",
     subtitle: "Comece hoje, valide o convite e organize presenças.",
-    cta: "Comecar gratis",
+    cta: "Começar grátis",
     sections: [
       ["Convite & RSVP", ["Convite digital com IA básica", "Link do domínio Praesentia", "Lista de convidados", "Confirmação de presença"]],
       ["Durante o evento", ["Pix opcional para contribuição", "Página do evento temporária", "Sem cápsula permanente"]]
@@ -75,7 +75,7 @@ const plans = [
     name: "Cápsula Plus",
     price: "R$197",
     meta: "por ano",
-    subtitle: "Sua historia organizada em uma unica timeline.",
+    subtitle: "Sua história organizada em uma única timeline.",
     cta: "Quero a timeline",
     sections: [
       ["Eventos", ["Tudo do Cápsula", "Até 6 eventos por ano", "Timeline conectada"]],
@@ -118,7 +118,7 @@ export function StorageSection() {
       <SectionLabel>armazenamento - em GB</SectionLabel>
       <div className="section-head">
         <h2 className="display-i">O que <span>cabe</span> na sua cápsula.</h2>
-        <p>sem cobranca por convidado - sem cota por pessoa, só espaço para preencher como quiser</p>
+        <p>sem cobrança por convidado - sem cota por pessoa, só espaço para preencher como quiser</p>
       </div>
       <div className="storage-grid">
         {storagePlans.map((plan) => (
@@ -154,7 +154,7 @@ export function StorageSection() {
 export function TransformationSection() {
   const cards = [
     ["Antes", "Convite", "14 mar 2026 - 18 dias", "var(--coral)", "#fbe3cc"],
-    ["Durante", "Mural ao vivo", "sab 14 mar - 15h as 19h", "var(--gold)", "#ffe9bd"],
+    ["Durante", "Mural ao vivo", "sab 14 mar - 15h às 19h", "var(--gold)", "#ffe9bd"],
     ["Depois - para sempre", "Cápsula", "aberta - 15 mar 2026", "var(--violet)", "#e5d5f2"]
   ];
 
@@ -162,7 +162,7 @@ export function TransformationSection() {
     <section id="diferencial" className="shell landing-section">
       <SectionLabel>o diferencial</SectionLabel>
       <h2 className="display-i feature-title">Não somos um app de <span className="strike">convite</span>.<br />Somos uma <span>cápsula do tempo</span>.</h2>
-      <p className="feature-copy">O convite e apenas a porta de entrada. O verdadeiro valor esta em construir um arquivo digital que preserva fotos, vídeos e histórias de quem esteve la.</p>
+      <p className="feature-copy">O convite é apenas a porta de entrada. O verdadeiro valor está em construir um arquivo digital que preserva fotos, vídeos e histórias de quem esteve lá.</p>
       <div className="transform-strip">
         <div className="mono strip-url">praesentia.com/e/mavie-1-ano</div>
         <div className="transform-grid">
@@ -184,7 +184,7 @@ export function TransformationSection() {
 
 export function FeaturedCapsulesSection() {
   const items = [
-    ["2024", "Casamento Joao e Ana", "412 fotos - 38 vídeos", "#f1d8c9", "-2deg"],
+    ["2024", "Casamento João e Ana", "412 fotos - 38 vídeos", "#f1d8c9", "-2deg"],
     ["2025", "Formatura Eng. UFMG", "186 fotos - 22 vídeos", "#d9e8f4", "3deg"],
     ["2026", "Mavie - 1 aninho", "247 fotos - 38 vídeos", "#fbe3cc", "-3deg"],
     ["2026", "Reveillon na cobertura", "94 fotos - 12 vídeos", "#e5d5f2", "2deg"]
@@ -212,11 +212,11 @@ export function FeaturedCapsulesSection() {
 
 export function LifeCapsulesSection() {
   const years = [
-    ["2025", "cha da Mavie - 11/2024", "88 fotos", "#fbe3cc"],
+    ["2025", "chá da Mavie - 11/2024", "88 fotos", "#fbe3cc"],
     ["2026", "Mavie - 1 aninho", "247 fotos", "#f1d8c9"],
     ["2027", "Mavie no jardim - 2 anos", "184 fotos", "#d9e8dc"],
     ["2030", "primeiro dia de escola", "64 fotos", "#d9e8f4"],
-    ["2032", "aniversario - 7 anos", "203 fotos", "#e5d5f2"],
+    ["2032", "aniversário - 7 anos", "203 fotos", "#e5d5f2"],
     ["2044", "formatura - 18 anos", "aguardando", "transparent"]
   ];
 
@@ -224,7 +224,7 @@ export function LifeCapsulesSection() {
     <section className="shell landing-section">
       <SectionLabel>a visao longa</SectionLabel>
       <h2 className="display-i feature-title">Quando a Mavie tiver 18,<br />ela <span>abre tudo isso</span>.</h2>
-      <p className="feature-copy">Cada cápsula em que a Mavie aparece fica conectada num único lugar. Não e um app. E a colecao de presenças que formaram quem ela e.</p>
+      <p className="feature-copy">Cada cápsula em que a Mavie aparece fica conectada num único lugar. Não é um app. É a coleção de presenças que formaram quem ela é.</p>
       <div className="life-timeline">
         <div className="life-header">
           <div className="avatar-mark">M</div>
@@ -245,7 +245,7 @@ export function LifeCapsulesSection() {
           ))}
         </div>
         <div className="life-footer">
-          <em>"presença - do latim praesentia - o que esta aqui, agora"</em>
+          <em>"presença - do latim praesentia - o que está aqui, agora"</em>
           <Link href="/eu">ver meu perfil de presença</Link>
         </div>
       </div>
@@ -258,7 +258,7 @@ export function PrivacySection() {
     <section id="seguranca" className="shell landing-section">
       <SectionLabel>privacidade</SectionLabel>
       <h2 className="display-i feature-title">Pensado pra Mavie.</h2>
-      <p className="feature-copy">Mas cabe no churrasco dos amigos, no casamento, no aniversario e em qualquer evento particular.</p>
+      <p className="feature-copy">Mas cabe no churrasco dos amigos, no casamento, no aniversário e em qualquer evento particular.</p>
       <div className="privacy-grid">
         {privacyItems.map(([title, text], index) => (
           <article key={title} className={index === 5 ? "dark card" : "card"}>
@@ -279,13 +279,13 @@ export function PrintedAlbumSection() {
         <div>
           <SectionLabel>complemento - papel</SectionLabel>
           <h2 className="display-i">Suas memórias,<br /><span>em papel.</span></h2>
-          <p>As fotos guardadas na sua cápsula podem virar um album impresso personalizado: capa rigida, papel fotografico premium e layout assinado pela Praesentia.</p>
+          <p>As fotos guardadas na sua cápsula podem virar um álbum impresso personalizado: capa rígida, papel fotográfico premium e layout assinado pela Praesentia.</p>
           <CheckList items={["Você escolhe quais fotos entram", "Layout limpo, assinado pela Praesentia", "Capa dura, formato A4", "Envio para todo o Brasil"]} />
           <div className="soft-note small"><b>Valor sob medida</b> pela quantidade de fotos selecionadas.</div>
         </div>
         <div className="book-stage">
           <div className="book back" />
-          <div className="book front"><small className="mono">Praesentia - album</small><b className="display-i">Mavie,<br />1 ano.</b><span>2026</span></div>
+          <div className="book front"><small className="mono">Praesentia — álbum</small><b className="display-i">Mavie,<br />1 ano.</b><span>2026</span></div>
           <div className="polaroid mini"><div className="placeholder" style={{ height: 64, backgroundColor: "#f1d8c9" }}>foto favorita</div></div>
         </div>
       </div>
@@ -320,7 +320,7 @@ export function PricingSection() {
         </div>
         <div className="storage-extra">
           <div><SectionLabel>extras - cápsula</SectionLabel><h3 className="display-i">Expanda sua cápsula.</h3></div>
-          <p>Pagamento único, valido durante o período da cápsula.</p>
+          <p>Pagamento único, válido durante o período da cápsula.</p>
           {[["+5", "R$19"], ["+10", "R$29"], ["+25", "R$49"], ["+50", "R$89"]].map(([gb, price]) => (
             <button key={gb}><b className="display">{gb}</b><span className="mono">GB</span><strong>{price}</strong></button>
           ))}
@@ -335,7 +335,7 @@ export function FinalCTASection() {
   return (
     <section className="shell landing-section">
       <div className="final-cta">
-        <span className="pill">gratis - sem cartão</span>
+        <span className="pill">grátis — sem cartão</span>
         <h2 className="display-i">O próximo evento que você vai amar começa agora.</h2>
         <p>Crie o convite em minutos e transforme a noite em uma cápsula do tempo que você poderá revisitar.</p>
         <div><Link className="btn" href="/criar">Criar meu evento</Link><Link className="btn secondary" href="/evento/mavie-1-ano">Ver demo da Mavie</Link></div>
@@ -365,7 +365,7 @@ export function SiteFooter() {
     <footer className="site-footer">
       <div className="shell footer-grid">
         <div><b>Praesentia</b><p>Eventos particulares, memórias permanentes e cápsulas do tempo com controle do responsável.</p><Link className="btn" href="/criar">criar evento</Link></div>
-        <nav><b>Produto</b><Link href="#como-funciona">como funciona</Link><Link href="#precos">precos</Link><Link href="/eu">meu perfil</Link></nav>
+        <nav><b>Produto</b><Link href="#como-funciona">como funciona</Link><Link href="#precos">preços</Link><Link href="/eu">meu perfil</Link></nav>
         <nav><b>Conta</b><Link href="/login">entrar</Link><Link href="/dashboard">responsável</Link><Link href="/admin">admin</Link></nav>
         <nav><b>Legal</b><Link href="#seguranca">privacidade</Link><Link href="#faq">perguntas frequentes</Link></nav>
       </div>

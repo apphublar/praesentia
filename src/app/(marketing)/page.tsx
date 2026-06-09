@@ -31,14 +31,14 @@ const phases = [
   {
     phase: "depois",
     title: "Cápsula do tempo",
-    text: "O mesmo link vira memória permanente por 36 meses, com exportacao e controle do responsável.",
+    text: "O mesmo link vira memória permanente por 36 meses, com exportação e controle do responsável.",
     color: "var(--violet)"
   }
 ];
 
 const pillars = [
   ["01", "A IA cria o convite", "Você diz o tipo, tema, data e local. A Praesentia prepara texto, paleta, capa e mensagens."],
-  ["02", "Convidados confirmam", "Cada pessoa confirma presença e cria conta para participar da cápsula com seguranca."],
+  ["02", "Convidados confirmam", "Cada pessoa confirma presença e cria conta para participar da cápsula com segurança."],
   ["03", "O evento fica vivo", "Fotos, vídeos, recados e curtidas confidenciais aparecem no mural e no telão em tempo real."],
   ["04", "Tudo vira memória", "Depois da festa, a cápsula guarda o que foi vivido com permissão, acesso e armazenamento controlados."]
 ];
@@ -75,7 +75,7 @@ export default function HomePage() {
             </h1>
             <p style={{ color: "var(--ink-soft)", fontSize: "clamp(16px, 1.4vw, 19px)", lineHeight: 1.6, maxWidth: 580 }}>
               Praesentia transforma festas particulares em cápsulas do tempo digitais. Crie o convite, confirme
-              presenças, receba contribuicoes Pix opcionais, mostre memórias no telão e guarde tudo por 36 meses.
+              presenças, receba contribuições Pix opcionais, mostre memórias no telão e guarde tudo por 36 meses.
             </p>
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 26 }}>
               <Link className="btn" href="/criar">
@@ -118,7 +118,7 @@ export default function HomePage() {
                 bolo - 17h12
               </div>
               <div className="display-i" style={{ fontSize: 14, textAlign: "center", marginTop: 8 }}>
-                parabens da vovo
+                parabéns da vovó
               </div>
             </div>
             <div
@@ -140,7 +140,7 @@ export default function HomePage() {
         <section className="shell" style={{ padding: "36px 0" }}>
           <div style={{ background: "var(--ink)", color: "var(--bg)", borderRadius: 22, padding: "34px 36px", position: "relative", overflow: "hidden" }}>
             <div className="mono" style={{ color: "var(--gold)", fontSize: 12, fontWeight: 800, textTransform: "uppercase" }}>
-              O mesmo link - tres vidas
+              O mesmo link — três vidas
             </div>
             <h2 className="display-i" style={{ fontSize: "clamp(34px, 4vw, 58px)", lineHeight: 1, margin: "8px 0 24px" }}>
               Um endereço que não <span style={{ color: "var(--coral)" }}>expira</span>.

@@ -13,13 +13,13 @@ export async function POST(request: Request, context: { params: Promise<{ eventI
 
   const { eventId } = await context.params;
   const session = await getCurrentSession();
-  if (!session) return NextResponse.json({ error: "Conta obrigatoria." }, { status: 401 });
+  if (!session) return NextResponse.json({ error: "Conta obrigatória." }, { status: 401 });
 
   const limit = checkRateLimit(`like:${session.user.id}:${eventId}`, 60, 60_000);
   if (!limit.ok) return NextResponse.json({ error: "Muitas curtidas em pouco tempo." }, { status: 429 });
 
   const event = await repositories.events.findById(eventId);
-  if (!event) return NextResponse.json({ error: "Evento nao encontrado." }, { status: 404 });
+  if (!event) return NextResponse.json({ error: "Evento não encontrado." }, { status: 404 });
 
   const member = await repositories.members.findMembership(event.id, session.user.id);
   if (!canLike(event, member ?? undefined)) return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
@@ -30,7 +30,7 @@ export async function POST(request: Request, context: { params: Promise<{ eventI
   try {
     result = await repositories.likes.toggleLike(eventId, mediaId, session.user.id);
   } catch {
-    return NextResponse.json({ error: "Conteudo nao encontrado." }, { status: 404 });
+    return NextResponse.json({ error: "Conteúdo não encontrado." }, { status: 404 });
   }
   const likesCount = result.likesCount;
   await publishRealtimeEvent({ type: "like.changed", eventId, mediaId, likesCount });

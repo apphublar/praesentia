@@ -1147,13 +1147,24 @@ p + a.btn,
 }
 
 .create-back-btn {
-  background: none;
-  border: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #fff;
+  border: 1.5px solid var(--line);
+  border-radius: 999px;
   cursor: pointer;
-  color: var(--ink-soft);
+  color: var(--ink);
   margin-bottom: 20px;
   font-size: 14px;
-  padding: 0;
+  font-weight: 700;
+  padding: 10px 16px;
+  box-shadow: 2px 3px 0 rgba(27, 18, 9, 0.08);
+}
+
+.create-back-btn:hover {
+  border-color: var(--coral);
+  color: var(--coral);
 }
 
 .event-type-grid {
@@ -2100,5 +2111,214 @@ p + a.btn,
 
   main {
     padding: 0 !important;
+  }
+}
+
+.dashboard-shell {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 0;
+  min-height: calc(100vh - 72px);
+}
+
+.dashboard-shell-main {
+  min-width: 0;
+}
+
+.dashboard-sidebar {
+  border-right: 1px solid var(--line);
+  background: var(--bg-soft);
+  padding: 24px 16px;
+  position: sticky;
+  top: 72px;
+  align-self: start;
+  max-height: calc(100vh - 72px);
+  overflow: auto;
+}
+
+.dashboard-sidebar-head {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.dashboard-sidebar-create {
+  text-align: center;
+  font-size: 14px;
+}
+
+.dashboard-sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dashboard-sidebar-link {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  text-decoration: none;
+  color: inherit;
+  background: #fff;
+}
+
+.dashboard-sidebar-link small {
+  color: var(--ink-soft);
+  font-size: 12px;
+}
+
+.dashboard-sidebar-link.is-active {
+  border-color: var(--coral);
+  box-shadow: 0 0 0 3px rgba(255, 107, 92, 0.12);
+}
+
+.dashboard-sidebar-all {
+  display: inline-block;
+  margin-top: 16px;
+  color: var(--coral);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.dashboard-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.dashboard-card {
+  padding: 22px;
+}
+
+.dashboard-metrics {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.create-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #fff;
+  border: 1.5px solid var(--line);
+  border-radius: 999px;
+  cursor: pointer;
+  color: var(--ink);
+  margin-bottom: 20px;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 10px 16px;
+  box-shadow: 2px 3px 0 rgba(27, 18, 9, 0.08);
+}
+
+.create-back-btn:hover {
+  border-color: var(--coral);
+  color: var(--coral);
+}
+
+.create-step-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+  align-items: center;
+}
+
+.create-form-help {
+  color: var(--ink-soft);
+  line-height: 1.6;
+  font-size: 14px;
+  margin: 0 0 16px;
+}
+
+.create-datetime-grid,
+.praesentia-form .create-form-fields-grid {
+  overflow: visible;
+}
+
+.praesentia-form input.native-picker-field {
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+}
+
+.create-form-section {
+  overflow: visible;
+}
+
+.continue-wizard-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.continue-wizard-step {
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-soft);
+  background: #fff;
+}
+
+.continue-wizard-step.is-active {
+  border-color: var(--coral);
+  color: var(--ink);
+}
+
+.continue-wizard-step.is-done {
+  border-color: var(--green);
+  color: var(--green);
+}
+
+.continue-wizard-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.cover-include-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+}
+
+.cover-include-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+
+.vaquinha-goal-card {
+  padding: 22px;
+  background: linear-gradient(135deg, rgba(255, 107, 92, 0.08), rgba(255, 178, 62, 0.12));
+}
+
+.locked-capsule-preview {
+  border-style: dashed;
+  background: rgba(255, 178, 62, 0.08);
+}
+
+@media (max-width: 900px) {
+  .dashboard-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-sidebar {
+    position: static;
+    max-height: none;
+    border-right: none;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .format-choice-grid {
+    grid-template-columns: 1fr;
   }
 }

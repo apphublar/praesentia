@@ -16,10 +16,10 @@ export async function PATCH(
 
   const { eventId, mediaId } = await context.params;
   const session = await getCurrentSession();
-  if (!session) return NextResponse.json({ error: "Conta obrigatoria." }, { status: 401 });
+  if (!session) return NextResponse.json({ error: "Conta obrigatória." }, { status: 401 });
 
   const event = await repositories.events.findById(eventId);
-  if (!event) return NextResponse.json({ error: "Evento nao encontrado." }, { status: 404 });
+  if (!event) return NextResponse.json({ error: "Evento não encontrado." }, { status: 404 });
 
   const member = await repositories.members.findMembership(event.id, session.user.id);
   if (!canManageEvent(session.user, member ?? undefined)) {
@@ -47,7 +47,7 @@ export async function PATCH(
     return NextResponse.json({ item });
   }
 
-  return NextResponse.json({ error: "Acao invalida." }, { status: 400 });
+  return NextResponse.json({ error: "Ação inválida." }, { status: 400 });
 }
 
 export async function DELETE(request: Request, context: { params: Promise<{ eventId: string; mediaId: string }> }) {
@@ -56,20 +56,20 @@ export async function DELETE(request: Request, context: { params: Promise<{ even
 
   const { eventId, mediaId } = await context.params;
   const session = await getCurrentSession();
-  if (!session) return NextResponse.json({ error: "Conta obrigatoria." }, { status: 401 });
+  if (!session) return NextResponse.json({ error: "Conta obrigatória." }, { status: 401 });
 
   const event = await repositories.events.findById(eventId);
-  if (!event) return NextResponse.json({ error: "Evento nao encontrado." }, { status: 404 });
+  if (!event) return NextResponse.json({ error: "Evento não encontrado." }, { status: 404 });
 
   const member = await repositories.members.findMembership(event.id, session.user.id);
   const media = await repositories.media.findById(mediaId);
   if (!media || media.eventId !== eventId) {
-    return NextResponse.json({ error: "Conteudo nao encontrado." }, { status: 404 });
+    return NextResponse.json({ error: "Conteúdo não encontrado." }, { status: 404 });
   }
 
   if (!canDeleteMedia(event, session.user, member ?? undefined, media)) {
     return NextResponse.json(
-      { error: "Voce so pode excluir seu conteudo nas primeiras 24h do evento. Depois disso, fale com o responsavel." },
+      { error: "Você só pode excluir seu conteúdo nas primeiras 24h do evento. Depois disso, fale com o responsável." },
       { status: 403 }
     );
   }
@@ -79,7 +79,7 @@ export async function DELETE(request: Request, context: { params: Promise<{ even
       await deleteR2Object(media.r2Key);
     } catch (error) {
       console.error("[media-delete-r2]", error);
-      return NextResponse.json({ error: "Nao foi possivel excluir o arquivo do armazenamento." }, { status: 502 });
+      return NextResponse.json({ error: "Não foi possível excluir o arquivo do armazenamento." }, { status: 502 });
     }
   }
 

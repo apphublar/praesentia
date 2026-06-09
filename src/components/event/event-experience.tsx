@@ -126,7 +126,7 @@ function BeforeEvent({ event }: { event: Event }) {
           1 ano de <span className="hand-underline">jardim</span>
         </h2>
         <p className="display-i" style={{ fontSize: "clamp(20px, 1.8vw, 26px)", lineHeight: 1.4, maxWidth: 560 }}>
-          Sob a sombra das acacias, no quintal favorito da família, vamos celebrar o primeiro giro em volta do sol.
+          Sob a sombra das acácias, no quintal favorito da família, vamos celebrar o primeiro giro em volta do sol.
         </p>
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 28 }}>
           <button className="btn">Confirmar presença</button>
@@ -134,7 +134,7 @@ function BeforeEvent({ event }: { event: Event }) {
         </div>
         <div className="dotted" style={{ color: "var(--ink)", opacity: 0.4, marginTop: 34 }} />
         <div className="grid-collapse-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 18 }}>
-          <Info label="quando" value={`${event.date} - ${event.startsAt} as ${event.endsAt}`} color="var(--coral)" />
+          <Info label="quando" value={`${event.date} - ${event.startsAt} às ${event.endsAt}`} color="var(--coral)" />
           <Info label="onde" value={`${event.venueName} - ${event.city}`} color="var(--sky)" />
         </div>
       </div>
@@ -150,10 +150,10 @@ function BeforeEvent({ event }: { event: Event }) {
         </div>
         <div className="polaroid float" style={{ position: "absolute", top: 50, right: 0, width: 260, transform: "rotate(6deg)", zIndex: 2 }}>
           <div className="placeholder" style={{ height: 270, backgroundColor: "#d9e8dc" }}>
-            quintal das acacias
+            quintal das acácias
           </div>
           <div className="display-i" style={{ fontSize: 14, textAlign: "center", marginTop: 8 }}>
-            onde a festa sera
+            onde a festa será
           </div>
         </div>
         <span className="tape" style={{ top: 0, left: "34%", transform: "rotate(-4deg)" }} />
@@ -185,12 +185,12 @@ function BeforeEvent({ event }: { event: Event }) {
           recado da Camila & Diego
         </div>
         <p className="display-i" style={{ fontSize: "clamp(22px,2.4vw,32px)", lineHeight: 1.32, maxWidth: 900, margin: "8px 0 0" }}>
-          "A nossa Mavie chegou no comecinho de 2025 e mudou tudo. Queremos celebrar com você esse primeiro giro em volta do sol. Use tons de jardim no look se puder!"
+          "A nossa Mavie chegou no começo de 2025 e mudou tudo. Queremos celebrar com você esse primeiro giro em volta do sol. Use tons de jardim no look se puder!"
         </p>
       </section>
 
       <section className="card event-safe-share-card" style={{ gridColumn: "1 / -1", padding: 22, marginTop: 18 }}>
-        <span className="pill">participacao segura</span>
+        <span className="pill">participação segura</span>
         <h3 className="display" style={{ fontSize: 28, margin: "12px 0 8px" }}>Para compartilhar memórias</h3>
         <div className="grid-collapse-4" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14 }}>
           {[
@@ -250,14 +250,14 @@ function EventTabs({ event }: { event: Event }) {
                 Para churrasco, festa entre amigos ou vaquinha.
               </h3>
               <p style={{ color: "var(--ink-soft)", lineHeight: 1.6 }}>
-                O responsável informa uma chave Pix, nome do recebedor, valor sugerido e mensagem. A Praesentia apenas facilita copiar a chave nesta primeira versao.
+                O responsável informa uma chave Pix, nome do recebedor, valor sugerido e mensagem. A Praesentia apenas facilita copiar a chave nesta primeira versão.
               </p>
               <PixBox pix={event.pix} />
             </div>
             <div className="card event-tab-card" style={{ padding: 20, background: "var(--bg-soft)" }}>
               <h3 className="display" style={{ fontSize: 26, margin: 0 }}>Sem lista de presentes no MVP.</h3>
               <p style={{ color: "var(--ink-soft)", lineHeight: 1.6 }}>
-                A estrutura fica pronta para qualquer evento particular: aniversario, casamento, cha, formatura, churrasco ou encontro de família. Presente físico pode entrar depois, mas agora o foco e convite, presença, Pix e cápsula.
+                A estrutura fica pronta para qualquer evento particular: aniversário, casamento, chá, formatura, churrasco ou encontro de família. Presente físico pode entrar depois, mas agora o foco é convite, presença, Pix e cápsula.
               </p>
             </div>
           </div>
@@ -265,8 +265,8 @@ function EventTabs({ event }: { event: Event }) {
         {tab === "perguntas" && (
           <div style={{ maxWidth: 760 }}>
             {[
-              ["Posso levar criança?", "Sim. A festa e para a família toda, com espaço para brincar."],
-              ["Tem estacionamento?", "Sim, ha vagas no local e zona azul nas ruas proximas."],
+              ["Posso levar criança?", "Sim. A festa é para a família toda, com espaço para brincar."],
+              ["Tem estacionamento?", "Sim, há vagas no local e zona azul nas ruas próximas."],
               ["Comida e bebida?", "Buffet leve, bolo, sucos naturais e bebidas para adultos."],
               ["Quem pode postar na cápsula?", "Somente convidados confirmados, com conta criada e acesso ativo."]
             ].map(([q, a]) => (
@@ -365,7 +365,7 @@ function LiveEvent({
               <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 8, marginTop: 12 }}>
                 {[
                   [`${guestUsage.photos}`, "fotos enviadas"],
-                  [`${guestUsage.videos}`, "videos enviados"]
+                  [`${guestUsage.videos}`, "vídeos enviados"]
                 ].map(([value, label]) => (
                   <div key={label} style={{ background: "rgba(255,255,255,.12)", borderRadius: 10, padding: 10, textAlign: "center" }}>
                     <div className="display" style={{ fontSize: 28, lineHeight: 1 }}>{value}</div>
@@ -386,7 +386,7 @@ function LiveEvent({
           <div className="card event-side-card" style={{ padding: 18 }}>
             <div className="display" style={{ fontSize: 22 }}>Controle do responsável</div>
             <p style={{ color: "var(--ink-soft)", fontSize: 13, lineHeight: 1.55 }}>
-              Sem moderacao previa. O responsável pode ocultar do telão, arquivar, excluir ou bloquear um convidado.
+              Sem moderação prévia. O responsável pode ocultar do telão, arquivar, excluir ou bloquear um convidado.
             </p>
           </div>
           <div className="card event-side-card event-side-card-dark" style={{ padding: 18, background: "var(--ink)", color: "var(--bg)" }}>
@@ -410,7 +410,7 @@ function LiveEvent({
             {[
               ["15h00", "comecou a festa", "var(--coral)", true],
               ["15h44", "primeira foto - Pedro L", "var(--sky)", true],
-              ["17h12", "parabens - bolo", "var(--gold)", true],
+              ["17h12", "parabéns — bolo", "var(--gold)", true],
               ["19h00", "fim - cápsula em 48h", "var(--violet)", false]
             ].map(([time, label, color, done]) => (
               <div key={String(time)} style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12, opacity: done ? 1 : .58 }}>
@@ -437,7 +437,7 @@ function MemoryEvent({ event, media }: { event: Event; media: MediaItem[] }) {
         <span className="hand-underline">{event.theme.toLowerCase()}</span> - {event.date}
       </div>
       <p className="display-i" style={{ fontSize: "clamp(19px, 1.8vw, 27px)", lineHeight: 1.4, maxWidth: 700 }}>
-        Foi um sabado de ceu limpo. O bolo era de cenoura. Toda essa tarde mora aqui.
+        Foi um sábado de céu limpo. O bolo era de cenoura. Toda essa tarde mora aqui.
       </p>
       <div className="grid-collapse-4" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginTop: 26 }}>
         {[
@@ -474,16 +474,16 @@ function MemoryEvent({ event, media }: { event: Event; media: MediaItem[] }) {
             <span className="tape" style={{ top: 28, right: 70, transform: "rotate(-8deg)" }} />
           </div>
           <div style={{ padding: 24 }}>
-            <span className="pill">album impresso</span>
+            <span className="pill">álbum impresso</span>
             <h2 className="display-i" style={{ fontSize: 34, lineHeight: 1, margin: "12px 0" }}>Um livro físico da tarde que você não quer esquecer.</h2>
-            <p style={{ color: "var(--ink-soft)", lineHeight: 1.6 }}>Escolha fotos da cápsula, organize a ordem e gere um album A4 de capa dura como complemento.</p>
-            <button className="btn">Montar album</button>
+            <p style={{ color: "var(--ink-soft)", lineHeight: 1.6 }}>Escolha fotos da cápsula, organize a ordem e gere um álbum A4 de capa dura como complemento.</p>
+            <button className="btn">Montar álbum</button>
           </div>
         </div>
         <div className="card event-memory-card" style={{ padding: 24, background: "var(--bg-soft)" }}>
-          <span className="pill">exportacao</span>
-          <h2 className="display-i" style={{ fontSize: 34, lineHeight: 1, margin: "12px 0" }}>A memória tambem precisa sair daqui.</h2>
-          <p style={{ color: "var(--ink-soft)", lineHeight: 1.6 }}>O responsável deve poder exportar um arquivo com fotos, vídeos, recados e metadados. Essa rotina sera essencial antes de producao.</p>
+          <span className="pill">exportação</span>
+          <h2 className="display-i" style={{ fontSize: 34, lineHeight: 1, margin: "12px 0" }}>A memória também precisa sair daqui.</h2>
+          <p style={{ color: "var(--ink-soft)", lineHeight: 1.6 }}>O responsável deve poder exportar um arquivo com fotos, vídeos, recados e metadados. Essa rotina será essencial antes de produção.</p>
           <div style={{ display: "grid", gap: 10, marginTop: 16 }}>
             {["ZIP com arquivos originais", "JSON com autores, datas e curtidas", "Relatorio de convidados e permissoes"].map((item) => (
               <div key={item} style={{ display: "flex", gap: 10, alignItems: "center" }}>
@@ -498,7 +498,7 @@ function MemoryEvent({ event, media }: { event: Event; media: MediaItem[] }) {
       <section className="card event-memory-cta" style={{ padding: 24, marginTop: 24, background: "var(--ink)", color: "var(--bg)" }}>
         <h2 className="display-i" style={{ fontSize: 34, marginTop: 0 }}>Essa cápsula faz parte da vida da Mavie.</h2>
         <p style={{ color: "rgba(247,238,219,.72)", lineHeight: 1.65 }}>
-          Quando ela crescer, a família poderá abrir esta e outras cápsulas conectadas. O valor do produto esta na permanencia, não só no convite.
+          Quando ela crescer, a família poderá abrir esta e outras cápsulas conectadas. O valor do produto está na permanência, não só no convite.
         </p>
         <Link className="btn" href="/eu" style={{ background: "var(--gold)", color: "var(--ink)", boxShadow: "4px 5px 0 var(--coral)" }}>Ver vida em cápsulas</Link>
       </section>
@@ -514,7 +514,7 @@ function FeaturedMedia({ item }: { item: MediaItem }) {
         <Avatar name={item.authorName} tint="var(--coral)" />
         <div>
           <strong>{item.authorName}</strong>
-          <div style={{ color: "var(--ink-soft)", fontSize: 12 }}>ultima memória compartilhada</div>
+          <div style={{ color: "var(--ink-soft)", fontSize: 12 }}>última memória compartilhada</div>
         </div>
         <span style={{ marginLeft: "auto" }}>
           <LikeButton eventId={item.eventId} mediaId={item.id} initialCount={item.likesCount} />
@@ -549,7 +549,7 @@ function MediaVisual({ item, height, featured = false }: { item: MediaItem; heig
   }
   return (
     <div className="placeholder" style={{ height, backgroundColor: item.type === "video" ? "#d9e8f4" : "#f1d8c9" }}>
-      {item.type === "video" ? "video do evento" : "foto do evento"}
+      {item.type === "video" ? "vídeo do evento" : "foto do evento"}
     </div>
   );
 }

@@ -14,6 +14,7 @@ import type {
   UserRepository
 } from "@/lib/db/repositories";
 import { bytesFromGb, PLANS } from "@/lib/plans";
+import { normalizeEventType } from "@/lib/events/event-types";
 import type { Event, EventMember, EventType, GuestRsvp, InviteCopy, MediaItem, PlanTier, User, UserSubscription } from "@/types/domain";
 
 function rowToUser(row: Record<string, unknown>): User {
@@ -34,8 +35,8 @@ function rowToEvent(row: Record<string, unknown>): Event {
     subdomain: row.subdomain ? String(row.subdomain) : undefined,
     title: String(row.title),
     theme: String(row.theme),
-    eventType: (row.event_type as Event["eventType"]) ?? "outros",
-    hostName: String(row.host_name ?? row.owner_name ?? "Responsavel"),
+    eventType: normalizeEventType(String(row.event_type ?? "outros")),
+    hostName: String(row.host_name ?? row.owner_name ?? "Responsável"),
     hostPhotoUrl: row.host_photo_url ? String(row.host_photo_url) : undefined,
     coverImageUrl: row.cover_image_url ? String(row.cover_image_url) : undefined,
     coverSource: row.cover_source ? (row.cover_source as Event["coverSource"]) : undefined,

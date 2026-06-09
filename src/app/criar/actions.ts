@@ -3,61 +3,116 @@
 import { redirect } from "next/navigation";
 import { getCurrentSession } from "@/lib/auth/session";
 import { repositories } from "@/lib/db";
-import { EVENT_TYPE_VALUES } from "@/lib/events/event-types";
-import { sanitizeText } from "@/lib/security/sanitize";
-import type { EventFormat, EventType } from "@/types/domain";
+import { getEventProfile, resolveEventFormat } from "@/lib/events/event-profile";
+import { normalizeEventType } from "@/lib/events/event-types";
+import { isValidPixKey, sanitizeText } from "@/lib/security/sanitize";
+import type { EventType } from "@/types/domain";
 
 function required(value: FormDataEntryValue | null, maxLength: number) {
   return sanitizeText(value, maxLength);
+}
+
+function optional(value: FormDataEntryValue | null, maxLength: number) {
+  const text = sanitizeText(value, maxLength);
+  return text || undefined;
 }
 
 export async function createEventAction(formData: FormData) {
   const session = await getCurrentSession();
   if (!session) redirect("/login?next=/criar");
 
-  const eventType = required(formData.get("eventType"), 30) as EventType;
-  const eventFormat = required(formData.get("eventFormat"), 20) as EventFormat;
+  const eventType = normalizeEventType(required(formData.get("eventType"), 30)) as EventType;
+  const profile = getEventProfile(eventType);
+  const eventFormat = resolveEventFormat(eventType, required(formData.get("eventFormat"), 20));
+
   const title = required(formData.get("title"), 120);
   const hostName = required(formData.get("hostName"), 120);
   const theme = required(formData.get("theme"), 120);
+  const story = optional(formData.get("story"), 4000);
   const date = required(formData.get("date"), 20);
-  const startsAt = required(formData.get("startsAt"), 12);
-  const endsAt = required(formData.get("endsAt"), 12);
+  const startsAt = required(formData.get("startsAt"), 12) || "09:00";
+  const endsAt = required(formData.get("endsAt"), 12) || "18:00";
   const onlineMeetingUrl = required(formData.get("onlineMeetingUrl"), 300);
   const venueName = required(formData.get("venueName"), 160);
   const venueAddress = required(formData.get("venueAddress"), 220);
   const city = required(formData.get("city"), 120);
 
-  if (!title || !hostName || !theme || !date || !startsAt || !endsAt) {
+  const pixKey = required(formData.get("pixKey"), 120);
+  const pixReceiverName = required(formData.get("pixReceiverName"), 120);
+  const goalAmountRaw = required(formData.get("goalAmount"), 20);
+  const goalAmount = goalAmountRaw ? Number(goalAmountRaw.replace(",", ".")) : undefined;
+
+  if (!title || !hostName) {
     redirect("/criar?erro=campos-obrigatorios");
   }
 
-  const safeFormat: EventFormat = eventFormat === "online" ? "online" : "in_person";
-  const safeType = EVENT_TYPE_VALUES.includes(eventType) ? eventType : "outros";
+  if (profile.isFundraising) {
+    if (!pixKey || !pixReceiverName || !isValidPixKey(pixKey)) {
+      redirect("/criar?erro=pix-obrigatorio");
+    }
+  } else if (!theme || !date || !startsAt || !endsAt) {
+    redirect("/criar?erro=campos-obrigatorios");
+  }
 
-  if (safeFormat === "online" && !onlineMeetingUrl) {
+  const safeType = normalizeEventType(eventType);
+
+  if (eventFormat === "online" && !onlineMeetingUrl) {
     redirect("/criar?erro=link-online-obrigatorio");
   }
 
-  if (safeFormat === "in_person" && (!venueName || !venueAddress || !city)) {
+  if (eventFormat === "in_person" && (!venueName || !venueAddress || !city)) {
     redirect("/criar?erro=local-obrigatorio");
   }
 
-  const event = await repositories.events.create({
+  const today = new Date().toISOString().slice(0, 10);
+  const resolvedDate = date || today;
+
+  let event = await repositories.events.create({
     ownerId: session.user.id,
     title,
-    theme,
+    theme: profile.isFundraising ? (theme || "Arrecadação") : theme,
     eventType: safeType,
     hostName,
-    eventFormat: safeFormat,
-    onlineMeetingUrl: safeFormat === "online" ? onlineMeetingUrl : undefined,
-    date,
+    eventFormat,
+    onlineMeetingUrl: eventFormat === "online" ? onlineMeetingUrl : undefined,
+    date: resolvedDate,
     startsAt,
     endsAt,
-    venueName: safeFormat === "online" ? "Evento online" : venueName,
-    venueAddress: safeFormat === "online" ? onlineMeetingUrl : venueAddress,
-    city: safeFormat === "online" ? "Online" : city
+    venueName:
+      eventFormat === "fundraising"
+        ? "Vaquinha online"
+        : eventFormat === "online"
+          ? "Evento online"
+          : venueName,
+    venueAddress:
+      eventFormat === "fundraising"
+        ? "Contribuição via Pix"
+        : eventFormat === "online"
+          ? onlineMeetingUrl
+          : venueAddress,
+    city: eventFormat === "fundraising" ? "Online" : eventFormat === "online" ? "Online" : city
   });
+
+  if (profile.isFundraising || pixKey) {
+    event = await repositories.events.updatePixSettings(event.id, session.user.id, {
+      enabled: true,
+      receiverName: pixReceiverName || hostName,
+      key: pixKey,
+      suggestedAmount: goalAmount && goalAmount > 0 ? goalAmount : undefined,
+      message: story || theme
+    });
+  }
+
+  if (story) {
+    event = await repositories.events.setInviteCopy(event.id, session.user.id, {
+      headline: title,
+      message: story,
+      whatsapp: profile.isFundraising
+        ? `Apoie a vaquinha "${title}". Contribua via Pix: {{link}}`
+        : `Você está convidado(a) para ${title}. Confirme aqui: {{link}}`,
+      hashtags: profile.isFundraising ? ["#vaquinha", "#pix", "#praesentia"] : []
+    });
+  }
 
   await repositories.audit.record({
     actorUserId: session.user.id,
@@ -65,8 +120,8 @@ export async function createEventAction(formData: FormData) {
     action: "event.created",
     targetType: "event",
     targetId: event.id,
-    metadata: { source: "create_page", eventType: safeType, eventFormat: safeFormat }
+    metadata: { source: "create_page", eventType: safeType, eventFormat }
   });
 
-  redirect(`/dashboard/eventos/${event.id}?novo=1`);
+  redirect(`/criar/continuar/${event.id}`);
 }

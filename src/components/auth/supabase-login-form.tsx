@@ -24,7 +24,7 @@ export function SupabaseLoginForm({ nextPath }: { nextPath: string }) {
   return (
     <section className="card auth-form-card">
       {mode !== "forgot" ? (
-        <div className="auth-mode-tabs" role="tablist" aria-label="Modo de autenticacao">
+        <div className="auth-mode-tabs" role="tablist" aria-label="Modo de autenticação">
           <button type="button" className={mode === "login" ? "is-active" : ""} onClick={() => setMode("login")}>
             Entrar
           </button>
@@ -86,7 +86,7 @@ export function SupabaseLoginForm({ nextPath }: { nextPath: string }) {
             <input name="email" type="email" autoComplete="email" required />
           </label>
           <button className="btn" type="submit" disabled={pending}>
-            {pending ? "Enviando..." : "Enviar link de recuperacao"}
+            {pending ? "Enviando..." : "Enviar link de recuperação"}
           </button>
         </form>
       )}

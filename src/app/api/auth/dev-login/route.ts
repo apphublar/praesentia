@@ -11,7 +11,7 @@ export async function POST(request: Request) {
   if (originError) return originError;
 
   if (!isDevelopmentBypassAllowed()) {
-    return NextResponse.json({ error: "Dev login desabilitado em producao." }, { status: 404 });
+    return NextResponse.json({ error: "Dev login desabilitado em produção." }, { status: 404 });
   }
 
   const body = await request.json().catch(() => ({}));
@@ -19,7 +19,7 @@ export async function POST(request: Request) {
   const reauth = Boolean(body.reauth);
   const user = await repositories.users.findByEmail(email);
 
-  if (!user) return NextResponse.json({ error: "Usuario nao encontrado." }, { status: 404 });
+  if (!user) return NextResponse.json({ error: "Usuário não encontrado." }, { status: 404 });
 
   const token = createSessionToken({ userId: user.id, role: user.role, reauth });
   const cookieStore = await cookies();

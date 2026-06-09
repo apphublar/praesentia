@@ -11,7 +11,7 @@ const MAX_VIDEO_BYTES = 180 * 1024 * 1024;
 
 export function validateUploadRequest(contentType: string, size: number) {
   if (!ALLOWED_TYPES.has(contentType)) {
-    return { ok: false, error: "Tipo de arquivo nao permitido." };
+    return { ok: false, error: "Tipo de arquivo não permitido." };
   }
 
   const isVideo = contentType.startsWith("video/");

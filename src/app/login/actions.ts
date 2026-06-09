@@ -7,23 +7,29 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { repositories } from "@/lib/db";
 import { createSessionToken, SESSION_COOKIE_NAME, sessionCookieOptions } from "@/lib/auth/session-cookie";
 import { sanitizeText } from "@/lib/security/sanitize";
+import { resolvePostLoginPath } from "@/lib/auth/post-login-path";
 
 export type AuthActionState = {
   error?: string;
   notice?: string;
 };
 
-function sanitizeRedirectPath(value: FormDataEntryValue | null) {
+function sanitizeRedirectPath(value: FormDataEntryValue | null, fallback: string) {
   const next = typeof value === "string" ? value : "";
-  if (!next.startsWith("/") || next.startsWith("//")) return "/dashboard";
+  if (!next.startsWith("/") || next.startsWith("//")) return fallback;
   return next;
+}
+
+async function resolveLoginDestination(formNext: FormDataEntryValue | null, userId: string) {
+  const requested = typeof formNext === "string" ? formNext : null;
+  return resolvePostLoginPath(userId, requested);
 }
 
 async function issuePraesentiaSession(userId: string, nextPath: string) {
   const user = await repositories.users.findById(userId);
   if (!user) {
     return {
-      error: "Perfil ainda nao esta pronto. Aguarde alguns segundos e tente novamente."
+      error: "Perfil ainda não está pronto. Aguarde alguns segundos e tente novamente."
     };
   }
 
@@ -56,17 +62,17 @@ export async function requestPasswordReset(_state: AuthActionState, formData: Fo
   });
 
   if (error) {
-    return { error: "Nao foi possivel enviar o link agora. Tente novamente em instantes." };
+    return { error: "Não foi possível enviar o link agora. Tente novamente em instantes." };
   }
 
   return {
-    notice: "Se este email estiver cadastrado, voce recebera um link para redefinir sua senha."
+    notice: "Se este email estiver cadastrado, você receberá um link para redefinir sua senha."
   };
 }
 
 export async function updatePasswordAfterRecovery(_state: AuthActionState, formData: FormData): Promise<AuthActionState> {
   const password = String(formData.get("password") ?? "");
-  const nextPath = sanitizeRedirectPath(formData.get("next"));
+  const nextPath = sanitizeRedirectPath(formData.get("next"), "/login/redefinir-senha");
 
   if (password.length < 8) {
     return { error: "Use uma senha com pelo menos 8 caracteres." };
@@ -76,13 +82,13 @@ export async function updatePasswordAfterRecovery(_state: AuthActionState, formD
   const { data: authData, error: authError } = await supabase.auth.getUser();
 
   if (authError || !authData.user) {
-    return { error: "Link expirado ou invalido. Solicite uma nova recuperacao de senha." };
+    return { error: "Link expirado ou inválido. Solicite uma nova recuperação de senha." };
   }
 
   const { error } = await supabase.auth.updateUser({ password });
 
   if (error) {
-    return { error: "Nao foi possivel atualizar sua senha agora." };
+    return { error: "Não foi possível atualizar sua senha agora." };
   }
 
   return issuePraesentiaSession(authData.user.id, nextPath);
@@ -91,7 +97,6 @@ export async function updatePasswordAfterRecovery(_state: AuthActionState, formD
 export async function loginWithSupabase(_state: AuthActionState, formData: FormData): Promise<AuthActionState> {
   const email = sanitizeText(formData.get("email"), 180).toLowerCase();
   const password = String(formData.get("password") ?? "");
-  const nextPath = sanitizeRedirectPath(formData.get("next"));
 
   if (!email || password.length < 6) {
     return { error: "Informe email e senha para entrar." };
@@ -101,9 +106,10 @@ export async function loginWithSupabase(_state: AuthActionState, formData: FormD
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error || !data.user) {
-    return { error: "Email ou senha invalidos." };
+    return { error: "Email ou senha inválidos." };
   }
 
+  const nextPath = await resolveLoginDestination(formData.get("next"), data.user.id);
   return issuePraesentiaSession(data.user.id, nextPath);
 }
 
@@ -111,11 +117,13 @@ export async function signUpWithSupabase(_state: AuthActionState, formData: Form
   const name = sanitizeText(formData.get("name"), 120);
   const email = sanitizeText(formData.get("email"), 180).toLowerCase();
   const password = String(formData.get("password") ?? "");
-  const nextPath = sanitizeRedirectPath(formData.get("next"));
 
   if (!name || !email || password.length < 8) {
     return { error: "Informe nome, email e uma senha com pelo menos 8 caracteres." };
   }
+
+  const formNext = formData.get("next");
+  const emailRedirectPath = sanitizeRedirectPath(formNext, "/criar");
 
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.auth.signUp({
@@ -123,25 +131,26 @@ export async function signUpWithSupabase(_state: AuthActionState, formData: Form
     password,
     options: {
       data: { name },
-      emailRedirectTo: `${appBaseUrl()}/auth/callback?next=${encodeURIComponent(nextPath)}`
+      emailRedirectTo: `${appBaseUrl()}/auth/callback?next=${encodeURIComponent(emailRedirectPath)}`
     }
   });
 
   if (error) {
     const message = error.message.toLowerCase();
     if (message.includes("already") || message.includes("registered") || message.includes("exists")) {
-      return { error: "Este email ja possui uma conta. Faca login ou recupere sua senha." };
+      return { error: "Este email já possui uma conta. Faça login ou recupere sua senha." };
     }
-    return { error: "Nao foi possivel criar sua conta agora." };
+    return { error: "Não foi possível criar sua conta agora." };
   }
 
   if (isExistingAccountSignup(data)) {
-    return { error: "Este email ja possui uma conta. Faca login ou recupere sua senha." };
+    return { error: "Este email já possui uma conta. Faça login ou recupere sua senha." };
   }
 
   if (!data.session || !data.user) {
     return { notice: "Conta criada. Confira seu email para confirmar o acesso." };
   }
 
+  const nextPath = await resolveLoginDestination(formNext, data.user.id);
   return issuePraesentiaSession(data.user.id, nextPath);
 }

@@ -17,10 +17,10 @@ function statusLabel(status: EventMember["accessStatus"]) {
 
 function roleLabel(role: EventMember["role"]) {
   const labels = {
-    owner: "Responsavel",
+    owner: "Responsável",
     manager: "Gestor",
     guest: "Convidado",
-    viewer: "Visualizacao"
+    viewer: "Visualização"
   };
   return labels[role];
 }
@@ -37,7 +37,7 @@ function rsvpLabel(status: EventMember["rsvpStatus"]) {
 async function parseResponse(response: Response) {
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error(data.error ?? "Nao foi possivel salvar agora.");
+    throw new Error(data.error ?? "Não foi possível salvar agora.");
   }
   return data;
 }
@@ -141,7 +141,7 @@ export function EventSettingsForms({ event, members }: { event: Event; members: 
       setGuestRows((current) => current.map((item) => (item.id === member.id ? data.member : item)));
       setGuestState({
         loading: false,
-        message: action === "block" ? "Convidado bloqueado e conteudos arquivados." : "Convidado desbloqueado.",
+        message: action === "block" ? "Convidado bloqueado e conteúdos arquivados." : "Convidado desbloqueado.",
         tone: "ok"
       });
     } catch (error) {
@@ -150,7 +150,7 @@ export function EventSettingsForms({ event, members }: { event: Event; members: 
   }
 
   return (
-    <section className="dashboard-settings-grid" aria-label="Configuracoes do evento">
+    <section className="dashboard-settings-grid" aria-label="Configurações do evento">
       <article className="settings-form-card">
         <div>
           <span className="pill">Pix do evento</span>
@@ -168,7 +168,7 @@ export function EventSettingsForms({ event, members }: { event: Event; members: 
           </label>
           <label className="field">
             <span>Chave Pix</span>
-            <input value={pixKey} onChange={(currentEvent) => setPixKey(currentEvent.target.value)} placeholder="email, CPF, telefone ou chave aleatoria" />
+            <input value={pixKey} onChange={(currentEvent) => setPixKey(currentEvent.target.value)} placeholder="email, CPF, telefone ou chave aleatória" />
           </label>
           <label className="field">
             <span>Valor sugerido</span>
@@ -176,7 +176,7 @@ export function EventSettingsForms({ event, members }: { event: Event; members: 
           </label>
           <label className="field field-span-full">
             <span>Mensagem</span>
-            <textarea value={pixMessage} onChange={(currentEvent) => setPixMessage(currentEvent.target.value)} placeholder="Contribuicao opcional para a festa." />
+            <textarea value={pixMessage} onChange={(currentEvent) => setPixMessage(currentEvent.target.value)} placeholder="Contribuição opcional para a festa." />
           </label>
           <button className="btn settings-primary-action" type="button" disabled={pixState.loading} onClick={submitPix}>
             {pixState.loading ? "Salvando..." : "Salvar Pix"}
@@ -195,7 +195,7 @@ export function EventSettingsForms({ event, members }: { event: Event; members: 
           <label className="settings-switch"><input type="checkbox" checked={screenEnabled} onChange={(currentEvent) => setScreenEnabled(currentEvent.target.checked)} /><span>Telão ativo</span></label>
           <label className="settings-switch"><input type="checkbox" checked={screenPaused} onChange={(currentEvent) => setScreenPaused(currentEvent.target.checked)} /><span>Pausar atualização</span></label>
           <label className="settings-switch"><input type="checkbox" checked={showQrCode} onChange={(currentEvent) => setShowQrCode(currentEvent.target.checked)} /><span>Mostrar QR Code</span></label>
-          <label className="settings-switch"><input type="checkbox" checked={showVideos} onChange={(currentEvent) => setShowVideos(currentEvent.target.checked)} /><span>Mostrar videos</span></label>
+          <label className="settings-switch"><input type="checkbox" checked={showVideos} onChange={(currentEvent) => setShowVideos(currentEvent.target.checked)} /><span>Mostrar vídeos</span></label>
           <label className="settings-switch"><input type="checkbox" checked={showMessages} onChange={(currentEvent) => setShowMessages(currentEvent.target.checked)} /><span>Mostrar recados</span></label>
           <button className="btn settings-primary-action" type="button" disabled={screenState.loading} onClick={submitScreen}>
             {screenState.loading ? "Atualizando..." : "Atualizar telão"}

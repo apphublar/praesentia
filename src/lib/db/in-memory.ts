@@ -100,7 +100,7 @@ export const inMemoryEvents: EventRepository = {
       title: input.title,
       theme: input.theme,
       eventType: input.eventType,
-      hostName: input.hostName || users.find((user) => user.id === input.ownerId)?.name || "Responsavel",
+      hostName: input.hostName || users.find((user) => user.id === input.ownerId)?.name || "Responsável",
       date: input.date,
       startsAt: input.startsAt,
       endsAt: input.endsAt,

@@ -41,7 +41,7 @@ export const events: Event[] = [
       receiverName: "Camila Andrade",
       key: "camila.pix@example.com",
       suggestedAmount: 50,
-      message: "Contribuicao opcional para a festa da Mavie."
+      message: "Contribuição opcional para a festa da Mavie."
     },
     screen: {
       enabled: true,

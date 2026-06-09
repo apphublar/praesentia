@@ -11,10 +11,10 @@ export async function PATCH(request: Request, context: { params: Promise<{ event
 
   const { eventId } = await context.params;
   const session = await getCurrentSession();
-  if (!session) return NextResponse.json({ error: "Conta obrigatoria." }, { status: 401 });
+  if (!session) return NextResponse.json({ error: "Conta obrigatória." }, { status: 401 });
 
   const event = await repositories.events.findById(eventId);
-  if (!event) return NextResponse.json({ error: "Evento nao encontrado." }, { status: 404 });
+  if (!event) return NextResponse.json({ error: "Evento não encontrado." }, { status: 404 });
 
   const member = await repositories.members.findMembership(event.id, session.user.id);
   if (!canManageEvent(session.user, member ?? undefined)) return NextResponse.json({ error: "Acesso negado." }, { status: 403 });

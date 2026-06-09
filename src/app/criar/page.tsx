@@ -24,7 +24,9 @@ export default async function CreatePage({
         ? "Informe o link do evento online."
         : error === "local-obrigatorio"
           ? "Informe o local completo do evento."
-          : null;
+          : error === "pix-obrigatorio"
+            ? "Informe uma chave Pix válida para a vaquinha."
+            : null;
 
   return (
     <>

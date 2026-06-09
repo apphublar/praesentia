@@ -31,7 +31,7 @@ export function OwnerMediaControls({ items }: { items: MediaItem[] }) {
     <section className="card" style={{ padding: 22, marginTop: 24 }}>
       <h2 className="display" style={{ marginTop: 0, fontSize: 30 }}>Conteúdos compartilhados</h2>
       <p style={{ color: "var(--ink-soft)", lineHeight: 1.55 }}>
-        Use controles rapidos durante a festa: ocultar do telão, arquivar da cápsula ou excluir definitivamente.
+        Use controles rápidos durante a festa: ocultar do telão, arquivar da cápsula ou excluir definitivamente.
       </p>
       <div className="grid">
         {rows.map((item) => (

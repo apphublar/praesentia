@@ -13,15 +13,15 @@ const years = [
   {
     year: "2025",
     events: [
-      ["22 nov", "Casamento Joao & Ana", "convidada", "412 fotos - 38 vídeos", "#f1d8c9"],
-      ["03 jun", "Aniversario da Lila - 30", "criadora", "92 fotos - 14 vídeos", "#d9e8dc"]
+      ["22 nov", "Casamento João & Ana", "convidada", "412 fotos - 38 vídeos", "#f1d8c9"],
+      ["03 jun", "Aniversário da Lila - 30", "criadora", "92 fotos - 14 vídeos", "#d9e8dc"]
     ]
   },
   {
     year: "2024",
     events: [
-      ["14 dez", "Cha da Mavie", "convidada", "88 fotos - 4 vídeos", "#fbe3cc"],
-      ["20 set", "Aniversario da vovo - 70", "criadora", "156 fotos - 18 vídeos", "#f1d8c9"]
+      ["14 dez", "Chá da Mavie", "convidada", "88 fotos - 4 vídeos", "#fbe3cc"],
+      ["20 set", "Aniversário da vovó - 70", "criadora", "156 fotos - 18 vídeos", "#f1d8c9"]
     ]
   }
 ];
@@ -52,7 +52,7 @@ export default function ProfilePage() {
               Um perfil para lembrar onde você esteve.
             </h2>
             <p style={{ color: "var(--ink-soft)", lineHeight: 1.65 }}>
-              Cada evento particular confirmado pode virar um ponto da sua historia: festas criadas, cápsulas em que você apareceu, fotos enviadas, recados deixados e memórias que você ajudou a preservar.
+              Cada evento particular confirmado pode virar um ponto da sua história: festas criadas, cápsulas em que você apareceu, fotos enviadas, recados deixados e memórias que você ajudou a preservar.
             </p>
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
               <span className="pill" style={{ background: "var(--coral)", color: "#fff" }}>convidada</span>
@@ -122,7 +122,7 @@ export default function ProfilePage() {
           </div>
           <div style={{ display: "flex", gap: 16, overflowX: "auto", padding: "18px 28px 28px" }}>
             {[
-              ["2025", "cha da Mavie", "#fbe3cc"],
+              ["2025", "chá da Mavie", "#fbe3cc"],
               ["2026", "1 aninho", "#f1d8c9"],
               ["2027", "2 anos", "#d9e8dc"],
               ["2030", "primeira escola", "#d9e8f4"],
@@ -143,9 +143,9 @@ export default function ProfilePage() {
         </section>
 
         <section className="card" style={{ marginTop: 24, padding: 24 }}>
-          <h2 className="display-i" style={{ marginTop: 0, fontSize: 34 }}>Seus eventos nunca serao apagados sem aviso.</h2>
+          <h2 className="display-i" style={{ marginTop: 0, fontSize: 34 }}>Seus eventos nunca serão apagados sem aviso.</h2>
           <p style={{ color: "var(--ink-soft)", lineHeight: 1.65 }}>
-            Cada cápsula que você ajudou a construir continua acessível pelo link original enquanto houver permissão do responsável. Você pode exportar seus dados quando o produto tiver a rotina de exportacao habilitada.
+            Cada cápsula que você ajudou a construir continua acessível pelo link original enquanto houver permissão do responsável. Você pode exportar seus dados quando o produto tiver a rotina de exportação habilitada.
           </p>
         </section>
       </main>

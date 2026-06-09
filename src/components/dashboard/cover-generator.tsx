@@ -4,7 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import type { Event } from "@/types/domain";
 
-type Quota = {
+export type CoverQuota = {
   maxGenerations: number;
   maxEdits: number;
   remainingGenerations: number;
@@ -12,6 +12,14 @@ type Quota = {
   canGenerate: boolean;
   canEdit: boolean;
   allowsCustomUpload: boolean;
+};
+
+const DEFAULT_INCLUDE = {
+  title: true,
+  date: true,
+  location: true,
+  hostName: true,
+  theme: true
 };
 
 export function CoverGenerator({
@@ -23,7 +31,9 @@ export function CoverGenerator({
   coverSource,
   pendingUrls = [],
   inviteWhatsappText,
-  initialQuota
+  initialQuota,
+  onCoverChange,
+  showShareActions = true
 }: {
   eventId: string;
   eventSlug: string;
@@ -33,7 +43,9 @@ export function CoverGenerator({
   coverSource?: Event["coverSource"];
   pendingUrls?: string[];
   inviteWhatsappText?: string;
-  initialQuota: Quota;
+  initialQuota: CoverQuota;
+  onCoverChange?: (url: string) => void;
+  showShareActions?: boolean;
 }) {
   const [coverUrl, setCoverUrl] = useState(currentCoverUrl ?? "");
   const [source, setSource] = useState(coverSource);
@@ -41,15 +53,22 @@ export function CoverGenerator({
   const [quota, setQuota] = useState(initialQuota);
   const [loading, setLoading] = useState(false);
   const [editHint, setEditHint] = useState("");
+  const [orientation, setOrientation] = useState("");
+  const [includeFields, setIncludeFields] = useState(DEFAULT_INCLUDE);
   const [error, setError] = useState("");
 
   const appUrl = typeof window !== "undefined" ? window.location.origin : "";
   const shareLink = `${appUrl}/evento/${eventSlug}`;
   const waMessage = inviteWhatsappText
     ? inviteWhatsappText.replace(/\{\{link\}\}/g, shareLink)
-    : `Você está convidado! Confirme sua presença: ${shareLink}`;
-  const waText = encodeURIComponent(waMessage);
+    : `Confira: ${shareLink}`;
   const isPaid = capsuleActive && planTier !== "free";
+
+  function applyCover(url: string, nextSource?: Event["coverSource"]) {
+    setCoverUrl(url);
+    onCoverChange?.(url);
+    if (nextSource) setSource(nextSource);
+  }
 
   async function generate(mode: "generate" | "edit" = "generate") {
     setLoading(true);
@@ -58,7 +77,12 @@ export function CoverGenerator({
       const res = await fetch(`/api/events/${eventId}/generate-cover`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mode, editHint: mode === "edit" ? editHint : undefined })
+        body: JSON.stringify({
+          mode,
+          editHint: mode === "edit" ? editHint : undefined,
+          orientation: orientation || undefined,
+          includeFields
+        })
       });
       const data = await res.json();
       if (!res.ok) {
@@ -66,10 +90,9 @@ export function CoverGenerator({
         setLoading(false);
         return;
       }
-      if (data.coverImageUrl) setCoverUrl(data.coverImageUrl);
+      if (data.coverImageUrl) applyCover(data.coverImageUrl, "ai");
       if (data.pendingUrls) setPending(data.pendingUrls);
       if (data.quota) setQuota(data.quota);
-      setSource("ai");
       if (mode === "edit") setEditHint("");
     } catch {
       setError("Erro de conexão. Tente novamente.");
@@ -92,7 +115,7 @@ export function CoverGenerator({
         setLoading(false);
         return;
       }
-      setCoverUrl(data.coverImageUrl);
+      applyCover(data.coverImageUrl, "ai");
       setPending(data.pendingUrls ?? []);
     } catch {
       setError("Erro de conexão.");
@@ -113,8 +136,7 @@ export function CoverGenerator({
         setLoading(false);
         return;
       }
-      setCoverUrl(data.coverImageUrl);
-      setSource("custom");
+      applyCover(data.coverImageUrl, "custom");
       setPending([]);
       if (data.quota) setQuota(data.quota);
     } catch {
@@ -124,18 +146,48 @@ export function CoverGenerator({
   }
 
   return (
-    <article className="card" style={{ padding: 22 }}>
+    <article className="card dashboard-card">
       <span className="pill">imagem do convite</span>
       <h2 className="display" style={{ fontSize: 28, margin: "12px 0" }}>Imagem para WhatsApp e Stories</h2>
 
       <p style={{ color: "var(--ink-soft)", lineHeight: 1.6, fontSize: 14, marginBottom: 16 }}>
         {isPaid
           ? `Plano pago: até ${quota.maxGenerations} versões por IA e ${quota.maxEdits} ajustes.`
-          : "Plano gratuito: 1 geração opcional por IA (sem editar) ou envie seu convite personalizado."}
+          : "Escolha o que entra na arte, oriente a IA e gere uma vez — ou envie sua imagem."}
       </p>
 
+      <div className="cover-include-grid">
+        {(Object.keys(DEFAULT_INCLUDE) as Array<keyof typeof DEFAULT_INCLUDE>).map((key) => (
+          <label key={key} className="cover-include-option">
+            <input
+              type="checkbox"
+              checked={includeFields[key]}
+              onChange={(e) => setIncludeFields((current) => ({ ...current, [key]: e.target.checked }))}
+            />
+            <span>
+              {key === "title" && "Título"}
+              {key === "date" && "Data"}
+              {key === "location" && "Local / link"}
+              {key === "hostName" && "Organizador"}
+              {key === "theme" && "Tema"}
+            </span>
+          </label>
+        ))}
+      </div>
+
+      <label className="field" style={{ marginTop: 16 }}>
+        <span>Orientação para a IA</span>
+        <textarea
+          value={orientation}
+          onChange={(e) => setOrientation(e.target.value)}
+          maxLength={400}
+          rows={3}
+          placeholder="Ex: fundo azul claro, flores delicadas, estilo minimalista, sem rostos..."
+        />
+      </label>
+
       {coverUrl ? (
-        <div style={{ display: "flex", gap: 20, flexWrap: "wrap", alignItems: "flex-start" }}>
+        <div style={{ display: "flex", gap: 20, flexWrap: "wrap", alignItems: "flex-start", marginTop: 20 }}>
           <Image
             src={coverUrl}
             alt="Capa do convite"
@@ -146,20 +198,24 @@ export function CoverGenerator({
           />
           <div style={{ flex: 1, minWidth: 200, display: "flex", flexDirection: "column", gap: 12 }}>
             <p style={{ color: "var(--ink-soft)", lineHeight: 1.6, fontSize: 14 }}>
-              {source === "custom" ? "Convite personalizado enviado por você." : "Imagem gerada com IA."}
+              {source === "custom" ? "Imagem enviada por você." : "Imagem gerada com IA."}
             </p>
-            <a href={coverUrl} download="convite.png" className="btn secondary" style={{ textAlign: "center" }}>
-              Baixar imagem
-            </a>
-            <a
-              href={`https://wa.me/?text=${waText}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn"
-              style={{ background: "#25D366", color: "#fff", textAlign: "center", textDecoration: "none" }}
-            >
-              Compartilhar no WhatsApp
-            </a>
+            {showShareActions && (
+              <>
+                <a href={coverUrl} download="convite.png" className="btn secondary" style={{ textAlign: "center" }}>
+                  Baixar imagem
+                </a>
+                <a
+                  href={`https://wa.me/?text=${encodeURIComponent(waMessage)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn"
+                  style={{ background: "#25D366", color: "#fff", textAlign: "center", textDecoration: "none" }}
+                >
+                  Compartilhar no WhatsApp
+                </a>
+              </>
+            )}
           </div>
         </div>
       ) : null}
@@ -209,7 +265,7 @@ export function CoverGenerator({
 
         {quota.allowsCustomUpload && (
           <label className="btn secondary" style={{ textAlign: "center", cursor: "pointer" }}>
-            Enviar meu convite personalizado
+            Enviar minha imagem
             <input
               type="file"
               accept="image/jpeg,image/png,image/webp"

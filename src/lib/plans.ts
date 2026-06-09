@@ -12,7 +12,7 @@ export const PLANS: Record<EventPlan["tier"], EventPlan> = {
   },
   capsule: {
     tier: "capsule",
-    label: "Capsula",
+    label: "Cápsula",
     storageGb: 5,
     retentionMonths: 36,
     customSubdomain: true

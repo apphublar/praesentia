@@ -15,10 +15,10 @@ export async function PATCH(
 
   const { eventId, userId } = await context.params;
   const session = await getCurrentSession();
-  if (!session) return NextResponse.json({ error: "Conta obrigatoria." }, { status: 401 });
+  if (!session) return NextResponse.json({ error: "Conta obrigatória." }, { status: 401 });
 
   const event = await repositories.events.findById(eventId);
-  if (!event) return NextResponse.json({ error: "Evento nao encontrado." }, { status: 404 });
+  if (!event) return NextResponse.json({ error: "Evento não encontrado." }, { status: 404 });
 
   const actorMembership = await repositories.members.findMembership(event.id, session.user.id);
   if (!canManageEvent(session.user, actorMembership ?? undefined)) {
@@ -34,7 +34,7 @@ export async function PATCH(
     return NextResponse.json({
       member,
       archivedContent: true,
-      message: "Convidado bloqueado e conteudos arquivados."
+      message: "Convidado bloqueado e conteúdos arquivados."
     });
   }
 
@@ -43,9 +43,9 @@ export async function PATCH(
     await publishRealtimeEvent({ type: "screen.changed", eventId });
     return NextResponse.json({
       member,
-      message: "Convidado desbloqueado. Conteudos arquivados podem ser restaurados pelo responsavel."
+      message: "Convidado desbloqueado. Conteúdos arquivados podem ser restaurados pelo responsável."
     });
   }
 
-  return NextResponse.json({ error: "Acao invalida." }, { status: 400 });
+  return NextResponse.json({ error: "Ação inválida." }, { status: 400 });
 }

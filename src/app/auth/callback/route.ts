@@ -3,16 +3,12 @@ import { cookies } from "next/headers";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { repositories } from "@/lib/db";
 import { createSessionToken, SESSION_COOKIE_NAME, sessionCookieOptions } from "@/lib/auth/session-cookie";
-
-function sanitizeRedirectPath(value: string | null) {
-  if (!value || !value.startsWith("/") || value.startsWith("//")) return "/dashboard";
-  return value;
-}
+import { resolvePostLoginPath } from "@/lib/auth/post-login-path";
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
-  const nextPath = sanitizeRedirectPath(requestUrl.searchParams.get("next"));
+  const requestedNext = requestUrl.searchParams.get("next");
 
   if (!code) {
     return NextResponse.redirect(new URL("/login?error=missing-code", requestUrl.origin));
@@ -34,5 +30,6 @@ export async function GET(request: Request) {
   const token = createSessionToken({ userId: user.id, role: user.role, reauth: true });
   cookieStore.set(SESSION_COOKIE_NAME, token, sessionCookieOptions);
 
+  const nextPath = await resolvePostLoginPath(user.id, requestedNext);
   return NextResponse.redirect(new URL(nextPath, requestUrl.origin));
 }
