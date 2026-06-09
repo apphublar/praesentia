@@ -1941,3 +1941,19 @@ p + a.btn,
     width: 100%;
   }
 }
+
+@media print {
+  .app-nav,
+  .btn,
+  button {
+    display: none !important;
+  }
+
+  .guest-print-list button {
+    display: none !important;
+  }
+
+  main {
+    padding: 0 !important;
+  }
+}

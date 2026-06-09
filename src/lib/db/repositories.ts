@@ -1,4 +1,4 @@
-import type { Event, EventMember, EventType, GuestRsvp, MediaItem, User } from "@/types/domain";
+import type { Event, EventType, GuestRsvp, PlanTier, UserSubscription } from "@/types/domain";
 
 export type CreateEventInput = {
   ownerId: string;
@@ -6,6 +6,8 @@ export type CreateEventInput = {
   theme: string;
   eventType: EventType;
   hostName: string;
+  eventFormat: Event["eventFormat"];
+  onlineMeetingUrl?: string;
   date: string;
   startsAt: string;
   endsAt: string;
@@ -24,7 +26,7 @@ export type CreateGuestRsvpInput = {
 export type CreateMediaInput = {
   eventId: string;
   userId: string;
-  type: MediaItem["type"];
+  type: import("@/types/domain").MediaItem["type"];
   text?: string;
   r2Key?: string;
   url?: string;
@@ -32,36 +34,67 @@ export type CreateMediaInput = {
   byteSize?: number;
 };
 
+export type UpdateEventInput = {
+  title?: string;
+  theme?: string;
+  hostName?: string;
+  eventFormat?: Event["eventFormat"];
+  onlineMeetingUrl?: string;
+  date?: string;
+  startsAt?: string;
+  endsAt?: string;
+  venueName?: string;
+  venueAddress?: string;
+  city?: string;
+};
+
 export interface UserRepository {
-  findById(id: string): Promise<User | null>;
-  findByEmail(email: string): Promise<User | null>;
+  findById(id: string): Promise<import("@/types/domain").User | null>;
+  findByEmail(email: string): Promise<import("@/types/domain").User | null>;
 }
 
 export interface EventRepository {
   findById(id: string): Promise<Event | null>;
   findBySlugOrCode(slugOrCode: string): Promise<Event | null>;
   listByOwner(userId: string): Promise<Event[]>;
+  countCapsuleEventsByOwner(userId: string, since: Date): Promise<number>;
   create(input: CreateEventInput): Promise<Event>;
+  update(eventId: string, actorUserId: string, input: UpdateEventInput): Promise<Event>;
+  activateCapsule(eventId: string, actorUserId: string, tier: Exclude<PlanTier, "free">): Promise<Event>;
+  setCoverImage(
+    eventId: string,
+    actorUserId: string,
+    input: { coverImageUrl: string; coverSource: Event["coverSource"] }
+  ): Promise<Event>;
+  incrementAiCoverUsage(
+    eventId: string,
+    actorUserId: string,
+    type: "generation" | "edit"
+  ): Promise<Event>;
+  setAiCoverPendingUrls(eventId: string, urls: string[]): Promise<Event>;
+  selectAiCoverVersion(eventId: string, actorUserId: string, coverImageUrl: string): Promise<Event>;
   setVisibility(eventId: string, visibility: Event["visibility"], actorUserId: string): Promise<Event>;
   updatePixSettings(eventId: string, actorUserId: string, input: Event["pix"]): Promise<Event>;
   updateScreenSettings(eventId: string, actorUserId: string, input: Event["screen"]): Promise<Event>;
 }
 
 export interface MemberRepository {
-  findMembership(eventId: string, userId: string): Promise<EventMember | null>;
-  listByEvent(eventId: string): Promise<EventMember[]>;
-  confirmRsvp(eventId: string, userId: string): Promise<EventMember>;
-  blockGuest(eventId: string, userId: string, actorUserId: string): Promise<EventMember>;
-  unblockGuest(eventId: string, userId: string, actorUserId: string): Promise<EventMember>;
+  findMembership(eventId: string, userId: string): Promise<import("@/types/domain").EventMember | null>;
+  listByEvent(eventId: string): Promise<import("@/types/domain").EventMember[]>;
+  confirmRsvp(eventId: string, userId: string): Promise<import("@/types/domain").EventMember>;
+  ensureGuestMembership(eventId: string, userId: string): Promise<import("@/types/domain").EventMember>;
+  blockGuest(eventId: string, userId: string, actorUserId: string): Promise<import("@/types/domain").EventMember>;
+  unblockGuest(eventId: string, userId: string, actorUserId: string): Promise<import("@/types/domain").EventMember>;
 }
 
 export interface MediaRepository {
-  listPublishedByEvent(eventId: string): Promise<MediaItem[]>;
-  create(input: CreateMediaInput): Promise<MediaItem>;
-  archive(mediaId: string, actorUserId: string): Promise<MediaItem>;
+  listPublishedByEvent(eventId: string): Promise<import("@/types/domain").MediaItem[]>;
+  findById(mediaId: string): Promise<import("@/types/domain").MediaItem | null>;
+  create(input: CreateMediaInput): Promise<import("@/types/domain").MediaItem>;
+  archive(mediaId: string, actorUserId: string): Promise<import("@/types/domain").MediaItem>;
   archiveByUser(eventId: string, userId: string, actorUserId: string): Promise<number>;
   delete(mediaId: string, actorUserId: string): Promise<void>;
-  setScreenVisibility(mediaId: string, visible: boolean, actorUserId: string): Promise<MediaItem>;
+  setScreenVisibility(mediaId: string, visible: boolean, actorUserId: string): Promise<import("@/types/domain").MediaItem>;
 }
 
 export interface LikeRepository {
@@ -71,6 +104,14 @@ export interface LikeRepository {
 export interface GuestRsvpRepository {
   create(input: CreateGuestRsvpInput): Promise<GuestRsvp>;
   listByEvent(eventId: string): Promise<GuestRsvp[]>;
+  checkIn(eventId: string, rsvpId: string, actorUserId: string): Promise<GuestRsvp>;
+  undoCheckIn(eventId: string, rsvpId: string, actorUserId: string): Promise<GuestRsvp>;
+}
+
+export interface SubscriptionRepository {
+  findActiveByUser(userId: string): Promise<UserSubscription | null>;
+  activateFamilyPlan(userId: string): Promise<UserSubscription>;
+  consumeEventSlot(userId: string): Promise<UserSubscription>;
 }
 
 export interface AuditRepository {

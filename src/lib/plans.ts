@@ -19,10 +19,10 @@ export const PLANS: Record<EventPlan["tier"], EventPlan> = {
   },
   family: {
     tier: "family",
-    label: "Familia",
-    storageGb: 25,
+    label: "Cápsula Plus",
+    storageGb: 20,
     retentionMonths: 36,
-    yearlyEventLimit: 12,
+    yearlyEventLimit: 6,
     customSubdomain: true
   }
 };

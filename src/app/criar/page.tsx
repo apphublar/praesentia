@@ -24,14 +24,15 @@ function SubmitButton() {
 }
 
 export default function CreatePage() {
-  const [step, setStep] = useState<1 | 2>(1);
+  const [step, setStep] = useState<1 | 2 | 3>(1);
   const [selectedType, setSelectedType] = useState("");
+  const [eventFormat, setEventFormat] = useState<"in_person" | "online">("in_person");
 
   return (
     <>
       <AppNav />
       <main className="shell paper" style={{ padding: "48px 0 90px", maxWidth: 680 }}>
-        <span className="pill">criar evento</span>
+        <span className="pill">criar evento · gratuito</span>
         <h1 className="display-i" style={{ fontSize: "clamp(36px,6vw,64px)", lineHeight: 0.95, margin: "14px 0 32px" }}>
           Vamos criar seu convite
         </h1>
@@ -64,12 +65,49 @@ export default function CreatePage() {
               style={{ background: "none", border: "none", cursor: "pointer", color: "var(--ink-soft)", marginBottom: 20, fontSize: 14, padding: 0 }}>
               ← Voltar
             </button>
+            <p style={{ color: "var(--ink-soft)", marginBottom: 20, lineHeight: 1.6 }}>
+              O evento será presencial ou online?
+            </p>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 24 }}>
+              {[
+                { value: "in_person" as const, label: "Presencial", desc: "Informe o local do evento" },
+                { value: "online" as const, label: "Online", desc: "Compartilhe o link da reunião" }
+              ].map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => { setEventFormat(option.value); setStep(3); }}
+                  className="card"
+                  style={{
+                    padding: "22px 18px",
+                    textAlign: "left",
+                    cursor: "pointer",
+                    borderColor: eventFormat === option.value ? "var(--coral)" : undefined
+                  }}
+                >
+                  <strong className="display" style={{ fontSize: 20 }}>{option.label}</strong>
+                  <p style={{ color: "var(--ink-soft)", fontSize: 14, margin: "8px 0 0", lineHeight: 1.5 }}>{option.desc}</p>
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {step === 3 && (
+          <section>
+            <button type="button" onClick={() => setStep(2)}
+              style={{ background: "none", border: "none", cursor: "pointer", color: "var(--ink-soft)", marginBottom: 20, fontSize: 14, padding: 0 }}>
+              ← Voltar
+            </button>
 
             <form action={createEventAction} style={{ display: "flex", flexDirection: "column", gap: 18 }}>
               <input type="hidden" name="eventType" value={selectedType} />
+              <input type="hidden" name="eventFormat" value={eventFormat} />
 
               <div className="card" style={{ padding: 20 }}>
-                <div className="mono" style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", color: "var(--ink-soft)", marginBottom: 14 }}>sobre o evento</div>
+                <div className="mono" style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", color: "var(--ink-soft)", marginBottom: 14 }}>
+                  sobre o evento · {eventFormat === "online" ? "online" : "presencial"}
+                </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                   <label>
                     <span>Nome do evento *</span>
@@ -104,27 +142,38 @@ export default function CreatePage() {
                 </div>
               </div>
 
-              <div className="card" style={{ padding: 20 }}>
-                <div className="mono" style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", color: "var(--ink-soft)", marginBottom: 14 }}>local</div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              {eventFormat === "online" ? (
+                <div className="card" style={{ padding: 20 }}>
+                  <div className="mono" style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", color: "var(--ink-soft)", marginBottom: 14 }}>link do evento</div>
                   <label>
-                    <span>Nome do local *</span>
-                    <input name="venueName" required maxLength={160} placeholder="Ex: Espaço Encantado, Buffet Grill..." />
-                  </label>
-                  <label>
-                    <span>Endereço *</span>
-                    <input name="venueAddress" required maxLength={220} placeholder="Rua, número, bairro" />
-                  </label>
-                  <label>
-                    <span>Cidade *</span>
-                    <input name="city" required maxLength={120} placeholder="Ex: São Paulo" />
+                    <span>URL da reunião (Meet, Zoom, Teams...) *</span>
+                    <input name="onlineMeetingUrl" required maxLength={300} placeholder="https://meet.google.com/..." />
                   </label>
                 </div>
-              </div>
+              ) : (
+                <div className="card" style={{ padding: 20 }}>
+                  <div className="mono" style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", color: "var(--ink-soft)", marginBottom: 14 }}>local</div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                    <label>
+                      <span>Nome do local *</span>
+                      <input name="venueName" required maxLength={160} placeholder="Ex: Espaço Encantado, Buffet Grill..." />
+                    </label>
+                    <label>
+                      <span>Endereço *</span>
+                      <input name="venueAddress" required maxLength={220} placeholder="Rua, número, bairro" />
+                    </label>
+                    <label>
+                      <span>Cidade *</span>
+                      <input name="city" required maxLength={120} placeholder="Ex: São Paulo" />
+                    </label>
+                  </div>
+                </div>
+              )}
 
               <SubmitButton />
               <p style={{ color: "var(--ink-soft)", fontSize: 13, lineHeight: 1.5 }}>
-                O evento nasce privado. Depois você gera a imagem do convite com IA e compartilha o link.
+                O evento nasce no plano gratuito: convite, RSVP, lista de presença e check-in.
+                Para mural ao vivo e cápsula do tempo, ative a Cápsula (R$59) depois no painel.
               </p>
             </form>
           </section>

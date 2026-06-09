@@ -1,10 +1,13 @@
 import { NextResponse } from "next/server";
+import { getCurrentSession } from "@/lib/auth/session";
 import { repositories } from "@/lib/db";
+import { canAccessCapsule } from "@/lib/plans/features";
 import { sanitizeText } from "@/lib/security/sanitize";
 
 export async function POST(request: Request, { params }: { params: Promise<{ eventId: string }> }) {
   try {
     const { eventId } = await params;
+    const session = await getCurrentSession();
 
     const event = await repositories.events.findById(eventId);
     if (!event) return NextResponse.json({ error: "Evento não encontrado" }, { status: 404 });
@@ -12,13 +15,17 @@ export async function POST(request: Request, { params }: { params: Promise<{ eve
     const body = await request.json();
     const guestName = sanitizeText(body.guestName, 120);
     const phone = body.phone ? sanitizeText(body.phone, 20) : undefined;
-    const wantsCapsule = Boolean(body.wantsCapsule);
+    const wantsCapsule = Boolean(body.wantsCapsule) && canAccessCapsule(event);
 
     if (!guestName) {
       return NextResponse.json({ error: "Informe seu nome para confirmar presença." }, { status: 400 });
     }
 
     const rsvp = await repositories.guestRsvps.create({ eventId, guestName, phone, wantsCapsule });
+
+    if (session) {
+      await repositories.members.ensureGuestMembership(eventId, session.user.id);
+    }
 
     return NextResponse.json({ rsvp });
   } catch (err) {

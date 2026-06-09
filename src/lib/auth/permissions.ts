@@ -1,5 +1,7 @@
 import type { Event, EventMember, MediaItem, User } from "@/types/domain";
 import { isPlatformAdmin } from "@/lib/auth/session";
+import { isWithinGuestDeleteWindow } from "@/lib/events/phase";
+import { canAccessCapsule, canAccessMural, hasCapsuleAccess } from "@/lib/plans/features";
 
 export function canViewEvent(user: User | null, event: Event, member?: EventMember) {
   if (event.visibility === "public") return true;
@@ -13,7 +15,8 @@ export function canManageEvent(user: User, member?: EventMember) {
   return member?.accessStatus === "active" && ["owner", "manager"].includes(member.role);
 }
 
-export function canContribute(member?: EventMember) {
+export function canContribute(event: Event, member?: EventMember) {
+  if (!canAccessMural(event)) return false;
   return (
     member?.accessStatus === "active" &&
     member.rsvpStatus === "confirmed" &&
@@ -21,8 +24,29 @@ export function canContribute(member?: EventMember) {
   );
 }
 
-export function canLike(member?: EventMember) {
+export function canLike(event: Event, member?: EventMember) {
+  if (!canAccessMural(event)) return false;
   return member?.accessStatus === "active" && member.rsvpStatus === "confirmed";
+}
+
+export function canViewCapsuleMemories(event: Event, member?: EventMember) {
+  if (!canAccessCapsule(event)) return false;
+  if (!member || member.accessStatus !== "active") return false;
+  return member.rsvpStatus === "confirmed" || ["owner", "manager"].includes(member.role);
+}
+
+export function canDeleteMedia(
+  event: Event,
+  user: User,
+  member: EventMember | undefined,
+  media: MediaItem,
+  now = new Date()
+) {
+  if (canManageEvent(user, member)) return true;
+  if (!hasCapsuleAccess(event)) return false;
+  if (media.userId !== user.id) return false;
+  if (!member || member.rsvpStatus !== "confirmed" || member.accessStatus !== "active") return false;
+  return isWithinGuestDeleteWindow(event, now);
 }
 
 export function shouldDisplayMedia(item: MediaItem) {

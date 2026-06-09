@@ -22,7 +22,7 @@ export async function POST(request: Request, context: { params: Promise<{ eventI
   if (!event) return NextResponse.json({ error: "Evento nao encontrado." }, { status: 404 });
 
   const member = await repositories.members.findMembership(event.id, session.user.id);
-  if (!canLike(member ?? undefined)) return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
+  if (!canLike(event, member ?? undefined)) return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
 
   const body = await request.json().catch(() => null);
   const mediaId = sanitizeText(body?.mediaId, 80);

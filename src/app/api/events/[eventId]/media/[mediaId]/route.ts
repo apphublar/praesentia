@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { canManageEvent } from "@/lib/auth/permissions";
+import { canDeleteMedia, canManageEvent } from "@/lib/auth/permissions";
 import { getCurrentSession } from "@/lib/auth/session";
 import { repositories } from "@/lib/db";
 import { publishRealtimeEvent } from "@/lib/realtime/events";
@@ -61,8 +61,16 @@ export async function DELETE(request: Request, context: { params: Promise<{ even
   if (!event) return NextResponse.json({ error: "Evento nao encontrado." }, { status: 404 });
 
   const member = await repositories.members.findMembership(event.id, session.user.id);
-  if (!canManageEvent(session.user, member ?? undefined)) {
-    return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
+  const media = await repositories.media.findById(mediaId);
+  if (!media || media.eventId !== eventId) {
+    return NextResponse.json({ error: "Conteudo nao encontrado." }, { status: 404 });
+  }
+
+  if (!canDeleteMedia(event, session.user, member ?? undefined, media)) {
+    return NextResponse.json(
+      { error: "Voce so pode excluir seu conteudo nas primeiras 24h do evento. Depois disso, fale com o responsavel." },
+      { status: 403 }
+    );
   }
 
   await repositories.media.delete(mediaId, session.user.id);

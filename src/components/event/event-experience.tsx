@@ -53,6 +53,10 @@ export function EventExperience({ event, media, currentUserId }: { event: Event;
     setPhase("live");
   }
 
+  function removeLocalMedia(mediaId: string) {
+    setLiveMedia((current) => current.filter((item) => item.id !== mediaId));
+  }
+
   return (
     <main className="paper">
       <div
@@ -80,7 +84,15 @@ export function EventExperience({ event, media, currentUserId }: { event: Event;
       </div>
 
       {phase === "before" && <BeforeEvent event={event} />}
-      {phase === "live" && <LiveEvent event={event} media={liveMedia} currentUserId={currentUserId} onCreated={addLocalMedia} />}
+      {phase === "live" && (
+        <LiveEvent
+          event={event}
+          media={liveMedia}
+          currentUserId={currentUserId}
+          onCreated={addLocalMedia}
+          onDeleted={removeLocalMedia}
+        />
+      )}
       {phase === "memory" && <MemoryEvent event={event} media={liveMedia} />}
 
       <PhaseSwitcher phase={phase} onChange={setPhase} />
@@ -277,12 +289,14 @@ function LiveEvent({
   event,
   media,
   currentUserId,
-  onCreated
+  onCreated,
+  onDeleted
 }: {
   event: Event;
   media: MediaItem[];
   currentUserId?: string;
   onCreated: (item: MediaItem) => void;
+  onDeleted: (mediaId: string) => void;
 }) {
   const [latest, ...rest] = media;
   const top3 = useMemo(() => [...media].sort((a, b) => b.likesCount - a.likesCount).slice(0, 3), [media]);
@@ -322,7 +336,13 @@ function LiveEvent({
           </div>
         </div>
         <aside style={{ display: "grid", gap: 14, alignContent: "start" }}>
-          <GuestContributionPanel eventId={event.id} items={guestItems} onCreated={onCreated} />
+          <GuestContributionPanel
+            eventId={event.id}
+            items={guestItems}
+            currentUserId={currentUserId}
+            onCreated={onCreated}
+            onDeleted={onDeleted}
+          />
           <div className="card event-side-card event-side-card-accent" style={{ padding: 18, background: "var(--violet)", color: "#fff" }}>
             <div className="mono" style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase" }}>limite por convidado</div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, marginTop: 12 }}>

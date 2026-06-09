@@ -10,13 +10,26 @@ import type {
   LikeRepository,
   MediaRepository,
   MemberRepository,
+  SubscriptionRepository,
+  UpdateEventInput,
   UserRepository
 } from "@/lib/db/repositories";
 import { PLANS } from "@/lib/plans";
-import type { Event, GuestRsvp, MediaItem } from "@/types/domain";
+import type { Event, GuestRsvp, MediaItem, PlanTier, UserSubscription } from "@/types/domain";
 
 function createId(prefix: string) {
   return `${prefix}_${randomUUID()}`;
+}
+
+function baseEventFields(input: CreateEventInput) {
+  return {
+    eventFormat: input.eventFormat,
+    onlineMeetingUrl: input.onlineMeetingUrl,
+    aiCoverGenerationsCount: 0,
+    aiCoverEditsCount: 0,
+    aiCoverPendingUrls: [] as string[],
+    capsuleActivatedAt: undefined as string | undefined
+  };
 }
 
 export const inMemoryUsers: UserRepository = {
@@ -43,6 +56,18 @@ export const inMemoryEvents: EventRepository = {
     );
     return events.filter((event) => manageableEventIds.has(event.id));
   },
+  async countCapsuleEventsByOwner(userId, since) {
+    const ownedIds = new Set(
+      members.filter((member) => member.userId === userId && member.role === "owner").map((member) => member.eventId)
+    );
+    return events.filter(
+      (event) =>
+        ownedIds.has(event.id) &&
+        event.plan.tier === "family" &&
+        event.capsuleActivatedAt &&
+        new Date(event.capsuleActivatedAt) >= since
+    ).length;
+  },
   async create(input: CreateEventInput) {
     const eventId = createId("evt");
     const event: Event = {
@@ -63,6 +88,7 @@ export const inMemoryEvents: EventRepository = {
       phase: "before",
       plan: PLANS.free,
       storageUsedGb: 0,
+      ...baseEventFields(input),
       screen: {
         enabled: false,
         token: createId("screen"),
@@ -83,6 +109,49 @@ export const inMemoryEvents: EventRepository = {
       accessStatus: "active",
       joinedAt: new Date().toISOString()
     });
+    return event;
+  },
+  async update(eventId, _actorUserId, input: UpdateEventInput) {
+    const event = events.find((item) => item.id === eventId);
+    if (!event) throw new Error("EVENT_NOT_FOUND");
+    Object.assign(event, input);
+    return event;
+  },
+  async activateCapsule(eventId, _actorUserId, tier: Exclude<PlanTier, "free">) {
+    const event = events.find((item) => item.id === eventId);
+    if (!event) throw new Error("EVENT_NOT_FOUND");
+    event.plan = PLANS[tier];
+    event.capsuleActivatedAt = new Date().toISOString();
+    event.screen.enabled = true;
+    return event;
+  },
+  async setCoverImage(eventId, _actorUserId, input) {
+    const event = events.find((item) => item.id === eventId);
+    if (!event) throw new Error("EVENT_NOT_FOUND");
+    event.coverImageUrl = input.coverImageUrl;
+    event.coverSource = input.coverSource;
+    event.aiCoverPendingUrls = [];
+    return event;
+  },
+  async incrementAiCoverUsage(eventId, _actorUserId, type) {
+    const event = events.find((item) => item.id === eventId);
+    if (!event) throw new Error("EVENT_NOT_FOUND");
+    if (type === "generation") event.aiCoverGenerationsCount += 1;
+    else event.aiCoverEditsCount += 1;
+    return event;
+  },
+  async setAiCoverPendingUrls(eventId, urls) {
+    const event = events.find((item) => item.id === eventId);
+    if (!event) throw new Error("EVENT_NOT_FOUND");
+    event.aiCoverPendingUrls = urls;
+    return event;
+  },
+  async selectAiCoverVersion(eventId, _actorUserId, coverImageUrl) {
+    const event = events.find((item) => item.id === eventId);
+    if (!event) throw new Error("EVENT_NOT_FOUND");
+    event.coverImageUrl = coverImageUrl;
+    event.coverSource = "ai";
+    event.aiCoverPendingUrls = [];
     return event;
   },
   async setVisibility(eventId, visibility) {
@@ -116,6 +185,25 @@ export const inMemoryMembers: MemberRepository = {
     const member = members.find((item) => item.eventId === eventId && item.userId === userId);
     if (!member) throw new Error("MEMBER_NOT_FOUND");
     member.rsvpStatus = "confirmed";
+    return member;
+  },
+  async ensureGuestMembership(eventId, userId) {
+    let member = members.find((item) => item.eventId === eventId && item.userId === userId);
+    if (!member) {
+      member = {
+        id: createId("mem"),
+        eventId,
+        userId,
+        role: "guest",
+        rsvpStatus: "confirmed",
+        accessStatus: "active",
+        joinedAt: new Date().toISOString()
+      };
+      members.push(member);
+    } else {
+      member.rsvpStatus = "confirmed";
+      member.accessStatus = "active";
+    }
     return member;
   },
   async blockGuest(eventId, userId, actorUserId) {
@@ -157,6 +245,9 @@ export const inMemoryMedia: MediaRepository = {
     return mediaItems
       .filter((item) => item.eventId === eventId && item.status === "published")
       .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+  },
+  async findById(mediaId) {
+    return mediaItems.find((item) => item.id === mediaId) ?? null;
   },
   async create(input: CreateMediaInput) {
     const user = users.find((item) => item.id === input.userId);
@@ -293,6 +384,62 @@ export const inMemoryGuestRsvps: GuestRsvpRepository = {
   },
   async listByEvent(eventId: string): Promise<GuestRsvp[]> {
     return guestRsvpStore.filter((r) => r.eventId === eventId);
+  },
+  async checkIn(eventId, rsvpId, _actorUserId) {
+    const rsvp = guestRsvpStore.find((item) => item.id === rsvpId && item.eventId === eventId);
+    if (!rsvp) throw new Error("RSVP_NOT_FOUND");
+    rsvp.checkedInAt = new Date().toISOString();
+    return rsvp;
+  },
+  async undoCheckIn(eventId, rsvpId, _actorUserId) {
+    const rsvp = guestRsvpStore.find((item) => item.id === rsvpId && item.eventId === eventId);
+    if (!rsvp) throw new Error("RSVP_NOT_FOUND");
+    rsvp.checkedInAt = undefined;
+    return rsvp;
+  }
+};
+
+const subscriptionStore: UserSubscription[] = [];
+
+export const inMemorySubscriptions: SubscriptionRepository = {
+  async findActiveByUser(userId) {
+    const now = Date.now();
+    return (
+      subscriptionStore.find(
+        (item) =>
+          item.userId === userId &&
+          item.status === "active" &&
+          Date.parse(item.currentPeriodStart) <= now &&
+          Date.parse(item.currentPeriodEnd) >= now
+      ) ?? null
+    );
+  },
+  async activateFamilyPlan(userId) {
+    const existing = await this.findActiveByUser(userId);
+    if (existing) return existing;
+
+    const now = new Date();
+    const end = new Date(now);
+    end.setFullYear(end.getFullYear() + 1);
+
+    const subscription: UserSubscription = {
+      id: createId("sub"),
+      userId,
+      planTier: "family",
+      status: "active",
+      currentPeriodStart: now.toISOString(),
+      currentPeriodEnd: end.toISOString(),
+      eventsUsedThisPeriod: 0,
+      sharedStorageUsedGb: 0
+    };
+    subscriptionStore.push(subscription);
+    return subscription;
+  },
+  async consumeEventSlot(userId) {
+    const subscription = await this.findActiveByUser(userId);
+    if (!subscription) throw new Error("SUBSCRIPTION_NOT_FOUND");
+    subscription.eventsUsedThisPeriod += 1;
+    return subscription;
   }
 };
 
@@ -303,5 +450,6 @@ export const repositories = {
   media: inMemoryMedia,
   likes: inMemoryLikes,
   audit: inMemoryAudit,
-  guestRsvps: inMemoryGuestRsvps
+  guestRsvps: inMemoryGuestRsvps,
+  subscriptions: inMemorySubscriptions
 };

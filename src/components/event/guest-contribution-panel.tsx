@@ -20,11 +20,15 @@ async function readJson(response: Response) {
 export function GuestContributionPanel({
   eventId,
   items,
-  onCreated
+  currentUserId,
+  onCreated,
+  onDeleted
 }: {
   eventId: string;
   items: MediaItem[];
+  currentUserId?: string;
   onCreated: (item: MediaItem) => void;
+  onDeleted?: (mediaId: string) => void;
 }) {
   const [text, setText] = useState("");
   const [file, setFile] = useState<File | null>(null);
@@ -35,6 +39,28 @@ export function GuestContributionPanel({
     videos: items.filter((item) => item.type === "video").length,
     messages: items.filter((item) => item.type === "message").length
   }), [items]);
+
+  const myItems = useMemo(
+    () => (currentUserId ? items.filter((item) => item.userId === currentUserId) : []),
+    [items, currentUserId]
+  );
+
+  async function deleteItem(mediaId: string) {
+    setState({ loading: true, message: "", tone: "idle" });
+    try {
+      const res = await fetch(`/api/events/${eventId}/media/${mediaId}`, { method: "DELETE" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? "Nao foi possivel excluir.");
+      onDeleted?.(mediaId);
+      setState({ loading: false, message: "Conteudo excluido.", tone: "ok" });
+    } catch (error) {
+      setState({
+        loading: false,
+        message: error instanceof Error ? error.message : "Falha ao excluir.",
+        tone: "error"
+      });
+    }
+  }
 
   async function submitMessage() {
     setState({ loading: true, message: "", tone: "idle" });
@@ -136,6 +162,27 @@ export function GuestContributionPanel({
       </button>
 
       {state.message && <p className={`guest-submit-status ${state.tone === "error" ? "is-error" : "is-ok"}`}>{state.message}</p>}
+
+      {myItems.length > 0 && (
+        <div style={{ marginTop: 20, paddingTop: 16, borderTop: "1px solid var(--line)" }}>
+          <strong style={{ fontSize: 14 }}>Suas publicações</strong>
+          <p style={{ color: "var(--ink-soft)", fontSize: 13, margin: "6px 0 12px" }}>
+            Você pode excluir seu conteúdo nas primeiras 24h após o início do evento.
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {myItems.map((item) => (
+              <div key={item.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+                <span style={{ fontSize: 14 }}>
+                  {item.type === "message" ? `Recado: ${item.text?.slice(0, 40)}...` : item.type === "video" ? "Vídeo" : "Foto"}
+                </span>
+                <button type="button" className="btn secondary" disabled={state.loading} onClick={() => deleteItem(item.id)}>
+                  Excluir
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

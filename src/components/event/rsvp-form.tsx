@@ -4,7 +4,15 @@ import { useState } from "react";
 
 type Step = "form" | "capsule" | "done";
 
-export function RsvpForm({ eventId, eventTitle }: { eventId: string; eventTitle: string }) {
+export function RsvpForm({
+  eventId,
+  eventTitle,
+  capsuleAvailable = false
+}: {
+  eventId: string;
+  eventTitle: string;
+  capsuleAvailable?: boolean;
+}) {
   const [step, setStep] = useState<Step>("form");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -41,7 +49,7 @@ export function RsvpForm({ eventId, eventTitle }: { eventId: string; eventTitle:
     );
   }
 
-  if (step === "capsule") {
+  if (step === "capsule" && capsuleAvailable) {
     return (
       <section className="card" style={{ padding: 28 }}>
         <h2 className="display" style={{ fontSize: 26, margin: "0 0 12px" }}>Participar da cápsula do tempo?</h2>
@@ -95,9 +103,9 @@ export function RsvpForm({ eventId, eventTitle }: { eventId: string; eventTitle:
           className="btn"
           type="button"
           disabled={!name.trim() || pending}
-          onClick={() => setStep("capsule")}
+          onClick={() => (capsuleAvailable ? setStep("capsule") : handleConfirm(false))}
         >
-          Confirmar presença
+          {pending ? "Confirmando..." : "Confirmar presença"}
         </button>
       </div>
     </section>

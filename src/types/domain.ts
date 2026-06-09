@@ -7,6 +7,8 @@ export type AccessStatus = "active" | "blocked";
 export type MediaType = "photo" | "video" | "message";
 export type MediaStatus = "published" | "archived" | "deleted";
 export type PlanTier = "free" | "capsule" | "family";
+export type EventFormat = "in_person" | "online";
+export type CoverSource = "ai" | "custom";
 
 export type User = {
   id: string;
@@ -35,6 +37,12 @@ export type Event = {
   hostName: string;
   hostPhotoUrl?: string;
   coverImageUrl?: string;
+  coverSource?: CoverSource;
+  aiCoverGenerationsCount: number;
+  aiCoverEditsCount: number;
+  aiCoverPendingUrls?: string[];
+  eventFormat: EventFormat;
+  onlineMeetingUrl?: string;
   date: string;
   startsAt: string;
   endsAt: string;
@@ -44,6 +52,7 @@ export type Event = {
   visibility: EventVisibility;
   phase: EventPhase;
   plan: EventPlan;
+  capsuleActivatedAt?: string;
   storageUsedGb: number;
   pix?: PixSettings;
   screen: ScreenSettings;
@@ -55,7 +64,19 @@ export type GuestRsvp = {
   guestName: string;
   phone?: string;
   wantsCapsule: boolean;
+  checkedInAt?: string;
   confirmedAt: string;
+};
+
+export type UserSubscription = {
+  id: string;
+  userId: string;
+  planTier: "family";
+  status: "active" | "canceled" | "past_due";
+  currentPeriodStart: string;
+  currentPeriodEnd: string;
+  eventsUsedThisPeriod: number;
+  sharedStorageUsedGb: number;
 };
 
 export type EventMember = {

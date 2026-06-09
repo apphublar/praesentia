@@ -9,10 +9,12 @@ import type {
   LikeRepository,
   MediaRepository,
   MemberRepository,
+  SubscriptionRepository,
+  UpdateEventInput,
   UserRepository
 } from "@/lib/db/repositories";
 import { bytesFromGb, PLANS } from "@/lib/plans";
-import type { Event, EventMember, EventType, GuestRsvp, MediaItem, User } from "@/types/domain";
+import type { Event, EventMember, EventType, GuestRsvp, MediaItem, PlanTier, User, UserSubscription } from "@/types/domain";
 
 function rowToUser(row: Record<string, unknown>): User {
   return {
@@ -36,6 +38,17 @@ function rowToEvent(row: Record<string, unknown>): Event {
     hostName: String(row.host_name ?? row.owner_name ?? "Responsavel"),
     hostPhotoUrl: row.host_photo_url ? String(row.host_photo_url) : undefined,
     coverImageUrl: row.cover_image_url ? String(row.cover_image_url) : undefined,
+    coverSource: row.cover_source ? (row.cover_source as Event["coverSource"]) : undefined,
+    aiCoverGenerationsCount: Number(row.ai_cover_generations_count ?? 0),
+    aiCoverEditsCount: Number(row.ai_cover_edits_count ?? 0),
+    aiCoverPendingUrls: Array.isArray(row.ai_cover_pending_urls)
+      ? (row.ai_cover_pending_urls as string[])
+      : undefined,
+    eventFormat: (row.event_format as Event["eventFormat"]) ?? "in_person",
+    onlineMeetingUrl: row.online_meeting_url ? String(row.online_meeting_url) : undefined,
+    capsuleActivatedAt: row.capsule_activated_at
+      ? new Date(String(row.capsule_activated_at)).toISOString()
+      : undefined,
     date: String(row.date),
     startsAt: String(row.starts_at),
     endsAt: String(row.ends_at),
@@ -164,6 +177,18 @@ export const postgresEvents: EventRepository = {
     `;
     return rows.map(rowToEvent);
   },
+  async countCapsuleEventsByOwner(userId, since) {
+    const sql = getSql();
+    const rows = await sql`
+      select count(*)::int as total
+      from events e
+      where e.owner_id = ${userId}
+        and e.plan_tier = 'family'
+        and e.capsule_activated_at is not null
+        and e.capsule_activated_at >= ${since}
+    `;
+    return Number(rows[0]?.total ?? 0);
+  },
   async create(input: CreateEventInput) {
     const sql = getSql();
     const plan = PLANS.free;
@@ -171,12 +196,14 @@ export const postgresEvents: EventRepository = {
     const rows = await sql`
       insert into events (
         owner_id, slug, free_code, title, theme, event_type, host_name, date, starts_at, ends_at,
-        venue_name, venue_address, city, plan_tier, storage_limit_bytes, retention_until
+        venue_name, venue_address, city, event_format, online_meeting_url,
+        plan_tier, storage_limit_bytes, retention_until
       )
       values (
         ${input.ownerId}, ${slug}, ${Math.random().toString(36).slice(2, 8)}, ${input.title},
         ${input.theme}, ${input.eventType}, ${input.hostName}, ${input.date}, ${input.startsAt},
         ${input.endsAt}, ${input.venueName}, ${input.venueAddress}, ${input.city},
+        ${input.eventFormat}, ${input.onlineMeetingUrl ?? null},
         ${plan.tier}, ${bytesFromGb(plan.storageGb)}, now() + interval '36 months'
       )
       returning *
@@ -186,6 +213,89 @@ export const postgresEvents: EventRepository = {
       values (${rows[0].id}, ${input.ownerId}, 'owner', 'confirmed')
     `;
     return (await this.findById(String(rows[0].id))) as Event;
+  },
+  async update(eventId, _actorUserId, input: UpdateEventInput) {
+    const sql = getSql();
+    const event = await this.findById(eventId);
+    if (!event) throw new Error("EVENT_NOT_FOUND");
+    await sql`
+      update events set
+        title = ${input.title ?? event.title},
+        theme = ${input.theme ?? event.theme},
+        host_name = ${input.hostName ?? event.hostName},
+        event_format = ${input.eventFormat ?? event.eventFormat},
+        online_meeting_url = ${input.onlineMeetingUrl ?? event.onlineMeetingUrl ?? null},
+        date = ${input.date ?? event.date},
+        starts_at = ${input.startsAt ?? event.startsAt},
+        ends_at = ${input.endsAt ?? event.endsAt},
+        venue_name = ${input.venueName ?? event.venueName},
+        venue_address = ${input.venueAddress ?? event.venueAddress},
+        city = ${input.city ?? event.city},
+        updated_at = now()
+      where id = ${eventId}
+    `;
+    return (await this.findById(eventId)) as Event;
+  },
+  async activateCapsule(eventId, _actorUserId, tier: Exclude<PlanTier, "free">) {
+    const sql = getSql();
+    const plan = PLANS[tier];
+    await sql`
+      update events set
+        plan_tier = ${plan.tier},
+        storage_limit_bytes = ${bytesFromGb(plan.storageGb)},
+        capsule_activated_at = now(),
+        updated_at = now()
+      where id = ${eventId}
+    `;
+    await sql`update screen_settings set enabled = true, updated_at = now() where event_id = ${eventId}`;
+    return (await this.findById(eventId)) as Event;
+  },
+  async setCoverImage(eventId, _actorUserId, input) {
+    const sql = getSql();
+    await sql`
+      update events set
+        cover_image_url = ${input.coverImageUrl},
+        cover_source = ${input.coverSource ?? null},
+        ai_cover_pending_urls = null,
+        updated_at = now()
+      where id = ${eventId}
+    `;
+    return (await this.findById(eventId)) as Event;
+  },
+  async incrementAiCoverUsage(eventId, _actorUserId, type) {
+    const sql = getSql();
+    if (type === "generation") {
+      await sql`
+        update events set ai_cover_generations_count = ai_cover_generations_count + 1, updated_at = now()
+        where id = ${eventId}
+      `;
+    } else {
+      await sql`
+        update events set ai_cover_edits_count = ai_cover_edits_count + 1, updated_at = now()
+        where id = ${eventId}
+      `;
+    }
+    return (await this.findById(eventId)) as Event;
+  },
+  async setAiCoverPendingUrls(eventId, urls) {
+    const sql = getSql();
+    await sql`
+      update events set ai_cover_pending_urls = ${JSON.stringify(urls)}::jsonb, updated_at = now()
+      where id = ${eventId}
+    `;
+    return (await this.findById(eventId)) as Event;
+  },
+  async selectAiCoverVersion(eventId, _actorUserId, coverImageUrl) {
+    const sql = getSql();
+    await sql`
+      update events set
+        cover_image_url = ${coverImageUrl},
+        cover_source = 'ai',
+        ai_cover_pending_urls = null,
+        updated_at = now()
+      where id = ${eventId}
+    `;
+    return (await this.findById(eventId)) as Event;
   },
   async setVisibility(eventId, visibility) {
     const sql = getSql();
@@ -257,6 +367,24 @@ export const postgresMembers: MemberRepository = {
     if (!rows[0]) throw new Error("MEMBER_NOT_FOUND");
     return rowToMember(rows[0]);
   },
+  async ensureGuestMembership(eventId, userId) {
+    const sql = getSql();
+    const existing = await sql`select * from event_members where event_id = ${eventId} and user_id = ${userId} limit 1`;
+    if (existing[0]) {
+      const rows = await sql`
+        update event_members set rsvp_status = 'confirmed', access_status = 'active', updated_at = now()
+        where event_id = ${eventId} and user_id = ${userId}
+        returning *
+      `;
+      return rowToMember(rows[0]);
+    }
+    const rows = await sql`
+      insert into event_members (event_id, user_id, role, rsvp_status)
+      values (${eventId}, ${userId}, 'guest', 'confirmed')
+      returning *
+    `;
+    return rowToMember(rows[0]);
+  },
   async blockGuest(eventId, userId, actorUserId) {
     const sql = getSql();
     const rows = await sql.begin(async (tx) => {
@@ -300,6 +428,17 @@ export const postgresMedia: MediaRepository = {
       order by m.created_at desc
     `;
     return rows.map(rowToMedia);
+  },
+  async findById(mediaId) {
+    const sql = getSql();
+    const rows = await sql`
+      select m.*, u.name as author_name
+      from media_items m
+      join users u on u.id = m.user_id
+      where m.id = ${mediaId}
+      limit 1
+    `;
+    return rows[0] ? rowToMedia(rows[0]) : null;
   },
   async create(input: CreateMediaInput) {
     const sql = getSql();
@@ -415,6 +554,7 @@ function rowToGuestRsvp(row: Record<string, unknown>): GuestRsvp {
     guestName: String(row.guest_name),
     phone: row.phone ? String(row.phone) : undefined,
     wantsCapsule: Boolean(row.wants_capsule),
+    checkedInAt: row.checked_in_at ? new Date(String(row.checked_in_at)).toISOString() : undefined,
     confirmedAt: new Date(String(row.confirmed_at)).toISOString()
   };
 }
@@ -435,6 +575,85 @@ export const postgresGuestRsvps: GuestRsvpRepository = {
       select * from guest_rsvps where event_id = ${eventId} order by confirmed_at desc
     `;
     return rows.map(rowToGuestRsvp);
+  },
+  async checkIn(eventId, rsvpId, _actorUserId) {
+    const sql = getSql();
+    const rows = await sql`
+      update guest_rsvps set checked_in_at = now()
+      where id = ${rsvpId} and event_id = ${eventId}
+      returning *
+    `;
+    if (!rows[0]) throw new Error("RSVP_NOT_FOUND");
+    return rowToGuestRsvp(rows[0]);
+  },
+  async undoCheckIn(eventId, rsvpId, _actorUserId) {
+    const sql = getSql();
+    const rows = await sql`
+      update guest_rsvps set checked_in_at = null
+      where id = ${rsvpId} and event_id = ${eventId}
+      returning *
+    `;
+    if (!rows[0]) throw new Error("RSVP_NOT_FOUND");
+    return rowToGuestRsvp(rows[0]);
+  }
+};
+
+function rowToSubscription(row: Record<string, unknown>): UserSubscription {
+  return {
+    id: String(row.id),
+    userId: String(row.user_id),
+    planTier: "family",
+    status: row.status as UserSubscription["status"],
+    currentPeriodStart: new Date(String(row.current_period_start)).toISOString(),
+    currentPeriodEnd: new Date(String(row.current_period_end)).toISOString(),
+    eventsUsedThisPeriod: Number(row.events_used_this_period ?? 0),
+    sharedStorageUsedGb: Number(row.shared_storage_used_bytes ?? 0) / 1024 / 1024 / 1024
+  };
+}
+
+export const postgresSubscriptions: SubscriptionRepository = {
+  async findActiveByUser(userId) {
+    const sql = getSql();
+    const rows = await sql`
+      select * from user_subscriptions
+      where user_id = ${userId}
+        and status = 'active'
+        and current_period_start <= now()
+        and current_period_end >= now()
+      order by created_at desc
+      limit 1
+    `;
+    return rows[0] ? rowToSubscription(rows[0]) : null;
+  },
+  async activateFamilyPlan(userId) {
+    const sql = getSql();
+    const existing = await this.findActiveByUser(userId);
+    if (existing) return existing;
+    const rows = await sql`
+      insert into user_subscriptions (
+        user_id, plan_tier, status, current_period_start, current_period_end,
+        events_used_this_period, shared_storage_used_bytes
+      )
+      values (
+        ${userId}, 'family', 'active', now(), now() + interval '1 year', 0, 0
+      )
+      returning *
+    `;
+    return rowToSubscription(rows[0]);
+  },
+  async consumeEventSlot(userId) {
+    const sql = getSql();
+    const rows = await sql`
+      update user_subscriptions
+      set events_used_this_period = events_used_this_period + 1, updated_at = now()
+      where user_id = ${userId}
+        and status = 'active'
+        and current_period_start <= now()
+        and current_period_end >= now()
+      returning *
+    `;
+    if (!rows[0]) throw new Error("SUBSCRIPTION_NOT_FOUND");
+    return rowToSubscription(rows[0]);
   }
 };
 
@@ -459,5 +678,6 @@ export const postgresRepositories = {
   media: postgresMedia,
   likes: postgresLikes,
   audit: postgresAudit,
-  guestRsvps: postgresGuestRsvps
+  guestRsvps: postgresGuestRsvps,
+  subscriptions: postgresSubscriptions
 };

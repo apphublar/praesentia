@@ -2,11 +2,11 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 const faqs = [
-  ["Quanto custa de verdade?", "O plano Gratuito cria o convite, RSVP e link compartilhavel. Cápsula custa R$59, com 5 GB e 36 meses. Família custa R$197/ano, com até 12 eventos e 25 GB compartilhados."],
+  ["Quanto custa de verdade?", "O plano Gratuito cria o convite, RSVP e link compartilhavel. Cápsula custa R$59, com 5 GB e 36 meses. Cápsula Plus custa R$197/ano, com até 6 eventos e 20 GB compartilhados."],
   ["O link realmente não expira?", "Cápsulas pagas ficam armazenadas por 36 meses, com opção de expansão de espaço. O plano gratuito e temporario para validar o evento."],
   ["E a privacidade das crianças?", "Eventos nascem privados. O responsável controla convidados, conteúdos, bloqueios, telão e acesso a cápsula."],
   ["Como a IA cria o convite?", "O responsável informa tipo de festa, data, local, tema e tom. A Praesentia gera texto, paleta, capa e mensagens editaveis."],
-  ["Quanto espaço eu tenho na cápsula?", "Cápsula tem 5 GB. Família tem 25 GB compartilhados entre até 12 eventos no ano. Cada evento continua separado e privado."],
+  ["Quanto espaço eu tenho na cápsula?", "Cápsula tem 5 GB. Cápsula Plus tem 20 GB compartilhados entre até 6 eventos no ano. Cada evento continua separado e privado."],
   ["O que vai pra cápsula do tempo?", "Fotos, vídeos, recados, presenças, curtidas confidenciais e a timeline do evento, tudo com controle do responsável."],
   ["Funciona offline?", "A primeira versao sera web/PWA. O envio resiliente para conexoes ruins entra na evolucao tecnica do produto."]
 ];
@@ -28,10 +28,10 @@ const storagePlans = [
     rows: [["fotos HD", "~ 1.500", 62], ["vídeos curtos", "~ 60", 28], ["recados", "~ 200", 10]]
   },
   {
-    label: "Família",
-    capacity: "25 GB",
+    label: "Cápsula Plus",
+    capacity: "20 GB",
     note: "compartilhados - 36 meses por evento",
-    desc: "Capacidade para até 12 eventos por ano. O GB e compartilhado, mas as cápsulas não misturam seus conteúdos.",
+    desc: "Capacidade para até 6 eventos por ano. O GB e compartilhado, mas as cápsulas não misturam seus conteúdos.",
     dark: false,
     rows: [["fotos HD", "~ 7.500", 62], ["vídeos curtos", "~ 300", 28], ["recados", "~ 1.000", 10]]
   }
@@ -72,15 +72,15 @@ const plans = [
     ]
   },
   {
-    name: "Família",
+    name: "Cápsula Plus",
     price: "R$197",
     meta: "por ano",
     subtitle: "Sua historia organizada em uma unica timeline.",
     cta: "Quero a timeline",
     sections: [
-      ["Eventos", ["Tudo do Cápsula", "Ate 12 eventos por ano", "Timeline famíliar"]],
+      ["Eventos", ["Tudo do Cápsula", "Até 6 eventos por ano", "Timeline conectada"]],
       ["Memórias permanentes", ["Cápsulas conectadas", "Fotos, vídeos e recados", "Exportação das memórias"]],
-      ["Armazenamento", ["25 GB compartilhados", "36 meses para cada evento"]]
+      ["Armazenamento", ["20 GB compartilhados", "36 meses para cada evento"]]
     ]
   }
 ];

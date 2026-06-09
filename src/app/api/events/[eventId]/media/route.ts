@@ -27,7 +27,10 @@ export async function POST(request: Request, context: { params: Promise<{ eventI
   if (!event) return NextResponse.json({ error: "Evento nao encontrado." }, { status: 404 });
 
   const member = await repositories.members.findMembership(event.id, session.user.id);
-  if (!canContribute(member ?? undefined)) {
+  if (!canContribute(event, member ?? undefined)) {
+    if (!event.capsuleActivatedAt) {
+      return NextResponse.json({ error: "Mural ao vivo disponível apenas com a Cápsula ativa." }, { status: 403 });
+    }
     return NextResponse.json({ error: "Somente convidados confirmados podem compartilhar memorias." }, { status: 403 });
   }
 
