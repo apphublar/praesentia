@@ -10,23 +10,32 @@ import { PlanUpgradePanel } from "@/components/dashboard/plan-upgrade-panel";
 import { OwnerMediaControls } from "@/components/event/owner-media-controls";
 import { AppNav } from "@/components/layout/app-nav";
 import { canManageEvent } from "@/lib/auth/permissions";
-import { requireSession } from "@/lib/auth/session";
+import { requirePageSession } from "@/lib/auth/session";
 import { repositories } from "@/lib/db";
+import { safeRepositoryCall } from "@/lib/db/safe";
 import { getEventProfile } from "@/lib/events/event-profile";
 import { getAiCoverQuota, getAiTextQuota, hasCapsuleAccess } from "@/lib/plans/features";
 
 export default async function EventDashboardPage({ params }: { params: Promise<{ id: string }> }) {
-  const session = await requireSession();
   const { id } = await params;
+  const session = await requirePageSession(`/dashboard/eventos/${id}`);
   const event = await repositories.events.findById(id);
   if (!event) notFound();
 
   const profile = getEventProfile(event.eventType);
   const media = await repositories.media.listPublishedByEvent(event.id);
   const eventMembers = await repositories.members.listByEvent(event.id);
-  const guestRsvps = await repositories.guestRsvps.listByEvent(event.id);
+  const guestRsvps = await safeRepositoryCall(
+    () => repositories.guestRsvps.listByEvent(event.id),
+    [],
+    "guestRsvps.listByEvent"
+  );
   const membership = await repositories.members.findMembership(event.id, session.user.id);
-  const subscription = await repositories.subscriptions.findActiveByUser(session.user.id);
+  const subscription = await safeRepositoryCall(
+    () => repositories.subscriptions.findActiveByUser(session.user.id),
+    null,
+    "subscriptions.findActiveByUser"
+  );
   const allowed = canManageEvent(session.user, membership ?? undefined);
   const capsuleActive = hasCapsuleAccess(event);
   const textQuota = getAiTextQuota(event);

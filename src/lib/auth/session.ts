@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { repositories } from "@/lib/db";
 import { isDevelopmentBypassAllowed } from "@/lib/env";
 import { users } from "@/lib/mock-data";
@@ -48,6 +49,15 @@ export async function requireSession() {
   const session = await getCurrentSession();
   if (!session) {
     throw new Error("UNAUTHENTICATED");
+  }
+  return session;
+}
+
+export async function requirePageSession(loginNext?: string) {
+  const session = await getCurrentSession();
+  if (!session) {
+    const next = loginNext?.startsWith("/") && !loginNext.startsWith("//") ? loginNext : "/dashboard";
+    redirect(`/login?next=${encodeURIComponent(next)}`);
   }
   return session;
 }

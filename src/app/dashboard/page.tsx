@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { AppNav } from "@/components/layout/app-nav";
-import { requireSession } from "@/lib/auth/session";
+import { requirePageSession } from "@/lib/auth/session";
 import { repositories } from "@/lib/db";
 import { EVENT_TYPE_LABELS } from "@/lib/events/event-types";
 
 export default async function DashboardPage() {
-  const session = await requireSession();
+  const session = await requirePageSession("/dashboard");
   const events = await repositories.events.listByOwner(session.user.id);
 
   if (events.length === 1) {
