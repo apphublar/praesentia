@@ -1,8 +1,26 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import type { Event } from "@/types/domain";
+
+function CoverPreviewImage({
+  src,
+  alt,
+  width,
+  height,
+  style
+}: {
+  src: string;
+  alt: string;
+  width: number;
+  height: number;
+  style?: React.CSSProperties;
+}) {
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={src} alt={alt} width={width} height={height} loading="lazy" style={style} />
+  );
+}
 
 export type CoverQuota = {
   maxGenerations: number;
@@ -188,12 +206,11 @@ export function CoverGenerator({
 
       {coverUrl ? (
         <div style={{ display: "flex", gap: 20, flexWrap: "wrap", alignItems: "flex-start", marginTop: 20 }}>
-          <Image
+          <CoverPreviewImage
             src={coverUrl}
             alt="Capa do convite"
             width={200}
             height={356}
-            unoptimized={coverUrl.startsWith("data:")}
             style={{ borderRadius: 14, boxShadow: "0 4px 18px rgba(27,18,9,.12)", objectFit: "cover" }}
           />
           <div style={{ flex: 1, minWidth: 200, display: "flex", flexDirection: "column", gap: 12 }}>
@@ -232,7 +249,7 @@ export function CoverGenerator({
                 disabled={loading}
                 style={{ border: coverUrl === url ? "2px solid var(--coral)" : "1px solid var(--line)", borderRadius: 12, padding: 4, background: "#fff", cursor: "pointer" }}
               >
-                <Image src={url} alt="Versão do convite" width={90} height={160} style={{ borderRadius: 8, objectFit: "cover" }} />
+                <CoverPreviewImage src={url} alt="Versão do convite" width={90} height={160} style={{ borderRadius: 8, objectFit: "cover" }} />
               </button>
             ))}
           </div>

@@ -21,8 +21,19 @@ export default function DashboardError({
         Não foi possível carregar esta página
       </h1>
       <p style={{ color: "var(--ink-soft)", lineHeight: 1.6, maxWidth: 520, margin: "0 auto 28px" }}>
-        Algo deu errado ao abrir o painel. Tente recarregar. Se o problema continuar, confira se as migrações do
-        banco foram aplicadas no Supabase.
+        Algo deu errado ao abrir o painel. Tente recarregar.
+        {error.message ? (
+          <>
+            {" "}
+            Detalhe técnico: <code>{error.message}</code>
+          </>
+        ) : null}
+        {error.digest ? (
+          <>
+            {" "}
+            Código: <code>{error.digest}</code>
+          </>
+        ) : null}
       </p>
       <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
         <button type="button" className="btn" onClick={() => reset()}>

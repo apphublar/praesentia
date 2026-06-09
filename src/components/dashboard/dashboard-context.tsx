@@ -1,15 +1,21 @@
 "use client";
 
 import { createContext, useContext } from "react";
-import type { Event } from "@/types/domain";
+import type { DashboardEventSummary } from "@/components/dashboard/dashboard-event-summary";
 
 type DashboardContextValue = {
-  activeEvent: Event | null;
+  activeEvent: DashboardEventSummary | null;
 };
 
 const DashboardContext = createContext<DashboardContextValue>({ activeEvent: null });
 
-export function DashboardEventProvider({ event, children }: { event: Event; children: React.ReactNode }) {
+export function DashboardEventProvider({
+  event,
+  children
+}: {
+  event: DashboardEventSummary;
+  children: React.ReactNode;
+}) {
   return <DashboardContext.Provider value={{ activeEvent: event }}>{children}</DashboardContext.Provider>;
 }
 

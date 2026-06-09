@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useParams, usePathname } from "next/navigation";
-import type { Event, User } from "@/types/domain";
+import type { User } from "@/types/domain";
+import type { DashboardEventSummary } from "@/components/dashboard/dashboard-event-summary";
 import { EVENT_TYPE_LABELS } from "@/lib/events/event-types";
 import { getEventProfile } from "@/lib/events/event-profile";
 import { useDashboardContext } from "@/components/dashboard/dashboard-context";
@@ -67,7 +68,7 @@ export function DashboardSidebar({
   mobileOpen,
   onNavigate
 }: {
-  events: Event[];
+  events: DashboardEventSummary[];
   user: User;
   mobileOpen: boolean;
   onNavigate: () => void;

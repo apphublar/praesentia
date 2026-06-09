@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import type { Event, User } from "@/types/domain";
+import type { User } from "@/types/domain";
+import type { DashboardEventSummary } from "@/components/dashboard/dashboard-event-summary";
 import { DashboardSidebar } from "@/components/dashboard/dashboard-sidebar";
 import { DashboardTopbar } from "@/components/dashboard/dashboard-topbar";
 
@@ -11,7 +12,7 @@ export function DashboardShell({
   children
 }: {
   user: User;
-  events: Event[];
+  events: DashboardEventSummary[];
   children: React.ReactNode;
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);

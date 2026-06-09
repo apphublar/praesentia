@@ -24,14 +24,26 @@ export default async function EventDashboardPage({ params }: { params: Promise<{
   if (!event) notFound();
 
   const profile = getEventProfile(event.eventType);
-  const media = await repositories.media.listPublishedByEvent(event.id);
-  const eventMembers = await repositories.members.listByEvent(event.id);
+  const media = await safeRepositoryCall(
+    () => repositories.media.listPublishedByEvent(event.id),
+    [],
+    "media.listPublishedByEvent"
+  );
+  const eventMembers = await safeRepositoryCall(
+    () => repositories.members.listByEvent(event.id),
+    [],
+    "members.listByEvent"
+  );
   const guestRsvps = await safeRepositoryCall(
     () => repositories.guestRsvps.listByEvent(event.id),
     [],
     "guestRsvps.listByEvent"
   );
-  const membership = await repositories.members.findMembership(event.id, session.user.id);
+  const membership = await safeRepositoryCall(
+    () => repositories.members.findMembership(event.id, session.user.id),
+    null,
+    "members.findMembership"
+  );
   const subscription = await safeRepositoryCall(
     () => repositories.subscriptions.findActiveByUser(session.user.id),
     null,
