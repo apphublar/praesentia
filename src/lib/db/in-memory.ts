@@ -27,6 +27,8 @@ function baseEventFields(input: CreateEventInput) {
     onlineMeetingUrl: input.onlineMeetingUrl,
     aiCoverGenerationsCount: 0,
     aiCoverEditsCount: 0,
+    aiTextGenerationsCount: 0,
+    aiTextEditsCount: 0,
     aiCoverPendingUrls: [] as string[],
     capsuleActivatedAt: undefined as string | undefined
   };
@@ -152,6 +154,19 @@ export const inMemoryEvents: EventRepository = {
     event.coverImageUrl = coverImageUrl;
     event.coverSource = "ai";
     event.aiCoverPendingUrls = [];
+    return event;
+  },
+  async setInviteCopy(eventId, _actorUserId, inviteCopy) {
+    const event = events.find((item) => item.id === eventId);
+    if (!event) throw new Error("EVENT_NOT_FOUND");
+    event.inviteCopy = inviteCopy;
+    return event;
+  },
+  async incrementAiTextUsage(eventId, _actorUserId, type) {
+    const event = events.find((item) => item.id === eventId);
+    if (!event) throw new Error("EVENT_NOT_FOUND");
+    if (type === "generation") event.aiTextGenerationsCount += 1;
+    else event.aiTextEditsCount += 1;
     return event;
   },
   async setVisibility(eventId, visibility) {

@@ -125,7 +125,7 @@ export function GuestContributionPanel({
   }
 
   return (
-    <div className="guest-contribution-panel">
+    <div className="guest-contribution-panel praesentia-form">
       <div>
         <span className="pill">seu espaço</span>
         <h2>Compartilhar memória</h2>
@@ -139,22 +139,22 @@ export function GuestContributionPanel({
       </div>
 
       <div className="guest-upload-grid">
-        <label className="guest-field guest-field-file">
-          Foto ou vídeo
+        <label className="field field-file">
+          <span>Foto ou vídeo</span>
           <input
             type="file"
             accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime"
             onChange={(event) => setFile(event.target.files?.[0] ?? null)}
           />
-          <span>{file ? file.name : "JPG, PNG, WEBP, MP4 ou MOV"}</span>
+          <span className="field-file-preview">{file ? file.name : "JPG, PNG, WEBP, MP4 ou MOV"}</span>
         </label>
         <button className="btn guest-action" type="button" disabled={state.loading} onClick={submitFile}>
           {state.loading ? "Enviando..." : "Enviar arquivo"}
         </button>
       </div>
 
-      <label className="guest-field">
-        Recado
+      <label className="field">
+        <span>Recado</span>
         <textarea value={text} onChange={(event) => setText(event.target.value)} placeholder="Escreva algo que mereça ficar guardado..." />
       </label>
       <button className="btn secondary guest-message-action" type="button" disabled={state.loading} onClick={submitMessage}>

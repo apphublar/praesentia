@@ -1,4 +1,4 @@
-import type { Event, EventType, GuestRsvp, PlanTier, UserSubscription } from "@/types/domain";
+import type { Event, EventType, GuestRsvp, InviteCopy, PlanTier, UserSubscription } from "@/types/domain";
 
 export type CreateEventInput = {
   ownerId: string;
@@ -73,6 +73,8 @@ export interface EventRepository {
   ): Promise<Event>;
   setAiCoverPendingUrls(eventId: string, urls: string[]): Promise<Event>;
   selectAiCoverVersion(eventId: string, actorUserId: string, coverImageUrl: string): Promise<Event>;
+  setInviteCopy(eventId: string, actorUserId: string, inviteCopy: InviteCopy): Promise<Event>;
+  incrementAiTextUsage(eventId: string, actorUserId: string, type: "generation" | "edit"): Promise<Event>;
   setVisibility(eventId: string, visibility: Event["visibility"], actorUserId: string): Promise<Event>;
   updatePixSettings(eventId: string, actorUserId: string, input: Event["pix"]): Promise<Event>;
   updateScreenSettings(eventId: string, actorUserId: string, input: Event["screen"]): Promise<Event>;

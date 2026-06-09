@@ -6,6 +6,8 @@ export type PlanFeatures = {
   liveScreen: boolean;
   aiCoverGenerations: number;
   aiCoverEdits: number;
+  aiTextGenerations: number;
+  aiTextEdits: number;
   customCoverUpload: boolean;
   guestSelfDeleteHours: number;
   checkIn: boolean;
@@ -19,6 +21,8 @@ export const PLAN_FEATURES: Record<PlanTier, PlanFeatures> = {
     liveScreen: false,
     aiCoverGenerations: 1,
     aiCoverEdits: 0,
+    aiTextGenerations: 1,
+    aiTextEdits: 0,
     customCoverUpload: true,
     guestSelfDeleteHours: 0,
     checkIn: true,
@@ -30,6 +34,8 @@ export const PLAN_FEATURES: Record<PlanTier, PlanFeatures> = {
     liveScreen: true,
     aiCoverGenerations: 2,
     aiCoverEdits: 3,
+    aiTextGenerations: 1,
+    aiTextEdits: 3,
     customCoverUpload: true,
     guestSelfDeleteHours: 24,
     checkIn: true,
@@ -41,6 +47,8 @@ export const PLAN_FEATURES: Record<PlanTier, PlanFeatures> = {
     liveScreen: true,
     aiCoverGenerations: 2,
     aiCoverEdits: 3,
+    aiTextGenerations: 1,
+    aiTextEdits: 3,
     customCoverUpload: true,
     guestSelfDeleteHours: 24,
     checkIn: true,
@@ -81,5 +89,19 @@ export function getAiCoverQuota(event: Event) {
     canGenerate: usedGenerations < features.aiCoverGenerations,
     canEdit: usedEdits < features.aiCoverEdits,
     allowsCustomUpload: features.customCoverUpload
+  };
+}
+
+export function getAiTextQuota(event: Event) {
+  const features = getEffectiveFeatures(event);
+  const usedGenerations = event.aiTextGenerationsCount;
+  const usedEdits = event.aiTextEditsCount;
+  return {
+    maxGenerations: features.aiTextGenerations,
+    maxEdits: features.aiTextEdits,
+    remainingGenerations: Math.max(0, features.aiTextGenerations - usedGenerations),
+    remainingEdits: Math.max(0, features.aiTextEdits - usedEdits),
+    canGenerate: usedGenerations < features.aiTextGenerations,
+    canEdit: usedEdits < features.aiTextEdits
   };
 }

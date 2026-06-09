@@ -79,6 +79,14 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
             {" · "}{event.startsAt}–{event.endsAt}
           </p>
           <p style={{ color: "var(--ink-soft)", fontSize: 15 }}>{locationLine(event)}</p>
+          {event.inviteCopy && (
+            <div style={{ marginTop: 20 }}>
+              {event.inviteCopy.headline && (
+                <p className="display" style={{ fontSize: 22, margin: "0 0 10px" }}>{event.inviteCopy.headline}</p>
+              )}
+              <p style={{ color: "var(--ink-soft)", lineHeight: 1.65, whiteSpace: "pre-wrap" }}>{event.inviteCopy.message}</p>
+            </div>
+          )}
         </div>
 
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 36 }}>

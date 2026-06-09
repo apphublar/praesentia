@@ -76,8 +76,8 @@ export function RsvpForm({
       <p style={{ color: "var(--ink-soft)", marginBottom: 20, lineHeight: 1.6 }}>
         Informe seus dados para confirmar que você vai estar lá.
       </p>
-      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-        <label>
+      <div className="praesentia-form praesentia-form-stack">
+        <label className="field">
           <span>Seu nome *</span>
           <input
             type="text"
@@ -88,7 +88,7 @@ export function RsvpForm({
             required
           />
         </label>
-        <label>
+        <label className="field">
           <span>WhatsApp (opcional)</span>
           <input
             type="tel"

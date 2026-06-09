@@ -20,6 +20,8 @@ export const events: Event[] = [
     eventFormat: "in_person",
     aiCoverGenerationsCount: 0,
     aiCoverEditsCount: 0,
+    aiTextGenerationsCount: 0,
+    aiTextEditsCount: 0,
     aiCoverPendingUrls: [],
     capsuleActivatedAt: "2026-02-01T12:00:00.000Z",
     date: "2026-03-14",

@@ -14,7 +14,7 @@ import type {
   UserRepository
 } from "@/lib/db/repositories";
 import { bytesFromGb, PLANS } from "@/lib/plans";
-import type { Event, EventMember, EventType, GuestRsvp, MediaItem, PlanTier, User, UserSubscription } from "@/types/domain";
+import type { Event, EventMember, EventType, GuestRsvp, InviteCopy, MediaItem, PlanTier, User, UserSubscription } from "@/types/domain";
 
 function rowToUser(row: Record<string, unknown>): User {
   return {
@@ -41,9 +41,12 @@ function rowToEvent(row: Record<string, unknown>): Event {
     coverSource: row.cover_source ? (row.cover_source as Event["coverSource"]) : undefined,
     aiCoverGenerationsCount: Number(row.ai_cover_generations_count ?? 0),
     aiCoverEditsCount: Number(row.ai_cover_edits_count ?? 0),
+    aiTextGenerationsCount: Number(row.ai_text_generations_count ?? 0),
+    aiTextEditsCount: Number(row.ai_text_edits_count ?? 0),
     aiCoverPendingUrls: Array.isArray(row.ai_cover_pending_urls)
       ? (row.ai_cover_pending_urls as string[])
       : undefined,
+    inviteCopy: row.invite_copy ? (row.invite_copy as InviteCopy) : undefined,
     eventFormat: (row.event_format as Event["eventFormat"]) ?? "in_person",
     onlineMeetingUrl: row.online_meeting_url ? String(row.online_meeting_url) : undefined,
     capsuleActivatedAt: row.capsule_activated_at
@@ -295,6 +298,29 @@ export const postgresEvents: EventRepository = {
         updated_at = now()
       where id = ${eventId}
     `;
+    return (await this.findById(eventId)) as Event;
+  },
+  async setInviteCopy(eventId, _actorUserId, inviteCopy) {
+    const sql = getSql();
+    await sql`
+      update events set invite_copy = ${JSON.stringify(inviteCopy)}::jsonb, updated_at = now()
+      where id = ${eventId}
+    `;
+    return (await this.findById(eventId)) as Event;
+  },
+  async incrementAiTextUsage(eventId, _actorUserId, type) {
+    const sql = getSql();
+    if (type === "generation") {
+      await sql`
+        update events set ai_text_generations_count = ai_text_generations_count + 1, updated_at = now()
+        where id = ${eventId}
+      `;
+    } else {
+      await sql`
+        update events set ai_text_edits_count = ai_text_edits_count + 1, updated_at = now()
+        where id = ${eventId}
+      `;
+    }
     return (await this.findById(eventId)) as Event;
   },
   async setVisibility(eventId, visibility) {

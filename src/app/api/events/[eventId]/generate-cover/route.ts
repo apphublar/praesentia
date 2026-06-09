@@ -1,75 +1,22 @@
 import { NextResponse } from "next/server";
-import OpenAI from "openai";
 import { requireSession } from "@/lib/auth/session";
 import { canManageEvent } from "@/lib/auth/permissions";
 import { repositories } from "@/lib/db";
+import { generateCoverImage } from "@/lib/openai/cover-image";
+import { isOpenAIConfigured } from "@/lib/openai/client";
 import { getAiCoverQuota } from "@/lib/plans/features";
 import { assertTrustedOrigin } from "@/lib/security/origin";
 import { sanitizeText } from "@/lib/security/sanitize";
-
-const EVENT_TYPE_LABELS: Record<string, string> = {
-  festa_infantil: "festa infantil",
-  casamento: "casamento",
-  aniversario: "aniversário",
-  formatura: "formatura",
-  corporativo: "evento corporativo",
-  outros: "evento especial"
-};
-
-function buildPrompt(
-  event: { title: string; theme: string; eventType: string; hostName: string; date: string; venueName: string; city: string },
-  editHint?: string
-) {
-  const typeLabel = EVENT_TYPE_LABELS[event.eventType] ?? "evento especial";
-  const dateFormatted = new Date(event.date + "T12:00:00").toLocaleDateString("pt-BR", {
-    day: "numeric",
-    month: "long",
-    year: "numeric"
-  });
-
-  const editLine = editHint ? `\nAdjustment requested: ${editHint}` : "";
-
-  return `Create a beautiful, elegant vertical digital invitation card for a ${typeLabel}.
-
-Event: "${event.title}"
-Honoree: ${event.hostName}
-Theme: ${event.theme}
-Date: ${dateFormatted}
-Venue: ${event.venueName}, ${event.city}${editLine}
-
-Design requirements:
-- Portrait orientation (vertical format, ideal for WhatsApp and Instagram Stories)
-- Style matches the theme: ${event.theme}
-- Elegant, modern, festive design appropriate for a ${typeLabel}
-- Include decorative elements that match the theme
-- Color palette harmonious with the theme
-- Brazilian Portuguese aesthetic
-- High quality, photorealistic invitation design
-- NO text or typography in the image — only decorative visual elements and background design`;
-}
-
-async function generateImage(prompt: string) {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) return null;
-
-  const openai = new OpenAI({ apiKey });
-  const response = await openai.images.generate({
-    model: "dall-e-3",
-    prompt,
-    n: 1,
-    size: "1024x1792",
-    quality: "standard",
-    style: "vivid"
-  });
-
-  return response.data?.[0]?.url ?? null;
-}
 
 export async function POST(request: Request, { params }: { params: Promise<{ eventId: string }> }) {
   const originError = assertTrustedOrigin(request);
   if (originError) return originError;
 
   try {
+    if (!isOpenAIConfigured()) {
+      return NextResponse.json({ error: "OPENAI_API_KEY não configurada." }, { status: 500 });
+    }
+
     const session = await requireSession();
     const { eventId } = await params;
     const body = await request.json().catch(() => ({}));
@@ -87,7 +34,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ eve
     const quota = getAiCoverQuota(event);
 
     if (mode === "select") {
-      const selectedUrl = sanitizeText(body.coverImageUrl, 2000);
+      const selectedUrl = sanitizeText(body.coverImageUrl, 4000);
       const pending = event.aiCoverPendingUrls ?? [];
       if (!pending.includes(selectedUrl)) {
         return NextResponse.json({ error: "Versão inválida." }, { status: 400 });
@@ -107,9 +54,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ eve
       return NextResponse.json({ error: "Limite de gerações por IA atingido." }, { status: 403 });
     }
 
-    const imageUrl = await generateImage(buildPrompt(event, mode === "edit" ? editHint : undefined));
+    const imageUrl = await generateCoverImage(event, mode === "edit" ? editHint : undefined);
     if (!imageUrl) {
-      return NextResponse.json({ error: "OpenAI não configurado ou falha na geração." }, { status: 500 });
+      return NextResponse.json({ error: "Falha ao gerar imagem com a OpenAI." }, { status: 500 });
     }
 
     if (mode === "edit") {

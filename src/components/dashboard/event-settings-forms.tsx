@@ -157,25 +157,25 @@ export function EventSettingsForms({ event, members }: { event: Event; members: 
           <h2>Contribuição opcional</h2>
           <p>O responsável informa uma chave Pix para os convidados copiarem. A Praesentia não recebe nem intermedia valores.</p>
         </div>
-        <div className="settings-form">
+        <div className="praesentia-form praesentia-form-grid settings-form">
           <label className="settings-switch">
             <input type="checkbox" checked={pixEnabled} onChange={(currentEvent) => setPixEnabled(currentEvent.target.checked)} />
             <span>Ativar Pix no convite</span>
           </label>
-          <label className="settings-field">
-            Nome do recebedor
+          <label className="field">
+            <span>Nome do recebedor</span>
             <input value={receiverName} onChange={(currentEvent) => setReceiverName(currentEvent.target.value)} placeholder="Ex: Camila Andrade" />
           </label>
-          <label className="settings-field">
-            Chave Pix
+          <label className="field">
+            <span>Chave Pix</span>
             <input value={pixKey} onChange={(currentEvent) => setPixKey(currentEvent.target.value)} placeholder="email, CPF, telefone ou chave aleatoria" />
           </label>
-          <label className="settings-field">
-            Valor sugerido
+          <label className="field">
+            <span>Valor sugerido</span>
             <input inputMode="decimal" value={suggestedAmount} onChange={(currentEvent) => setSuggestedAmount(currentEvent.target.value)} placeholder="50" />
           </label>
-          <label className="settings-field settings-field-full">
-            Mensagem
+          <label className="field field-span-full">
+            <span>Mensagem</span>
             <textarea value={pixMessage} onChange={(currentEvent) => setPixMessage(currentEvent.target.value)} placeholder="Contribuicao opcional para a festa." />
           </label>
           <button className="btn settings-primary-action" type="button" disabled={pixState.loading} onClick={submitPix}>
@@ -191,7 +191,7 @@ export function EventSettingsForms({ event, members }: { event: Event; members: 
           <h2>Mural em tempo real</h2>
           <p>Controla o que aparece no telão: publicação mais recente no fluxo principal e os três conteúdos mais curtidos ao lado.</p>
         </div>
-        <div className="settings-form settings-form-compact">
+        <div className="praesentia-form praesentia-form-grid praesentia-form-compact settings-form">
           <label className="settings-switch"><input type="checkbox" checked={screenEnabled} onChange={(currentEvent) => setScreenEnabled(currentEvent.target.checked)} /><span>Telão ativo</span></label>
           <label className="settings-switch"><input type="checkbox" checked={screenPaused} onChange={(currentEvent) => setScreenPaused(currentEvent.target.checked)} /><span>Pausar atualização</span></label>
           <label className="settings-switch"><input type="checkbox" checked={showQrCode} onChange={(currentEvent) => setShowQrCode(currentEvent.target.checked)} /><span>Mostrar QR Code</span></label>
@@ -210,7 +210,7 @@ export function EventSettingsForms({ event, members }: { event: Event; members: 
           <h2>{visibility === "private" ? "Evento privado" : "Evento público"}</h2>
           <p>Todo evento nasce privado. Para publicar, o responsável precisa aceitar os termos e confirmar que entende a mudança de alcance.</p>
         </div>
-        <div className="settings-form settings-form-compact">
+        <div className="praesentia-form praesentia-form-grid praesentia-form-compact settings-form">
           <label className="settings-switch">
             <input type="checkbox" checked={acceptedTerms} onChange={(currentEvent) => setAcceptedTerms(currentEvent.target.checked)} />
             <span>Li e aceito os termos para evento público</span>

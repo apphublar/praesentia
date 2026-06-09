@@ -1,19 +1,19 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { requireSession } from "@/lib/auth/session";
+import { getCurrentSession } from "@/lib/auth/session";
 import { repositories } from "@/lib/db";
+import { EVENT_TYPE_VALUES } from "@/lib/events/event-types";
 import { sanitizeText } from "@/lib/security/sanitize";
 import type { EventFormat, EventType } from "@/types/domain";
-
-const EVENT_TYPES: EventType[] = ["festa_infantil", "casamento", "aniversario", "formatura", "corporativo", "outros"];
 
 function required(value: FormDataEntryValue | null, maxLength: number) {
   return sanitizeText(value, maxLength);
 }
 
 export async function createEventAction(formData: FormData) {
-  const session = await requireSession();
+  const session = await getCurrentSession();
+  if (!session) redirect("/login?next=/criar");
 
   const eventType = required(formData.get("eventType"), 30) as EventType;
   const eventFormat = required(formData.get("eventFormat"), 20) as EventFormat;
@@ -33,7 +33,7 @@ export async function createEventAction(formData: FormData) {
   }
 
   const safeFormat: EventFormat = eventFormat === "online" ? "online" : "in_person";
-  const safeType = EVENT_TYPES.includes(eventType) ? eventType : "outros";
+  const safeType = EVENT_TYPE_VALUES.includes(eventType) ? eventType : "outros";
 
   if (safeFormat === "online" && !onlineMeetingUrl) {
     redirect("/criar?erro=link-online-obrigatorio");

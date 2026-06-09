@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { EventSettingsForms } from "@/components/dashboard/event-settings-forms";
 import { CoverGenerator } from "@/components/dashboard/cover-generator";
+import { InviteTextGenerator } from "@/components/dashboard/invite-text-generator";
 import { GuestListPanel } from "@/components/dashboard/guest-list-panel";
 import { PlanUpgradePanel } from "@/components/dashboard/plan-upgrade-panel";
 import { OwnerMediaControls } from "@/components/event/owner-media-controls";
@@ -9,7 +10,7 @@ import { AppNav } from "@/components/layout/app-nav";
 import { canManageEvent } from "@/lib/auth/permissions";
 import { requireSession } from "@/lib/auth/session";
 import { repositories } from "@/lib/db";
-import { hasCapsuleAccess, getAiCoverQuota } from "@/lib/plans/features";
+import { getAiCoverQuota, getAiTextQuota, hasCapsuleAccess } from "@/lib/plans/features";
 
 export default async function EventDashboardPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await requireSession();
@@ -25,6 +26,7 @@ export default async function EventDashboardPage({ params }: { params: Promise<{
   const allowed = canManageEvent(session.user, membership ?? undefined);
   const capsuleActive = hasCapsuleAccess(event);
   const aiQuota = getAiCoverQuota(event);
+  const textQuota = getAiTextQuota(event);
 
   return (
     <>
@@ -105,6 +107,15 @@ export default async function EventDashboardPage({ params }: { params: Promise<{
               </section>
             )}
 
+            <InviteTextGenerator
+              eventId={event.id}
+              eventSlug={event.slug}
+              capsuleActive={capsuleActive}
+              planTier={event.plan.tier}
+              initialCopy={event.inviteCopy}
+              initialQuota={textQuota}
+            />
+
             <CoverGenerator
               eventId={event.id}
               eventSlug={event.slug}
@@ -113,6 +124,7 @@ export default async function EventDashboardPage({ params }: { params: Promise<{
               currentCoverUrl={event.coverImageUrl}
               coverSource={event.coverSource}
               pendingUrls={event.aiCoverPendingUrls}
+              inviteWhatsappText={event.inviteCopy?.whatsapp}
               initialQuota={aiQuota}
             />
 

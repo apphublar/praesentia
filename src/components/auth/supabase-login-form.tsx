@@ -25,19 +25,19 @@ export function SupabaseLoginForm({ nextPath }: { nextPath: string }) {
         </button>
       </div>
 
-      <form action={mode === "login" ? loginAction : signupAction} className="auth-form">
+      <form action={mode === "login" ? loginAction : signupAction} className="praesentia-form praesentia-form-stack">
         <input type="hidden" name="next" value={nextPath} />
         {mode === "signup" && (
-          <label>
+          <label className="field">
             <span>Nome</span>
             <input name="name" type="text" autoComplete="name" required />
           </label>
         )}
-        <label>
+        <label className="field">
           <span>Email</span>
           <input name="email" type="email" autoComplete="email" required />
         </label>
-        <label>
+        <label className="field">
           <span>Senha</span>
           <input name="password" type="password" autoComplete={mode === "login" ? "current-password" : "new-password"} required />
         </label>

@@ -1,6 +1,25 @@
 export type EventVisibility = "private" | "public";
 export type EventPhase = "before" | "live" | "memory";
-export type EventType = "festa_infantil" | "casamento" | "aniversario" | "formatura" | "corporativo" | "outros";
+export type EventType =
+  | "aniversario"
+  | "cha_fraldas"
+  | "cha_revelacao"
+  | "batizado"
+  | "festa_15_anos"
+  | "formatura"
+  | "festa_infantil"
+  | "cha_casa_nova"
+  | "cha_pet"
+  | "natal"
+  | "bar_mitzva"
+  | "bat_mitzva"
+  | "brit_mila"
+  | "vaquinha"
+  | "caixinha_gratidao"
+  | "casamento"
+  | "corporativo"
+  | "eventos_diversos"
+  | "outros";
 export type MemberRole = "owner" | "manager" | "guest" | "viewer";
 export type RSVPStatus = "pending" | "confirmed" | "declined";
 export type AccessStatus = "active" | "blocked";
@@ -9,6 +28,13 @@ export type MediaStatus = "published" | "archived" | "deleted";
 export type PlanTier = "free" | "capsule" | "family";
 export type EventFormat = "in_person" | "online";
 export type CoverSource = "ai" | "custom";
+
+export type InviteCopy = {
+  headline: string;
+  message: string;
+  whatsapp: string;
+  hashtags: string[];
+};
 
 export type User = {
   id: string;
@@ -41,6 +67,9 @@ export type Event = {
   aiCoverGenerationsCount: number;
   aiCoverEditsCount: number;
   aiCoverPendingUrls?: string[];
+  aiTextGenerationsCount: number;
+  aiTextEditsCount: number;
+  inviteCopy?: InviteCopy;
   eventFormat: EventFormat;
   onlineMeetingUrl?: string;
   date: string;

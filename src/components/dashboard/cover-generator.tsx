@@ -22,6 +22,7 @@ export function CoverGenerator({
   currentCoverUrl,
   coverSource,
   pendingUrls = [],
+  inviteWhatsappText,
   initialQuota
 }: {
   eventId: string;
@@ -31,6 +32,7 @@ export function CoverGenerator({
   currentCoverUrl?: string;
   coverSource?: Event["coverSource"];
   pendingUrls?: string[];
+  inviteWhatsappText?: string;
   initialQuota: Quota;
 }) {
   const [coverUrl, setCoverUrl] = useState(currentCoverUrl ?? "");
@@ -43,7 +45,10 @@ export function CoverGenerator({
 
   const appUrl = typeof window !== "undefined" ? window.location.origin : "";
   const shareLink = `${appUrl}/evento/${eventSlug}`;
-  const waText = encodeURIComponent(`Você está convidado! Confirme sua presença: ${shareLink}`);
+  const waMessage = inviteWhatsappText
+    ? inviteWhatsappText.replace(/\{\{link\}\}/g, shareLink)
+    : `Você está convidado! Confirme sua presença: ${shareLink}`;
+  const waText = encodeURIComponent(waMessage);
   const isPaid = capsuleActive && planTier !== "free";
 
   async function generate(mode: "generate" | "edit" = "generate") {
@@ -186,13 +191,16 @@ export function CoverGenerator({
         )}
 
         {isPaid && quota.canEdit && coverUrl && source === "ai" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            <input
-              value={editHint}
-              onChange={(e) => setEditHint(e.target.value)}
-              placeholder="Descreva o ajuste que quer na imagem..."
-              maxLength={400}
-            />
+          <div className="praesentia-form praesentia-form-stack">
+            <label className="field">
+              <span>Ajuste na imagem</span>
+              <input
+                value={editHint}
+                onChange={(e) => setEditHint(e.target.value)}
+                placeholder="Descreva o ajuste que quer na imagem..."
+                maxLength={400}
+              />
+            </label>
             <button type="button" className="btn secondary" onClick={() => generate("edit")} disabled={loading || editHint.length < 4}>
               Pedir ajuste à IA ({quota.remainingEdits} restante{quota.remainingEdits !== 1 ? "s" : ""})
             </button>
