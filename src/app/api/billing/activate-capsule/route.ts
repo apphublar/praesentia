@@ -4,16 +4,21 @@ import { requireSession } from "@/lib/auth/session";
 import { repositories } from "@/lib/db";
 import { PLANS } from "@/lib/plans";
 import { assertTrustedOrigin } from "@/lib/security/origin";
+import { sanitizeText } from "@/lib/security/sanitize";
 
-export async function POST(request: Request, { params }: { params: Promise<{ eventId: string }> }) {
+export async function POST(request: Request) {
   const originError = assertTrustedOrigin(request);
   if (originError) return originError;
 
   try {
     const session = await requireSession();
-    const { eventId } = await params;
     const body = await request.json().catch(() => ({}));
+    const eventId = sanitizeText(body.eventId, 80);
     const plan = body.plan === "family" ? "family" : "capsule";
+
+    if (!eventId) {
+      return NextResponse.json({ error: "Evento não informado." }, { status: 400 });
+    }
 
     const event = await repositories.events.findById(eventId);
     if (!event) return NextResponse.json({ error: "Evento não encontrado" }, { status: 404 });

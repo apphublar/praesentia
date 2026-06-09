@@ -44,10 +44,10 @@ export function PlanUpgradePanel({
         }
       }
 
-      const res = await fetch(`/api/billing/activate-capsule`, {
+      const res = await fetch("/api/billing/activate-capsule", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan })
+        body: JSON.stringify({ eventId: event.id, plan })
       });
       const data = await res.json();
       if (!res.ok) {
