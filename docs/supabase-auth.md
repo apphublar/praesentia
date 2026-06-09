@@ -24,6 +24,7 @@ This is the production authentication plan for Praesentia.
 8. Configure redirect URLs:
    - `https://your-production-domain/auth/callback`
    - `https://your-production-domain/login`
+   - `https://your-production-domain/login/redefinir-senha`
    - Vercel preview URLs only if you want preview auth testing.
 9. Create your first admin account through the normal signup flow.
 10. Promote the admin account in SQL:

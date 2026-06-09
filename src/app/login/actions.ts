@@ -35,6 +35,59 @@ async function issuePraesentiaSession(userId: string, nextPath: string) {
   redirect(nextPath);
 }
 
+function appBaseUrl() {
+  return process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+}
+
+function isExistingAccountSignup(data: { user: { identities?: { id: string }[] } | null }) {
+  return Boolean(data.user && (!data.user.identities || data.user.identities.length === 0));
+}
+
+export async function requestPasswordReset(_state: AuthActionState, formData: FormData): Promise<AuthActionState> {
+  const email = sanitizeText(formData.get("email"), 180).toLowerCase();
+
+  if (!email) {
+    return { error: "Informe seu email para recuperar a senha." };
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${appBaseUrl()}/auth/callback?next=${encodeURIComponent("/login/redefinir-senha")}`
+  });
+
+  if (error) {
+    return { error: "Nao foi possivel enviar o link agora. Tente novamente em instantes." };
+  }
+
+  return {
+    notice: "Se este email estiver cadastrado, voce recebera um link para redefinir sua senha."
+  };
+}
+
+export async function updatePasswordAfterRecovery(_state: AuthActionState, formData: FormData): Promise<AuthActionState> {
+  const password = String(formData.get("password") ?? "");
+  const nextPath = sanitizeRedirectPath(formData.get("next"));
+
+  if (password.length < 8) {
+    return { error: "Use uma senha com pelo menos 8 caracteres." };
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+
+  if (authError || !authData.user) {
+    return { error: "Link expirado ou invalido. Solicite uma nova recuperacao de senha." };
+  }
+
+  const { error } = await supabase.auth.updateUser({ password });
+
+  if (error) {
+    return { error: "Nao foi possivel atualizar sua senha agora." };
+  }
+
+  return issuePraesentiaSession(authData.user.id, nextPath);
+}
+
 export async function loginWithSupabase(_state: AuthActionState, formData: FormData): Promise<AuthActionState> {
   const email = sanitizeText(formData.get("email"), 180).toLowerCase();
   const password = String(formData.get("password") ?? "");
@@ -70,12 +123,20 @@ export async function signUpWithSupabase(_state: AuthActionState, formData: Form
     password,
     options: {
       data: { name },
-      emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/auth/callback?next=${encodeURIComponent(nextPath)}`
+      emailRedirectTo: `${appBaseUrl()}/auth/callback?next=${encodeURIComponent(nextPath)}`
     }
   });
 
   if (error) {
+    const message = error.message.toLowerCase();
+    if (message.includes("already") || message.includes("registered") || message.includes("exists")) {
+      return { error: "Este email ja possui uma conta. Faca login ou recupere sua senha." };
+    }
     return { error: "Nao foi possivel criar sua conta agora." };
+  }
+
+  if (isExistingAccountSignup(data)) {
+    return { error: "Este email ja possui uma conta. Faca login ou recupere sua senha." };
   }
 
   if (!data.session || !data.user) {

@@ -1699,6 +1699,51 @@ p + a.btn,
   color: var(--coral);
 }
 
+.password-field-wrap {
+  position: relative;
+}
+
+.password-field-wrap input {
+  padding-right: 82px;
+}
+
+.password-field-toggle {
+  background: transparent;
+  border: 0;
+  color: var(--coral);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 850;
+  padding: 8px 10px;
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.password-field-toggle:hover {
+  text-decoration: underline;
+}
+
+.auth-forgot-link,
+.auth-back-link {
+  background: none;
+  border: 0;
+  color: var(--coral);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 800;
+  margin: -4px 0 4px;
+  padding: 0;
+  text-align: left;
+  width: fit-content;
+}
+
+.auth-forgot-link:hover,
+.auth-back-link:hover {
+  text-decoration: underline;
+}
+
 .storage-actions-row,
 .settings-actions-row {
   display: flex;
