@@ -1,16 +1,18 @@
 import { NextResponse } from "next/server";
 import { randomUUID } from "node:crypto";
+import { canContribute, canManageEvent, canUploadVideo } from "@/lib/auth/permissions";
 import { getCurrentSession } from "@/lib/auth/session";
-import { canContribute } from "@/lib/auth/permissions";
 import { repositories } from "@/lib/db";
-import { canStoreMediaBytes, getRemainingStorageBytes } from "@/lib/plans";
 import { publishRealtimeEvent } from "@/lib/realtime/events";
 import { checkRateLimit } from "@/lib/security/rate-limit";
 import { assertTrustedOrigin } from "@/lib/security/origin";
 import { sanitizeText } from "@/lib/security/sanitize";
+import { resolveStorageContext } from "@/lib/storage/context";
+import { assessGuestPhotoUpload, countConfirmedGuests } from "@/lib/storage/guest-upload-limits";
+import { canAcceptStorageUpload, buildStorageLimitMessage } from "@/lib/storage/quota";
 import { buildMediaKey, createUploadUrl, getPublicMediaUrl, isEventMediaKey } from "@/lib/storage/r2";
 import { validateUploadRequest } from "@/lib/storage/validation";
-import type { Event, MediaItem } from "@/types/domain";
+import type { MediaItem } from "@/types/domain";
 
 export async function POST(request: Request, context: { params: Promise<{ eventId: string }> }) {
   const originError = assertTrustedOrigin(request);
@@ -37,7 +39,14 @@ export async function POST(request: Request, context: { params: Promise<{ eventI
   const body = await request.json().catch(() => null);
   const action = sanitizeText(body?.action, 40);
   const type = sanitizeText(body?.type, 20);
-  const userItems = (await repositories.media.listPublishedByEvent(eventId)).filter((item) => item.userId === session.user.id);
+  const isManager = canManageEvent(session.user, member ?? undefined);
+  const eventItems = await repositories.media.listPublishedByEvent(eventId);
+  const userItems = eventItems.filter((item) => item.userId === session.user.id);
+  const [rsvps, members] = await Promise.all([
+    repositories.guestRsvps.listByEvent(eventId),
+    repositories.members.listByEvent(eventId)
+  ]);
+  const confirmedGuestCount = countConfirmedGuests(rsvps.length, members);
 
   if (action === "finalize_upload") {
     const key = sanitizeText(body?.key, 260);
@@ -46,15 +55,35 @@ export async function POST(request: Request, context: { params: Promise<{ eventI
     const validation = validateUploadRequest(contentType, size);
     if (!validation.ok) return NextResponse.json({ error: validation.error }, { status: 400 });
     if (!isEventMediaKey(eventId, key)) return NextResponse.json({ error: "Chave de arquivo invalida." }, { status: 400 });
-    if (!canStoreMediaBytes(event, size)) {
-      return NextResponse.json({ error: buildStorageLimitMessage(event, size) }, { status: 403 });
-    }
 
     const mediaType = contentType.startsWith("video/") ? "video" : "photo";
-    const usedCount = userItems.filter((item) => item.type === mediaType).length;
-    const allowedCount = mediaType === "video" ? 1 : 2;
-    if (usedCount >= allowedCount) {
-      return NextResponse.json({ error: mediaType === "video" ? "Limite de 1 video atingido." : "Limite de 2 fotos atingido." }, { status: 403 });
+    if (mediaType === "video" && !canUploadVideo(session.user, member ?? undefined)) {
+      return NextResponse.json({ error: "Somente o responsável do evento pode enviar vídeos." }, { status: 403 });
+    }
+
+    const storageContext = await resolveStorageContext(event);
+
+    if (!isManager && mediaType === "photo") {
+      const photoCheck = assessGuestPhotoUpload({
+        confirmedGuestCount,
+        eventItems,
+        guestPhotoCount: userItems.filter((item) => item.type === "photo").length,
+        incomingBytes: size,
+        poolUsedBytes: storageContext.poolUsedBytes,
+        snapshot: storageContext.snapshot,
+        event,
+        subscription: storageContext.subscription
+      });
+      if (!photoCheck.ok) return NextResponse.json({ error: photoCheck.error }, { status: 403 });
+    } else if (
+      !canAcceptStorageUpload({
+        event,
+        subscription: storageContext.subscription,
+        poolUsedBytes: storageContext.poolUsedBytes,
+        incomingBytes: size
+      })
+    ) {
+      return NextResponse.json({ error: buildStorageLimitMessage(storageContext.snapshot, size) }, { status: 403 });
     }
 
     const publicUrl = getPublicMediaUrl(key);
@@ -73,7 +102,7 @@ export async function POST(request: Request, context: { params: Promise<{ eventI
   }
 
   if (type === "message") {
-    if (userItems.some((item) => item.type === "message")) {
+    if (!isManager && userItems.some((item) => item.type === "message")) {
       return NextResponse.json({ error: "Limite de 1 recado atingido." }, { status: 403 });
     }
     const text = sanitizeText(body?.text, 600);
@@ -94,8 +123,34 @@ export async function POST(request: Request, context: { params: Promise<{ eventI
   const size = Number(body?.size || 0);
   const validation = validateUploadRequest(contentType, size);
   if (!validation.ok) return NextResponse.json({ error: validation.error }, { status: 400 });
-  if (!canStoreMediaBytes(event, size)) {
-    return NextResponse.json({ error: buildStorageLimitMessage(event, size) }, { status: 403 });
+
+  if (validation.isVideo && !canUploadVideo(session.user, member ?? undefined)) {
+    return NextResponse.json({ error: "Somente o responsável do evento pode enviar vídeos." }, { status: 403 });
+  }
+
+  const storageContext = await resolveStorageContext(event);
+
+  if (!isManager && !validation.isVideo) {
+    const photoCheck = assessGuestPhotoUpload({
+      confirmedGuestCount,
+      eventItems,
+      guestPhotoCount: userItems.filter((item) => item.type === "photo").length,
+      incomingBytes: size,
+      poolUsedBytes: storageContext.poolUsedBytes,
+      snapshot: storageContext.snapshot,
+      event,
+      subscription: storageContext.subscription
+    });
+    if (!photoCheck.ok) return NextResponse.json({ error: photoCheck.error }, { status: 403 });
+  } else if (
+    !canAcceptStorageUpload({
+      event,
+      subscription: storageContext.subscription,
+      poolUsedBytes: storageContext.poolUsedBytes,
+      incomingBytes: size
+    })
+  ) {
+    return NextResponse.json({ error: buildStorageLimitMessage(storageContext.snapshot, size) }, { status: 403 });
   }
 
   const mediaId = `med_${randomUUID()}`;
@@ -117,10 +172,4 @@ export async function POST(request: Request, context: { params: Promise<{ eventI
     uploadUrl: "mock://cloudflare-r2-upload-url",
     publicUrl: getPublicMediaUrl(key)
   });
-}
-
-function buildStorageLimitMessage(event: Event, requestedBytes: number) {
-  const remainingMb = Math.max(0, Math.floor(getRemainingStorageBytes(event) / 1024 / 1024));
-  const requestedMb = Math.ceil(requestedBytes / 1024 / 1024);
-  return `Limite de armazenamento do plano ${event.plan.label} atingido. Restam ${remainingMb} MB e este arquivo tem ${requestedMb} MB.`;
 }

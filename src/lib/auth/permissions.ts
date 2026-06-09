@@ -15,6 +15,10 @@ export function canManageEvent(user: User, member?: EventMember) {
   return member?.accessStatus === "active" && ["owner", "manager"].includes(member.role);
 }
 
+export function canUploadVideo(user: User, member?: EventMember) {
+  return canManageEvent(user, member);
+}
+
 export function canContribute(event: Event, member?: EventMember) {
   if (!canAccessMural(event)) return false;
   return (

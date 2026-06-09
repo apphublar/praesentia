@@ -11,6 +11,9 @@ type SubmitState = {
 
 const idleState: SubmitState = { loading: false, message: "", tone: "idle" };
 
+const PHOTO_ACCEPT = "image/jpeg,image/png,image/webp";
+const VIDEO_ACCEPT = "video/mp4,video/quicktime";
+
 async function readJson(response: Response) {
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(data.error ?? "Nao foi possivel enviar agora.");
@@ -21,12 +24,14 @@ export function GuestContributionPanel({
   eventId,
   items,
   currentUserId,
+  canUploadVideo = false,
   onCreated,
   onDeleted
 }: {
   eventId: string;
   items: MediaItem[];
   currentUserId?: string;
+  canUploadVideo?: boolean;
   onCreated: (item: MediaItem) => void;
   onDeleted?: (mediaId: string) => void;
 }) {
@@ -34,16 +39,17 @@ export function GuestContributionPanel({
   const [file, setFile] = useState<File | null>(null);
   const [state, setState] = useState<SubmitState>(idleState);
 
-  const usage = useMemo(() => ({
-    photos: items.filter((item) => item.type === "photo").length,
-    videos: items.filter((item) => item.type === "video").length,
-    messages: items.filter((item) => item.type === "message").length
-  }), [items]);
+  const messageCount = useMemo(() => items.filter((item) => item.type === "message").length, [items]);
 
   const myItems = useMemo(
     () => (currentUserId ? items.filter((item) => item.userId === currentUserId) : []),
     [items, currentUserId]
   );
+
+  const fileAccept = canUploadVideo ? `${PHOTO_ACCEPT},${VIDEO_ACCEPT}` : PHOTO_ACCEPT;
+  const fileHint = canUploadVideo
+    ? "JPG, PNG, WEBP, MP4 ou MOV"
+    : "JPG, PNG ou WEBP";
 
   async function deleteItem(mediaId: string) {
     setState({ loading: true, message: "", tone: "idle" });
@@ -80,7 +86,12 @@ export function GuestContributionPanel({
 
   async function submitFile() {
     if (!file) {
-      setState({ loading: false, message: "Escolha uma foto ou video antes de enviar.", tone: "error" });
+      setState({ loading: false, message: "Escolha um arquivo antes de enviar.", tone: "error" });
+      return;
+    }
+
+    if (!canUploadVideo && file.type.startsWith("video/")) {
+      setState({ loading: false, message: "Somente o responsavel do evento pode enviar videos.", tone: "error" });
       return;
     }
 
@@ -129,37 +140,43 @@ export function GuestContributionPanel({
       <div>
         <span className="pill">seu espaço</span>
         <h2>Compartilhar memória</h2>
-        <p>Somente convidados confirmados e com conta podem enviar. O conteúdo entra sem moderação prévia, e o responsável pode arquivar depois.</p>
+        <p>
+          {canUploadVideo
+            ? "Como responsável, você pode enviar fotos e vídeos. Convidados confirmados enviam fotos e recados enquanto houver espaço na cápsula."
+            : "Envie fotos e recados enquanto houver espaço na cápsula. Nem todo convidado precisa publicar — quem compartilha pode usar mais do espaço disponível."}
+        </p>
       </div>
 
-      <div className="guest-quota-grid">
-        <Quota value={`${usage.photos}/2`} label="fotos" />
-        <Quota value={`${usage.videos}/1`} label="video" />
-        <Quota value={`${usage.messages}/1`} label="recado" />
-      </div>
+      {!canUploadVideo && messageCount >= 1 ? (
+        <p style={{ color: "var(--ink-soft)", fontSize: 13, margin: 0 }}>Você já enviou seu recado para este evento.</p>
+      ) : null}
 
       <div className="guest-upload-grid">
         <label className="field field-file">
-          <span>Foto ou vídeo</span>
+          <span>{canUploadVideo ? "Foto ou vídeo" : "Foto"}</span>
           <input
             type="file"
-            accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime"
+            accept={fileAccept}
             onChange={(event) => setFile(event.target.files?.[0] ?? null)}
           />
-          <span className="field-file-preview">{file ? file.name : "JPG, PNG, WEBP, MP4 ou MOV"}</span>
+          <span className="field-file-preview">{file ? file.name : fileHint}</span>
         </label>
         <button className="btn guest-action" type="button" disabled={state.loading} onClick={submitFile}>
           {state.loading ? "Enviando..." : "Enviar arquivo"}
         </button>
       </div>
 
-      <label className="field">
-        <span>Recado</span>
-        <textarea value={text} onChange={(event) => setText(event.target.value)} placeholder="Escreva algo que mereça ficar guardado..." />
-      </label>
-      <button className="btn secondary guest-message-action" type="button" disabled={state.loading} onClick={submitMessage}>
-        Enviar recado
-      </button>
+      {!canUploadVideo && messageCount >= 1 ? null : (
+        <>
+          <label className="field">
+            <span>Recado</span>
+            <textarea value={text} onChange={(event) => setText(event.target.value)} placeholder="Escreva algo que mereça ficar guardado..." />
+          </label>
+          <button className="btn secondary guest-message-action" type="button" disabled={state.loading} onClick={submitMessage}>
+            Enviar recado
+          </button>
+        </>
+      )}
 
       {state.message && <p className={`guest-submit-status ${state.tone === "error" ? "is-error" : "is-ok"}`}>{state.message}</p>}
 
@@ -183,15 +200,6 @@ export function GuestContributionPanel({
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-function Quota({ value, label }: { value: string; label: string }) {
-  return (
-    <div className="guest-quota">
-      <strong>{value}</strong>
-      <span>{label}</span>
     </div>
   );
 }

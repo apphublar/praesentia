@@ -82,7 +82,9 @@ export type Event = {
   phase: EventPhase;
   plan: EventPlan;
   capsuleActivatedAt?: string;
+  storageUsedBytes: number;
   storageUsedGb: number;
+  extraStorageGb: number;
   pix?: PixSettings;
   screen: ScreenSettings;
 };
@@ -106,6 +108,7 @@ export type UserSubscription = {
   currentPeriodEnd: string;
   eventsUsedThisPeriod: number;
   sharedStorageUsedGb: number;
+  extraStorageGb: number;
 };
 
 export type EventMember = {

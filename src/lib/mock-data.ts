@@ -33,7 +33,9 @@ export const events: Event[] = [
     visibility: "private",
     phase: "live",
     plan: PLANS.capsule,
+    storageUsedBytes: Math.round(1.8 * 1024 * 1024 * 1024),
     storageUsedGb: 1.8,
+    extraStorageGb: 0,
     pix: {
       enabled: true,
       receiverName: "Camila Andrade",

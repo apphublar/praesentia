@@ -29,5 +29,6 @@ CLOUDFLARE_R2_PUBLIC_BASE_URL=
 - Keep upload URLs short-lived.
 - Validate MIME type and size before signing.
 - Store media visibility in the database, not in the object path.
-- Archiving content changes database visibility; deletion should also delete the R2 object in the production repository.
+- Deleting media removes the R2 object and frees storage quota immediately.
+- Archiving content changes database visibility only; archived files still count toward storage.
 - Blocked guests cannot request signed uploads or finalize media.

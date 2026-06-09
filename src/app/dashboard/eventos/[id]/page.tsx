@@ -5,12 +5,14 @@ import { CoverGenerator } from "@/components/dashboard/cover-generator";
 import { InviteTextGenerator } from "@/components/dashboard/invite-text-generator";
 import { GuestListPanel } from "@/components/dashboard/guest-list-panel";
 import { PlanUpgradePanel } from "@/components/dashboard/plan-upgrade-panel";
+import { StoragePanel } from "@/components/dashboard/storage-panel";
 import { OwnerMediaControls } from "@/components/event/owner-media-controls";
 import { AppNav } from "@/components/layout/app-nav";
 import { canManageEvent } from "@/lib/auth/permissions";
 import { requireSession } from "@/lib/auth/session";
 import { repositories } from "@/lib/db";
 import { getAiCoverQuota, getAiTextQuota, hasCapsuleAccess } from "@/lib/plans/features";
+import { resolveStorageContext } from "@/lib/storage/context";
 
 export default async function EventDashboardPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await requireSession();
@@ -27,6 +29,7 @@ export default async function EventDashboardPage({ params }: { params: Promise<{
   const capsuleActive = hasCapsuleAccess(event);
   const aiQuota = getAiCoverQuota(event);
   const textQuota = getAiTextQuota(event);
+  const storageContext = capsuleActive ? await resolveStorageContext(event) : null;
 
   return (
     <>
@@ -67,41 +70,28 @@ export default async function EventDashboardPage({ params }: { params: Promise<{
                 <>
                   <Metric label="Midias publicadas" value={String(media.length)} />
                   <Metric label="Curtidas totais" value={String(media.reduce((sum, item) => sum + item.likesCount, 0))} />
-                  <Metric label="Armazenamento" value={`${event.storageUsedGb.toFixed(1)}/${event.plan.storageGb} GB`} />
+                  <Metric
+                    label="Armazenamento"
+                    value={
+                      storageContext
+                        ? `${storageContext.snapshot.usedGb.toFixed(1)}/${storageContext.snapshot.contractedGb} GB`
+                        : `${event.storageUsedGb.toFixed(1)}/${event.plan.storageGb} GB`
+                    }
+                  />
                 </>
               )}
               {!capsuleActive && <Metric label="Formato" value={event.eventFormat === "online" ? "Online" : "Presencial"} />}
             </section>
 
-            {capsuleActive && (
+            {capsuleActive && storageContext && (
               <section className="grid-collapse" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18, marginBottom: 24 }}>
-                <article className="card" style={{ padding: 22 }}>
-                  <span className="pill">armazenamento</span>
-                  <h2 className="display" style={{ fontSize: 30, margin: "12px 0" }}>{event.storageUsedGb.toFixed(1)} GB usados</h2>
-                  <div style={{ height: 10, borderRadius: 999, background: "var(--bg-soft)", overflow: "hidden" }}>
-                    <span
-                      style={{
-                        display: "block",
-                        height: "100%",
-                        width: `${Math.min(100, (event.storageUsedGb / event.plan.storageGb) * 100)}%`,
-                        background: "var(--coral)",
-                        borderRadius: 999
-                      }}
-                    />
-                  </div>
-                  <p style={{ color: "var(--ink-soft)", lineHeight: 1.55 }}>
-                    Plano {event.plan.label}: {event.plan.storageGb} GB.
-                    {event.plan.yearlyEventLimit
-                      ? ` No ${event.plan.label}, os ${event.plan.storageGb} GB sao compartilhados entre ate ${event.plan.yearlyEventLimit} eventos.`
-                      : " Cada evento mantem sua capsula separada."}
-                  </p>
-                </article>
+                <StoragePanel eventId={event.id} snapshot={storageContext.snapshot} />
                 <article className="card" style={{ padding: 22, background: "var(--bg-soft)" }}>
                   <span className="pill">mural ao vivo</span>
                   <h2 className="display" style={{ fontSize: 30, margin: "12px 0" }}>Cápsula ativa</h2>
                   <p style={{ color: "var(--ink-soft)", lineHeight: 1.55 }}>
-                    Convidados confirmados podem publicar fotos, videos e recados. O telao atualiza em tempo real.
-                    Apos o evento, o mesmo link vira cápsula do tempo por 36 meses.
+                    Convidados confirmados podem publicar fotos e recados. Somente o responsável pode enviar vídeos.
+                    O telao atualiza em tempo real. Apos o evento, o mesmo link vira cápsula do tempo por 36 meses.
                   </p>
                 </article>
               </section>

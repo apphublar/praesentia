@@ -50,6 +50,27 @@ export const inMemoryEvents: EventRepository = {
   async findBySlugOrCode(slugOrCode) {
     return events.find((event) => event.slug === slugOrCode || event.freeCode === slugOrCode) ?? null;
   },
+  async findOwnerId(eventId) {
+    const owner = members.find((member) => member.eventId === eventId && member.role === "owner");
+    return owner?.userId ?? null;
+  },
+  async sumFamilyStorageUsedBytes(ownerId) {
+    const ownedIds = new Set(
+      members.filter((member) => member.userId === ownerId && member.role === "owner").map((member) => member.eventId)
+    );
+    return events
+      .filter(
+        (event) =>
+          ownedIds.has(event.id) && event.plan.tier === "family" && Boolean(event.capsuleActivatedAt)
+      )
+      .reduce((sum, event) => sum + event.storageUsedBytes, 0);
+  },
+  async addExtraStorage(eventId, gb) {
+    const event = events.find((item) => item.id === eventId);
+    if (!event) throw new Error("EVENT_NOT_FOUND");
+    event.extraStorageGb += gb;
+    return event;
+  },
   async listByOwner(userId) {
     const manageableEventIds = new Set(
       members
@@ -89,7 +110,9 @@ export const inMemoryEvents: EventRepository = {
       visibility: "private",
       phase: "before",
       plan: PLANS.free,
+      storageUsedBytes: 0,
       storageUsedGb: 0,
+      extraStorageGb: 0,
       ...baseEventFields(input),
       screen: {
         enabled: false,
@@ -285,7 +308,12 @@ export const inMemoryMedia: MediaRepository = {
     mediaItems.unshift(item);
     const event = events.find((row) => row.id === input.eventId);
     if (event && input.byteSize) {
-      event.storageUsedGb += input.byteSize / 1024 / 1024 / 1024;
+      event.storageUsedBytes += input.byteSize;
+      event.storageUsedGb = event.storageUsedBytes / 1024 / 1024 / 1024;
+      const ownerId = members.find((member) => member.eventId === input.eventId && member.role === "owner")?.userId;
+      if (ownerId) {
+        void inMemorySubscriptions.syncSharedStorageUsed(ownerId);
+      }
     }
     return item;
   },
@@ -327,7 +355,12 @@ export const inMemoryMedia: MediaRepository = {
     if (!item) throw new Error("MEDIA_NOT_FOUND");
     const event = events.find((row) => row.id === item.eventId);
     if (event && item.status !== "deleted" && item.byteSize) {
-      event.storageUsedGb = Math.max(0, event.storageUsedGb - item.byteSize / 1024 / 1024 / 1024);
+      event.storageUsedBytes = Math.max(0, event.storageUsedBytes - item.byteSize);
+      event.storageUsedGb = event.storageUsedBytes / 1024 / 1024 / 1024;
+      const ownerId = members.find((member) => member.eventId === item.eventId && member.role === "owner")?.userId;
+      if (ownerId) {
+        void inMemorySubscriptions.syncSharedStorageUsed(ownerId);
+      }
     }
     item.status = "deleted";
     item.visibleOnScreen = false;
@@ -445,7 +478,8 @@ export const inMemorySubscriptions: SubscriptionRepository = {
       currentPeriodStart: now.toISOString(),
       currentPeriodEnd: end.toISOString(),
       eventsUsedThisPeriod: 0,
-      sharedStorageUsedGb: 0
+      sharedStorageUsedGb: 0,
+      extraStorageGb: 0
     };
     subscriptionStore.push(subscription);
     return subscription;
@@ -455,6 +489,17 @@ export const inMemorySubscriptions: SubscriptionRepository = {
     if (!subscription) throw new Error("SUBSCRIPTION_NOT_FOUND");
     subscription.eventsUsedThisPeriod += 1;
     return subscription;
+  },
+  async addExtraStorage(userId, gb) {
+    const subscription = await this.findActiveByUser(userId);
+    if (!subscription) throw new Error("SUBSCRIPTION_NOT_FOUND");
+    subscription.extraStorageGb += gb;
+    return subscription;
+  },
+  async syncSharedStorageUsed(ownerId) {
+    const subscription = await this.findActiveByUser(ownerId);
+    if (!subscription) return;
+    subscription.sharedStorageUsedGb = (await inMemoryEvents.sumFamilyStorageUsedBytes(ownerId)) / 1024 / 1024 / 1024;
   }
 };
 

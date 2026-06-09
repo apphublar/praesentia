@@ -5,6 +5,7 @@ import { RsvpForm } from "@/components/event/rsvp-form";
 import { AppNav } from "@/components/layout/app-nav";
 import { getCurrentSession } from "@/lib/auth/session";
 import { repositories } from "@/lib/db";
+import { canUploadVideo } from "@/lib/auth/permissions";
 import { hasCapsuleAccess } from "@/lib/plans/features";
 
 function WhatsAppShare({ event }: { event: { slug: string; title: string } }) {
@@ -47,7 +48,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
   const media = hasCapsuleAccess(event) ? await repositories.media.listPublishedByEvent(event.id) : [];
   const session = await getCurrentSession();
   const membership = session ? await repositories.members.findMembership(event.id, session.user.id) : null;
-  const isManager = membership?.role === "owner" || membership?.role === "manager";
+  const canUploadVideoAsManager = session ? canUploadVideo(session.user, membership ?? undefined) : false;
   const capsuleActive = hasCapsuleAccess(event);
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://www.praesentia.com.br";
@@ -91,7 +92,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
 
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 36 }}>
           <WhatsAppShare event={event} />
-          {isManager && (
+          {canUploadVideoAsManager && (
             <a href={`/dashboard/eventos/${event.id}`} className="btn secondary">Painel do evento</a>
           )}
         </div>
@@ -105,7 +106,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
 
         {capsuleActive ? (
           <div style={{ marginTop: 48 }}>
-            <EventExperience event={event} media={media} currentUserId={session?.user.id} />
+            <EventExperience event={event} media={media} currentUserId={session?.user.id} canUploadVideo={canUploadVideoAsManager} />
           </div>
         ) : (
           <article className="card" style={{ padding: 24, marginTop: 48 }}>

@@ -49,18 +49,9 @@ export function gbFromBytes(bytes: number) {
   return bytes / BYTES_PER_GB;
 }
 
-export function getEventStorageLimitBytes(event: Event) {
-  return bytesFromGb(event.plan.storageGb);
-}
-
-export function getEventStorageUsedBytes(event: Event) {
-  return bytesFromGb(event.storageUsedGb);
-}
-
-export function getRemainingStorageBytes(event: Event) {
-  return Math.max(0, getEventStorageLimitBytes(event) - getEventStorageUsedBytes(event));
-}
-
-export function canStoreMediaBytes(event: Event, byteSize: number) {
-  return byteSize <= getRemainingStorageBytes(event);
-}
+export {
+  buildStorageSnapshot,
+  canAcceptStorageUpload,
+  getContractedStorageGb,
+  STORAGE_UPLOAD_BUFFER_GB
+} from "@/lib/storage/quota";

@@ -11,7 +11,17 @@ import type { Event, MediaItem } from "@/types/domain";
 
 type Phase = "before" | "live" | "memory";
 
-export function EventExperience({ event, media, currentUserId }: { event: Event; media: MediaItem[]; currentUserId?: string }) {
+export function EventExperience({
+  event,
+  media,
+  currentUserId,
+  canUploadVideo = false
+}: {
+  event: Event;
+  media: MediaItem[];
+  currentUserId?: string;
+  canUploadVideo?: boolean;
+}) {
   const [phase, setPhase] = useState<Phase>("before");
   const [liveMedia, setLiveMedia] = useState(media);
 
@@ -89,6 +99,7 @@ export function EventExperience({ event, media, currentUserId }: { event: Event;
           event={event}
           media={liveMedia}
           currentUserId={currentUserId}
+          canUploadVideo={canUploadVideo}
           onCreated={addLocalMedia}
           onDeleted={removeLocalMedia}
         />
@@ -185,7 +196,7 @@ function BeforeEvent({ event }: { event: Event }) {
           {[
             ["1", "Confirmar presença"],
             ["2", "Criar ou entrar na conta"],
-            ["3", "Enviar até 2 fotos, 1 vídeo e 1 recado"],
+            ["3", "Enviar fotos e recados enquanto houver espaço na cápsula"],
             ["4", "Curtir favoritos sem expor quem curtiu"]
           ].map(([n, text]) => (
             <div key={n} style={{ background: "var(--bg-soft)", borderRadius: 12, padding: 14 }}>
@@ -289,12 +300,14 @@ function LiveEvent({
   event,
   media,
   currentUserId,
+  canUploadVideo,
   onCreated,
   onDeleted
 }: {
   event: Event;
   media: MediaItem[];
   currentUserId?: string;
+  canUploadVideo: boolean;
   onCreated: (item: MediaItem) => void;
   onDeleted: (mediaId: string) => void;
 }) {
@@ -340,24 +353,35 @@ function LiveEvent({
             eventId={event.id}
             items={guestItems}
             currentUserId={currentUserId}
+            canUploadVideo={canUploadVideo}
             onCreated={onCreated}
             onDeleted={onDeleted}
           />
           <div className="card event-side-card event-side-card-accent" style={{ padding: 18, background: "var(--violet)", color: "#fff" }}>
-            <div className="mono" style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase" }}>limite por convidado</div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, marginTop: 12 }}>
-              {[
-                [`${guestUsage.photos}/2`, "fotos"],
-                [`${guestUsage.videos}/1`, "video"],
-                [`${guestUsage.messages}/1`, "recado"]
-              ].map(([value, label]) => (
-                <div key={label} style={{ background: "rgba(255,255,255,.12)", borderRadius: 10, padding: 10, textAlign: "center" }}>
-                  <div className="display" style={{ fontSize: 28, lineHeight: 1 }}>{value}</div>
-                  <div className="mono" style={{ fontSize: 10, textTransform: "uppercase" }}>{label}</div>
-                </div>
-              ))}
+            <div className="mono" style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase" }}>
+              {canUploadVideo ? "suas publicações" : "espaço da cápsula"}
             </div>
-            <p style={{ lineHeight: 1.5, fontSize: 13, opacity: .9 }}>Aqui e qualidade, não quantidade. Cada convidado escolhe o que realmente importa.</p>
+            {canUploadVideo ? (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 8, marginTop: 12 }}>
+                {[
+                  [`${guestUsage.photos}`, "fotos enviadas"],
+                  [`${guestUsage.videos}`, "videos enviados"]
+                ].map(([value, label]) => (
+                  <div key={label} style={{ background: "rgba(255,255,255,.12)", borderRadius: 10, padding: 10, textAlign: "center" }}>
+                    <div className="display" style={{ fontSize: 28, lineHeight: 1 }}>{value}</div>
+                    <div className="mono" style={{ fontSize: 10, textTransform: "uppercase" }}>{label}</div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p style={{ lineHeight: 1.55, fontSize: 14, marginTop: 12, opacity: 0.95 }}>
+                Você já enviou <strong>{guestUsage.photos}</strong> foto{guestUsage.photos !== 1 ? "s" : ""}
+                {guestUsage.messages > 0 ? " e 1 recado" : ""}. O espaço é compartilhado — enquanto a cápsula tiver GB disponível, você pode continuar enviando fotos.
+              </p>
+            )}
+            <p style={{ lineHeight: 1.5, fontSize: 13, opacity: .9, marginTop: 12 }}>
+              {canUploadVideo ? "Como responsável, você também pode enviar vídeos." : "Aqui é qualidade, não quantidade. Cada convidado escolhe o que realmente importa."}
+            </p>
           </div>
           <div className="card event-side-card" style={{ padding: 18 }}>
             <div className="display" style={{ fontSize: 22 }}>Controle do responsável</div>

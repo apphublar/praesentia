@@ -5,6 +5,7 @@ import { repositories } from "@/lib/db";
 import { publishRealtimeEvent } from "@/lib/realtime/events";
 import { assertTrustedOrigin } from "@/lib/security/origin";
 import { sanitizeText } from "@/lib/security/sanitize";
+import { deleteR2Object } from "@/lib/storage/r2";
 
 export async function PATCH(
   request: Request,
@@ -71,6 +72,15 @@ export async function DELETE(request: Request, context: { params: Promise<{ even
       { error: "Voce so pode excluir seu conteudo nas primeiras 24h do evento. Depois disso, fale com o responsavel." },
       { status: 403 }
     );
+  }
+
+  if (media.r2Key) {
+    try {
+      await deleteR2Object(media.r2Key);
+    } catch (error) {
+      console.error("[media-delete-r2]", error);
+      return NextResponse.json({ error: "Nao foi possivel excluir o arquivo do armazenamento." }, { status: 502 });
+    }
   }
 
   await repositories.media.delete(mediaId, session.user.id);

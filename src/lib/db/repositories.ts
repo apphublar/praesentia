@@ -57,7 +57,10 @@ export interface EventRepository {
   findById(id: string): Promise<Event | null>;
   findBySlugOrCode(slugOrCode: string): Promise<Event | null>;
   listByOwner(userId: string): Promise<Event[]>;
+  findOwnerId(eventId: string): Promise<string | null>;
+  sumFamilyStorageUsedBytes(ownerId: string): Promise<number>;
   countCapsuleEventsByOwner(userId: string, since: Date): Promise<number>;
+  addExtraStorage(eventId: string, gb: number): Promise<Event>;
   create(input: CreateEventInput): Promise<Event>;
   update(eventId: string, actorUserId: string, input: UpdateEventInput): Promise<Event>;
   activateCapsule(eventId: string, actorUserId: string, tier: Exclude<PlanTier, "free">): Promise<Event>;
@@ -114,6 +117,8 @@ export interface SubscriptionRepository {
   findActiveByUser(userId: string): Promise<UserSubscription | null>;
   activateFamilyPlan(userId: string): Promise<UserSubscription>;
   consumeEventSlot(userId: string): Promise<UserSubscription>;
+  addExtraStorage(userId: string, gb: number): Promise<UserSubscription>;
+  syncSharedStorageUsed(ownerId: string): Promise<void>;
 }
 
 export interface AuditRepository {

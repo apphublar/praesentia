@@ -61,7 +61,9 @@ function rowToEvent(row: Record<string, unknown>): Event {
     visibility: row.visibility as Event["visibility"],
     phase: row.phase as Event["phase"],
     plan,
+    storageUsedBytes: Number(row.storage_used_bytes ?? 0),
     storageUsedGb: Number(row.storage_used_bytes ?? 0) / 1024 / 1024 / 1024,
+    extraStorageGb: Number(row.extra_storage_bytes ?? 0) / 1024 / 1024 / 1024,
     pix: row.pix_enabled
       ? {
           enabled: Boolean(row.pix_enabled),
@@ -180,6 +182,36 @@ export const postgresEvents: EventRepository = {
     `;
     return rows.map(rowToEvent);
   },
+  async findOwnerId(eventId) {
+    const sql = getSql();
+    const rows = await sql`
+      select user_id from event_members
+      where event_id = ${eventId} and role = 'owner'
+      limit 1
+    `;
+    return rows[0] ? String(rows[0].user_id) : null;
+  },
+  async sumFamilyStorageUsedBytes(ownerId) {
+    const sql = getSql();
+    const rows = await sql`
+      select coalesce(sum(storage_used_bytes), 0)::bigint as total
+      from events
+      where owner_id = ${ownerId}
+        and plan_tier = 'family'
+        and capsule_activated_at is not null
+    `;
+    return Number(rows[0]?.total ?? 0);
+  },
+  async addExtraStorage(eventId, gb) {
+    const sql = getSql();
+    const bytes = bytesFromGb(gb);
+    await sql`
+      update events
+      set extra_storage_bytes = extra_storage_bytes + ${bytes}, updated_at = now()
+      where id = ${eventId}
+    `;
+    return (await this.findById(eventId)) as Event;
+  },
   async countCapsuleEventsByOwner(userId, since) {
     const sql = getSql();
     const rows = await sql`
@@ -242,10 +274,11 @@ export const postgresEvents: EventRepository = {
   async activateCapsule(eventId, _actorUserId, tier: Exclude<PlanTier, "free">) {
     const sql = getSql();
     const plan = PLANS[tier];
+    const storageLimitBytes = tier === "family" ? 0 : bytesFromGb(plan.storageGb);
     await sql`
       update events set
         plan_tier = ${plan.tier},
-        storage_limit_bytes = ${bytesFromGb(plan.storageGb)},
+        storage_limit_bytes = ${storageLimitBytes},
         capsule_activated_at = now(),
         updated_at = now()
       where id = ${eventId}
@@ -487,6 +520,10 @@ export const postgresMedia: MediaRepository = {
       }
       return inserted;
     });
+    const ownerId = await postgresEvents.findOwnerId(input.eventId);
+    if (ownerId) {
+      await postgresSubscriptions.syncSharedStorageUsed(ownerId);
+    }
     const user = await postgresUsers.findById(input.userId);
     return rowToMedia({ ...rows[0], author_name: user?.name ?? "Convidado" });
   },
@@ -513,22 +550,30 @@ export const postgresMedia: MediaRepository = {
   },
   async delete(mediaId) {
     const sql = getSql();
-    await sql.begin(async (tx) => {
+    const row = await sql.begin(async (tx) => {
       const rows = await tx`
         update media_items
         set status = 'deleted', visible_on_screen = false, deleted_at = now(), updated_at = now()
         where id = ${mediaId} and status <> 'deleted'
         returning event_id, byte_size
       `;
-      const row = rows[0];
-      if (row && Number(row.byte_size ?? 0) > 0) {
+      const deleted = rows[0];
+      if (deleted && Number(deleted.byte_size ?? 0) > 0) {
         await tx`
           update events
-          set storage_used_bytes = greatest(0, storage_used_bytes - ${Number(row.byte_size)}), updated_at = now()
-          where id = ${String(row.event_id)}
+          set storage_used_bytes = greatest(0, storage_used_bytes - ${Number(deleted.byte_size)}), updated_at = now()
+          where id = ${String(deleted.event_id)}
         `;
       }
+      return deleted;
     });
+    const eventId = row?.event_id ? String(row.event_id) : null;
+    if (eventId) {
+      const ownerId = await postgresEvents.findOwnerId(eventId);
+      if (ownerId) {
+        await postgresSubscriptions.syncSharedStorageUsed(ownerId);
+      }
+    }
   },
   async setScreenVisibility(mediaId, visible) {
     const sql = getSql();
@@ -633,7 +678,8 @@ function rowToSubscription(row: Record<string, unknown>): UserSubscription {
     currentPeriodStart: new Date(String(row.current_period_start)).toISOString(),
     currentPeriodEnd: new Date(String(row.current_period_end)).toISOString(),
     eventsUsedThisPeriod: Number(row.events_used_this_period ?? 0),
-    sharedStorageUsedGb: Number(row.shared_storage_used_bytes ?? 0) / 1024 / 1024 / 1024
+    sharedStorageUsedGb: Number(row.shared_storage_used_bytes ?? 0) / 1024 / 1024 / 1024,
+    extraStorageGb: Number(row.extra_storage_bytes ?? 0) / 1024 / 1024 / 1024
   };
 }
 
@@ -680,6 +726,33 @@ export const postgresSubscriptions: SubscriptionRepository = {
     `;
     if (!rows[0]) throw new Error("SUBSCRIPTION_NOT_FOUND");
     return rowToSubscription(rows[0]);
+  },
+  async addExtraStorage(userId, gb) {
+    const sql = getSql();
+    const bytes = bytesFromGb(gb);
+    const rows = await sql`
+      update user_subscriptions
+      set extra_storage_bytes = extra_storage_bytes + ${bytes}, updated_at = now()
+      where user_id = ${userId}
+        and status = 'active'
+        and current_period_start <= now()
+        and current_period_end >= now()
+      returning *
+    `;
+    if (!rows[0]) throw new Error("SUBSCRIPTION_NOT_FOUND");
+    return rowToSubscription(rows[0]);
+  },
+  async syncSharedStorageUsed(ownerId) {
+    const sql = getSql();
+    const total = await postgresEvents.sumFamilyStorageUsedBytes(ownerId);
+    await sql`
+      update user_subscriptions
+      set shared_storage_used_bytes = ${total}, updated_at = now()
+      where user_id = ${ownerId}
+        and status = 'active'
+        and current_period_start <= now()
+        and current_period_end >= now()
+    `;
   }
 };
 
