@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { AppNav } from "@/components/layout/app-nav";
 import { requirePageSession } from "@/lib/auth/session";
 import { repositories } from "@/lib/db";
 import { EVENT_TYPE_LABELS } from "@/lib/events/event-types";
@@ -14,42 +13,53 @@ export default async function DashboardPage() {
   }
 
   return (
-    <>
-      <AppNav />
-      <main className="shell paper dashboard-main" style={{ padding: "42px 0 90px" }}>
-        <span className="pill">painel do responsável</span>
-        <h1 className="display-i" style={{ fontSize: "clamp(48px, 7vw, 86px)", lineHeight: 0.94, margin: "14px 0 24px" }}>
-          Seus eventos
-        </h1>
-        {events.length === 0 ? (
-          <section className="card dashboard-card" style={{ maxWidth: 680 }}>
-            <h2 className="display" style={{ fontSize: 28, margin: 0 }}>Nenhum evento criado ainda.</h2>
-            <p style={{ color: "var(--ink-soft)", lineHeight: 1.6 }}>
-              Crie seu primeiro convite ou vaquinha. Depois você gerencia tudo no painel do evento.
-            </p>
-            <Link className="btn" href="/criar">Criar evento</Link>
-          </section>
-        ) : (
-          <div className="dashboard-stack">
-            {events.map((event) => (
-              <Link key={event.id} href={`/dashboard/eventos/${event.id}`} className="card dashboard-card" style={{ textDecoration: "none", color: "inherit" }}>
-                <div style={{ display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
-                  <div className="polaroid" style={{ width: 96, padding: 6, paddingBottom: 16, transform: "rotate(-3deg)", flexShrink: 0 }}>
-                    <div className="placeholder" style={{ height: 78, backgroundColor: "#f1d8c9" }}>{event.theme}</div>
-                  </div>
-                  <div style={{ flex: "1 1 260px" }}>
-                    <strong className="display" style={{ fontSize: 26 }}>{event.title}</strong>
-                    <p style={{ color: "var(--ink-soft)", margin: "6px 0 0" }}>
-                      {EVENT_TYPE_LABELS[event.eventType]} · {event.plan.label}
-                    </p>
-                  </div>
-                  <span className="pill" style={{ marginLeft: "auto" }}>{event.phase}</span>
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
-      </main>
-    </>
+    <main className="dashboard-main">
+      <section className="dashboard-page-header">
+        <p className="dashboard-event-greeting">Olá, {session.user.name}</p>
+        <h1 className="display-i dashboard-page-title">Meus eventos</h1>
+        <p className="dashboard-page-lead">
+          Escolha um evento para gerenciar convite, convidados e cápsula — tudo em um só lugar.
+        </p>
+        <Link className="btn" href="/criar">
+          + Criar novo evento
+        </Link>
+      </section>
+
+      {events.length === 0 ? (
+        <section className="card dashboard-card dashboard-empty">
+          <h2 className="display" style={{ fontSize: 28, margin: 0 }}>
+            Nenhum evento criado ainda
+          </h2>
+          <p style={{ color: "var(--ink-soft)", lineHeight: 1.6 }}>
+            Crie seu primeiro convite ou vaquinha. Depois você personaliza tudo no painel do evento.
+          </p>
+          <Link className="btn" href="/criar">
+            Criar evento grátis
+          </Link>
+        </section>
+      ) : (
+        <div className="dashboard-events-grid">
+          {events.map((event) => (
+            <Link key={event.id} href={`/dashboard/eventos/${event.id}`} className="dashboard-event-card">
+              <div className="dashboard-event-card-cover">
+                {event.coverImageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={event.coverImageUrl} alt="" />
+                ) : (
+                  <span>{event.theme}</span>
+                )}
+              </div>
+              <div className="dashboard-event-card-body">
+                <strong>{event.title}</strong>
+                <p>
+                  {EVENT_TYPE_LABELS[event.eventType]} · {event.plan.label}
+                </p>
+                <span className="pill">{event.phase}</span>
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
+    </main>
   );
 }

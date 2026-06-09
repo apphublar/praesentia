@@ -1,4 +1,4 @@
-import { DashboardSidebar } from "@/components/dashboard/dashboard-sidebar";
+import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { requirePageSession } from "@/lib/auth/session";
 import { repositories } from "@/lib/db";
 
@@ -7,9 +7,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const events = await repositories.events.listByOwner(session.user.id);
 
   return (
-    <div className="dashboard-shell">
-      <DashboardSidebar events={events} />
-      <div className="dashboard-shell-main">{children}</div>
-    </div>
+    <DashboardShell user={session.user} events={events}>
+      {children}
+    </DashboardShell>
   );
 }
