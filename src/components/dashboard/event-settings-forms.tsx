@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import type { Event, EventMember } from "@/types/domain";
 import { apiErrorMessage, dashboardFetchJson } from "@/lib/api/dashboard-fetch";
@@ -45,7 +44,6 @@ export function EventSettingsForms({
   members: EventMember[];
   capsuleActive: boolean;
 }) {
-  const router = useRouter();
   const [pixEnabled, setPixEnabled] = useState(Boolean(event.pix?.enabled));
   const [receiverName, setReceiverName] = useState(event.pix?.receiverName ?? "");
   const [pixKey, setPixKey] = useState(event.pix?.key ?? "");
@@ -86,7 +84,6 @@ export function EventSettingsForms({
       });
       if (!response.ok) throw new Error(String(data.error ?? "Não foi possível salvar agora."));
       setPixState({ loading: false, message: "Pix do evento salvo.", tone: "ok" });
-      router.refresh();
     } catch (error) {
       setPixState({ loading: false, message: apiErrorMessage(error, "Falha ao salvar Pix."), tone: "error" });
     }
@@ -107,7 +104,6 @@ export function EventSettingsForms({
       });
       if (!response.ok) throw new Error(String(data.error ?? "Não foi possível salvar agora."));
       setScreenState({ loading: false, message: "Telão atualizado em tempo real.", tone: "ok" });
-      router.refresh();
     } catch (error) {
       setScreenState({ loading: false, message: apiErrorMessage(error, "Falha ao salvar telão."), tone: "error" });
     }

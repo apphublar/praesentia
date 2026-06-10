@@ -11,13 +11,27 @@ export class DashboardApiError extends Error {
 
 export async function readJsonResponse(response: Response): Promise<JsonRecord> {
   const text = await response.text();
-  if (!text) return {};
+  if (!text) {
+    if (response.status === 524 || response.status === 504 || response.status === 522) {
+      throw new DashboardApiError(
+        response.status,
+        "A operação demorou demais. A IA pode levar até 1 minuto — aguarde e tente novamente."
+      );
+    }
+    return {};
+  }
 
   try {
     return JSON.parse(text) as JsonRecord;
   } catch {
     if (response.status === 401) {
       throw new DashboardApiError(401, "Sessão expirada. Faça login novamente.");
+    }
+    if (response.status === 524 || response.status === 504 || response.status === 522) {
+      throw new DashboardApiError(
+        response.status,
+        "A operação demorou demais. A IA pode levar até 1 minuto — aguarde e tente novamente."
+      );
     }
     throw new DashboardApiError(response.status, `Resposta inválida do servidor (${response.status}).`);
   }

@@ -9,6 +9,9 @@ import { getAiCoverQuota } from "@/lib/plans/features";
 import { assertTrustedOrigin } from "@/lib/security/origin";
 import { sanitizeText } from "@/lib/security/sanitize";
 
+export const maxDuration = 120;
+export const runtime = "nodejs";
+
 export async function POST(request: Request, { params }: { params: Promise<{ eventId: string }> }) {
   const originError = assertTrustedOrigin(request);
   if (originError) return originError;

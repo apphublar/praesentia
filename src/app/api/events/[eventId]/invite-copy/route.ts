@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { apiAuthErrorResponse } from "@/lib/auth/api";
-import { canManageEventById } from "@/lib/auth/event-access";
+import { canManageEvent } from "@/lib/auth/permissions";
 import { requireSession } from "@/lib/auth/session";
 import { repositories } from "@/lib/db";
 import { assertTrustedOrigin } from "@/lib/security/origin";
@@ -29,10 +29,15 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ev
     const { eventId } = await params;
     const body = await request.json().catch(() => ({}));
 
-    const event = await repositories.events.findById(eventId);
+    const [event, membership, ownerId] = await Promise.all([
+      repositories.events.findById(eventId),
+      repositories.members.findMembership(eventId, session.user.id),
+      repositories.events.findOwnerId(eventId)
+    ]);
+
     if (!event) return NextResponse.json({ error: "Evento não encontrado." }, { status: 404 });
 
-    if (!(await canManageEventById(session.user, eventId))) {
+    if (!canManageEvent(session.user, membership ?? undefined, ownerId)) {
       return NextResponse.json({ error: "Sem permissão." }, { status: 403 });
     }
 
@@ -41,8 +46,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ev
       return NextResponse.json({ error: "Informe ao menos um campo de texto." }, { status: 400 });
     }
 
-    const updated = await repositories.events.setInviteCopy(eventId, session.user.id, inviteCopy);
-    return NextResponse.json({ inviteCopy: updated.inviteCopy ?? inviteCopy });
+    await repositories.events.writeInviteCopy(eventId, inviteCopy);
+    return NextResponse.json({ inviteCopy });
   } catch (error) {
     const authError = apiAuthErrorResponse(error);
     if (authError) return authError;

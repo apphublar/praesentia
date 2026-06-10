@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { InviteCopy } from "@/types/domain";
 import { apiErrorMessage, dashboardFetchJson } from "@/lib/api/dashboard-fetch";
@@ -32,7 +31,6 @@ export function InviteTextEditor({
   onCopyChange?: (copy: InviteCopy) => void;
   compactTitle?: string;
 }) {
-  const router = useRouter();
   const [copy, setCopy] = useState<InviteCopy>(() => resolveInviteCopy(initialCopy));
   const [quota, setQuota] = useState(initialQuota);
   const [loading, setLoading] = useState(false);
@@ -66,7 +64,6 @@ export function InviteTextEditor({
       updateCopy(data.inviteCopy as InviteCopy);
       if (data.quota) setQuota(data.quota as TextQuota);
       setSaved(true);
-      router.refresh();
     } catch (error) {
       setError(apiErrorMessage(error, "Erro de conexão. Tente novamente."));
     }
@@ -88,7 +85,6 @@ export function InviteTextEditor({
       }
       updateCopy((data.inviteCopy as InviteCopy) ?? copy);
       setSaved(true);
-      router.refresh();
     } catch (error) {
       setError(apiErrorMessage(error, "Erro de conexão. Tente novamente."));
     }

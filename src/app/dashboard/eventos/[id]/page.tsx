@@ -24,36 +24,38 @@ export default async function EventDashboardPage({ params }: { params: Promise<{
   if (!event) notFound();
 
   const profile = getEventProfile(event.eventType);
-  const media = await safeRepositoryCall(
-    () => repositories.media.listPublishedByEvent(event.id),
-    [],
-    "media.listPublishedByEvent"
-  );
-  const eventMembers = await safeRepositoryCall(
-    () => repositories.members.listByEvent(event.id),
-    [],
-    "members.listByEvent"
-  );
-  const guestRsvps = await safeRepositoryCall(
-    () => repositories.guestRsvps.listByEvent(event.id),
-    [],
-    "guestRsvps.listByEvent"
-  );
-  const membership = await safeRepositoryCall(
-    () => repositories.members.findMembership(event.id, session.user.id),
-    null,
-    "members.findMembership"
-  );
-  const ownerId = await safeRepositoryCall(
-    () => repositories.events.findOwnerId(event.id),
-    null,
-    "events.findOwnerId"
-  );
-  const subscription = await safeRepositoryCall(
-    () => repositories.subscriptions.findActiveByUser(session.user.id),
-    null,
-    "subscriptions.findActiveByUser"
-  );
+  const [media, eventMembers, guestRsvps, membership, ownerId, subscription] = await Promise.all([
+    safeRepositoryCall(
+      () => repositories.media.listPublishedByEvent(event.id),
+      [],
+      "media.listPublishedByEvent"
+    ),
+    safeRepositoryCall(
+      () => repositories.members.listByEvent(event.id),
+      [],
+      "members.listByEvent"
+    ),
+    safeRepositoryCall(
+      () => repositories.guestRsvps.listByEvent(event.id),
+      [],
+      "guestRsvps.listByEvent"
+    ),
+    safeRepositoryCall(
+      () => repositories.members.findMembership(event.id, session.user.id),
+      null,
+      "members.findMembership"
+    ),
+    safeRepositoryCall(
+      () => repositories.events.findOwnerId(event.id),
+      null,
+      "events.findOwnerId"
+    ),
+    safeRepositoryCall(
+      () => repositories.subscriptions.findActiveByUser(session.user.id),
+      null,
+      "subscriptions.findActiveByUser"
+    )
+  ]);
   const allowed = canManageEvent(session.user, membership ?? undefined, ownerId);
   const capsuleActive = hasCapsuleAccess(event);
   const textQuota = getAiTextQuota(event);

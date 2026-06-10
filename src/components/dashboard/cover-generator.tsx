@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { Event } from "@/types/domain";
 import { apiErrorMessage, dashboardFetchJson } from "@/lib/api/dashboard-fetch";
@@ -69,7 +68,6 @@ export function CoverGenerator({
   onCoverChange?: (url: string) => void;
   showShareActions?: boolean;
 }) {
-  const router = useRouter();
   const [coverUrl, setCoverUrl] = useState(currentCoverUrl ?? "");
   const [hostPhotoUrl, setHostPhotoUrl] = useState(initialHostPhotoUrl ?? "");
   const [hostPhotoSaved, setHostPhotoSaved] = useState(false);
@@ -117,7 +115,6 @@ export function CoverGenerator({
       if (Array.isArray(data.pendingUrls)) setPending(data.pendingUrls as string[]);
       if (data.quota) setQuota(data.quota as CoverQuota);
       if (mode === "edit") setEditHint("");
-      router.refresh();
     } catch (error) {
       setError(apiErrorMessage(error, "Erro de conexão. Tente novamente."));
     }
@@ -139,7 +136,6 @@ export function CoverGenerator({
       }
       if (typeof data.coverImageUrl === "string") applyCover(data.coverImageUrl, "ai");
       setPending(Array.isArray(data.pendingUrls) ? (data.pendingUrls as string[]) : []);
-      router.refresh();
     } catch (error) {
       setError(apiErrorMessage(error, "Erro de conexão."));
     }
@@ -166,7 +162,6 @@ export function CoverGenerator({
         setHostPhotoUrl(data.hostPhotoUrl);
         setHostPhotoSaved(true);
       }
-      router.refresh();
     } catch (error) {
       setError(apiErrorMessage(error, "Erro de conexão."));
     }
@@ -191,7 +186,6 @@ export function CoverGenerator({
       if (typeof data.coverImageUrl === "string") applyCover(data.coverImageUrl, "custom");
       setPending([]);
       if (data.quota) setQuota(data.quota as CoverQuota);
-      router.refresh();
     } catch (error) {
       setError(apiErrorMessage(error, "Erro de conexão."));
     }
@@ -332,7 +326,7 @@ export function CoverGenerator({
       <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 20 }}>
         {quota.canGenerate && (
           <button type="button" className="btn" onClick={() => generate("generate")} disabled={loading}>
-            {loading ? "Gerando..." : isPaid ? `✨ Gerar versão (${quota.remainingGenerations} restante${quota.remainingGenerations !== 1 ? "s" : ""})` : "✨ Gerar convite com IA (1x)"}
+            {loading ? "Gerando com IA… pode levar até 1 min" : isPaid ? `✨ Gerar versão (${quota.remainingGenerations} restante${quota.remainingGenerations !== 1 ? "s" : ""})` : "✨ Gerar convite com IA (1x)"}
           </button>
         )}
 

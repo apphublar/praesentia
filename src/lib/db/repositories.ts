@@ -77,6 +77,7 @@ export interface EventRepository {
   setAiCoverPendingUrls(eventId: string, urls: string[]): Promise<Event>;
   selectAiCoverVersion(eventId: string, actorUserId: string, coverImageUrl: string): Promise<Event>;
   setInviteCopy(eventId: string, actorUserId: string, inviteCopy: InviteCopy): Promise<Event>;
+  writeInviteCopy(eventId: string, inviteCopy: InviteCopy): Promise<void>;
   setHostPhoto(eventId: string, actorUserId: string, hostPhotoUrl: string): Promise<Event>;
   incrementAiTextUsage(eventId: string, actorUserId: string, type: "generation" | "edit"): Promise<Event>;
   setVisibility(eventId: string, visibility: Event["visibility"], actorUserId: string): Promise<Event>;

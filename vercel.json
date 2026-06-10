@@ -1,0 +1,13 @@
+{
+  "functions": {
+    "src/app/api/events/[eventId]/generate-cover/route.ts": {
+      "maxDuration": 120
+    },
+    "src/app/api/events/[eventId]/generate-invite-text/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/events/[eventId]/host-photo/route.ts": {
+      "maxDuration": 30
+    }
+  }
+}

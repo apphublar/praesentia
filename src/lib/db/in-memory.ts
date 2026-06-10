@@ -180,10 +180,15 @@ export const inMemoryEvents: EventRepository = {
     return event;
   },
   async setInviteCopy(eventId, _actorUserId, inviteCopy) {
+    await this.writeInviteCopy(eventId, inviteCopy);
+    const event = events.find((item) => item.id === eventId);
+    if (!event) throw new Error("EVENT_NOT_FOUND");
+    return event;
+  },
+  async writeInviteCopy(eventId, inviteCopy) {
     const event = events.find((item) => item.id === eventId);
     if (!event) throw new Error("EVENT_NOT_FOUND");
     event.inviteCopy = inviteCopy;
-    return event;
   },
   async setHostPhoto(eventId, _actorUserId, hostPhotoUrl) {
     const event = events.find((item) => item.id === eventId);

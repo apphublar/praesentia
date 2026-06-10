@@ -336,12 +336,15 @@ export const postgresEvents: EventRepository = {
     return (await this.findById(eventId)) as Event;
   },
   async setInviteCopy(eventId, _actorUserId, inviteCopy) {
+    await this.writeInviteCopy(eventId, inviteCopy);
+    return (await this.findById(eventId)) as Event;
+  },
+  async writeInviteCopy(eventId, inviteCopy) {
     const sql = getSql();
     await sql`
       update events set invite_copy = ${sql.json(inviteCopy)}, updated_at = now()
       where id = ${eventId}
     `;
-    return (await this.findById(eventId)) as Event;
   },
   async setHostPhoto(eventId, _actorUserId, hostPhotoUrl) {
     const sql = getSql();

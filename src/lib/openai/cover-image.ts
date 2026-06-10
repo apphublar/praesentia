@@ -1,6 +1,6 @@
 import { toFile } from "openai";
 import { getOpenAIClient, isGptImageModel, OPENAI_IMAGE_MODEL } from "@/lib/openai/client";
-import { persistRemoteImage } from "@/lib/openai/persist-image";
+import { persistImageBuffer, persistRemoteImage } from "@/lib/openai/persist-image";
 import { EVENT_TYPE_LABELS } from "@/lib/events/event-types";
 import type { Event } from "@/types/domain";
 
@@ -11,6 +11,9 @@ export type CoverIncludeFields = {
   hostName?: boolean;
   theme?: boolean;
 };
+
+const HOST_PHOTO_EDIT_TIMEOUT_MS = 35_000;
+const COVER_STORAGE_KEY = (eventId: string) => `events/${eventId}/cover/${Date.now()}.png`;
 
 function formatEventDate(date: string) {
   return new Date(`${date}T12:00:00`).toLocaleDateString("pt-BR", {
@@ -84,6 +87,22 @@ Design requirements:
 - NO text or typography in the image — only decorative visual elements and background design`;
 }
 
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve(null), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      () => {
+        clearTimeout(timer);
+        resolve(null);
+      }
+    );
+  });
+}
+
 async function loadImageBuffer(imageUrl: string) {
   if (imageUrl.startsWith("data:")) {
     const match = imageUrl.match(/^data:([^;]+);base64,(.+)$/);
@@ -97,11 +116,34 @@ async function loadImageBuffer(imageUrl: string) {
   return { buffer: Buffer.from(await response.arrayBuffer()), mime };
 }
 
+type OpenAIImagePayload = { url?: string | null; b64_json?: string | null };
+
+async function persistOpenAIImage(eventId: string, payload: OpenAIImagePayload | undefined) {
+  if (!payload) return null;
+
+  const key = COVER_STORAGE_KEY(eventId);
+  const contentType = "image/png";
+
+  if (payload.b64_json) {
+    return persistImageBuffer({
+      buffer: Buffer.from(payload.b64_json, "base64"),
+      key,
+      contentType
+    });
+  }
+
+  if (payload.url) {
+    return persistRemoteImage({ sourceUrl: payload.url, key, contentType });
+  }
+
+  return null;
+}
+
 async function generateFromHostPhoto(openai: NonNullable<ReturnType<typeof getOpenAIClient>>, event: Event, prompt: string) {
   if (!event.hostPhotoUrl) return null;
 
-  try {
-    const { buffer, mime } = await loadImageBuffer(event.hostPhotoUrl);
+  const runEdit = async () => {
+    const { buffer, mime } = await loadImageBuffer(event.hostPhotoUrl!);
     const imageFile = await toFile(buffer, "host-photo.png", { type: mime });
 
     if (isGptImageModel(OPENAI_IMAGE_MODEL)) {
@@ -112,7 +154,7 @@ async function generateFromHostPhoto(openai: NonNullable<ReturnType<typeof getOp
         n: 1,
         size: "1024x1536"
       });
-      return response.data?.[0]?.url ?? null;
+      return response.data?.[0] ?? null;
     }
 
     const response = await openai.images.edit({
@@ -122,11 +164,41 @@ async function generateFromHostPhoto(openai: NonNullable<ReturnType<typeof getOp
       n: 1,
       size: "1024x1024"
     });
-    return response.data?.[0]?.url ?? null;
+    return response.data?.[0] ?? null;
+  };
+
+  try {
+    const payload = await withTimeout(runEdit(), HOST_PHOTO_EDIT_TIMEOUT_MS);
+    if (!payload) {
+      console.warn("[generateCoverImage] host photo edit timed out, falling back to generate");
+      return null;
+    }
+    return persistOpenAIImage(event.id, payload);
   } catch (error) {
     console.error("[generateCoverImage] host photo edit failed", error);
     return null;
   }
+}
+
+async function generateFromPrompt(openai: NonNullable<ReturnType<typeof getOpenAIClient>>, event: Event, prompt: string) {
+  const response = isGptImageModel(OPENAI_IMAGE_MODEL)
+    ? await openai.images.generate({
+        model: OPENAI_IMAGE_MODEL,
+        prompt,
+        n: 1,
+        size: "1024x1536",
+        quality: "medium"
+      })
+    : await openai.images.generate({
+        model: OPENAI_IMAGE_MODEL,
+        prompt,
+        n: 1,
+        size: "1024x1792",
+        quality: "standard",
+        style: "vivid"
+      });
+
+  return persistOpenAIImage(event.id, response.data?.[0]);
 }
 
 export async function generateCoverImage(
@@ -141,36 +213,10 @@ export async function generateCoverImage(
   const prompt = buildCoverImagePrompt(event, editHint, orientation, includeFields);
 
   try {
-    let temporaryUrl = await generateFromHostPhoto(openai, event, prompt);
+    const fromHostPhoto = await generateFromHostPhoto(openai, event, prompt);
+    if (fromHostPhoto) return fromHostPhoto;
 
-    if (!temporaryUrl) {
-      const response = isGptImageModel(OPENAI_IMAGE_MODEL)
-        ? await openai.images.generate({
-            model: OPENAI_IMAGE_MODEL,
-            prompt,
-            n: 1,
-            size: "1024x1536",
-            quality: "high"
-          })
-        : await openai.images.generate({
-            model: OPENAI_IMAGE_MODEL,
-            prompt,
-            n: 1,
-            size: "1024x1792",
-            quality: "standard",
-            style: "vivid"
-          });
-
-      temporaryUrl = response.data?.[0]?.url ?? null;
-    }
-
-    if (!temporaryUrl) return null;
-
-    return persistRemoteImage({
-      sourceUrl: temporaryUrl,
-      key: `events/${event.id}/cover/${Date.now()}.png`,
-      contentType: "image/png"
-    });
+    return generateFromPrompt(openai, event, prompt);
   } catch (error) {
     console.error("[generateCoverImage]", error);
     return null;
