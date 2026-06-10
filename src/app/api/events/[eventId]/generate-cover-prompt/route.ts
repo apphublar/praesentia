@@ -4,7 +4,7 @@ import { canManageEventById } from "@/lib/auth/event-access";
 import { requireSession } from "@/lib/auth/session";
 import { repositories } from "@/lib/db";
 import { buildCoverRequestSummary } from "@/lib/openai/ai-cover-image";
-import { generateCoverPromptAssist } from "@/lib/openai/cover-prompt-assist";
+import { generateCoverPromptAssistDetailed } from "@/lib/openai/cover-prompt-assist";
 import { isOpenAIConfigured } from "@/lib/openai/client";
 import { assertTrustedOrigin } from "@/lib/security/origin";
 import { sanitizeText } from "@/lib/security/sanitize";
@@ -67,20 +67,27 @@ export async function POST(request: Request, { params }: { params: Promise<{ eve
 
     const requestSummary = buildCoverRequestSummary(event, { coverFields: sanitizedCoverFields });
 
-    const result = await generateCoverPromptAssist({
+    const assist = await generateCoverPromptAssistDetailed({
       summary: requestSummary,
       draftOrientation,
       draftPhotoInstructions,
       withHostPhoto
     });
 
-    if (!result) {
-      return NextResponse.json({ error: "Não foi possível criar o prompt agora. Tente novamente." }, { status: 500 });
+    if (!assist.ok) {
+      const messageByReason: Record<typeof assist.failure.reason, string> = {
+        openai_not_configured: "OPENAI_API_KEY não configurada.",
+        empty_response: "A IA não retornou conteúdo. Tente novamente.",
+        parse_failed: "A IA retornou um formato inesperado. Tente novamente.",
+        openai_error: "Falha ao consultar a OpenAI. Tente novamente em instantes."
+      };
+      console.error("[generate-cover-prompt]", assist.failure.reason, assist.failure.detail ?? "");
+      return NextResponse.json({ error: messageByReason[assist.failure.reason] }, { status: 500 });
     }
 
     return NextResponse.json({
-      visualDirection: result.visualDirection,
-      photoInstructions: result.photoInstructions
+      visualDirection: assist.result.visualDirection,
+      photoInstructions: assist.result.photoInstructions
     });
   } catch (err) {
     const authError = apiAuthErrorResponse(err);

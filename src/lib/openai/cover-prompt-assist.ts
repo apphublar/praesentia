@@ -16,51 +16,156 @@ export type CoverPromptAssistResult = {
   photoInstructions: string | null;
 };
 
-function parseAssistJson(raw: string): CoverPromptAssistResult | null {
-  const trimmed = raw.trim();
-  const jsonMatch = trimmed.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) return null;
+export type CoverPromptAssistFailure = {
+  reason: "openai_not_configured" | "empty_response" | "parse_failed" | "openai_error";
+  detail?: string;
+};
 
-  try {
-    const parsed = JSON.parse(jsonMatch[0]) as {
-      visualDirection?: unknown;
-      photoInstructions?: unknown;
-    };
-    const visualDirection =
-      typeof parsed.visualDirection === "string" ? parsed.visualDirection.trim() : "";
-    if (visualDirection.length < 20) return null;
+const VISUAL_DIRECTION_KEYS = [
+  "visualDirection",
+  "visual_direction",
+  "orientacaoVisual",
+  "orientacao_visual",
+  "direcaoVisual",
+  "direcao_visual",
+  "orientacao",
+  "promptVisual",
+  "prompt_visual"
+] as const;
 
-    const photoInstructions =
-      typeof parsed.photoInstructions === "string" && parsed.photoInstructions.trim()
-        ? parsed.photoInstructions.trim()
-        : null;
+const PHOTO_INSTRUCTION_KEYS = [
+  "photoInstructions",
+  "photo_instructions",
+  "instrucoesFoto",
+  "instrucoes_foto",
+  "instrucoesDaFoto",
+  "instrucoes_da_foto",
+  "foto",
+  "photo"
+] as const;
 
-    return { visualDirection: visualDirection.slice(0, 1000), photoInstructions: photoInstructions?.slice(0, 400) ?? null };
-  } catch {
+function pickNestedString(value: unknown, keys: readonly string[]): string | null {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed || null;
+  }
+
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
     return null;
   }
+
+  const record = value as Record<string, unknown>;
+  for (const key of keys) {
+    const candidate = record[key];
+    if (typeof candidate === "string" && candidate.trim()) {
+      return candidate.trim();
+    }
+  }
+
+  const normalizedEntries = Object.entries(record).map(([key, val]) => [key.toLowerCase(), val] as const);
+  for (const key of keys) {
+    const match = normalizedEntries.find(([entryKey]) => entryKey === key.toLowerCase());
+    if (match && typeof match[1] === "string" && match[1].trim()) {
+      return match[1].trim();
+    }
+  }
+
+  for (const nested of Object.values(record)) {
+    if (nested && typeof nested === "object" && !Array.isArray(nested)) {
+      const found = pickNestedString(nested, keys);
+      if (found) return found;
+    }
+  }
+
+  return null;
 }
+
+function parseAssistJson(raw: string): CoverPromptAssistResult | null {
+  const trimmed = raw.trim();
+  const candidates = [trimmed];
+  const fenced = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fenced?.[1]) candidates.unshift(fenced[1].trim());
+
+  const jsonMatch = trimmed.match(/\{[\s\S]*\}/);
+  if (jsonMatch) candidates.push(jsonMatch[0]);
+
+  for (const candidate of candidates) {
+    try {
+      const parsed = JSON.parse(candidate) as unknown;
+      const visualDirection = pickNestedString(parsed, VISUAL_DIRECTION_KEYS);
+      if (!visualDirection || visualDirection.length < 8) continue;
+
+      const photoInstructions = pickNestedString(parsed, PHOTO_INSTRUCTION_KEYS);
+
+      return {
+        visualDirection: visualDirection.slice(0, 1000),
+        photoInstructions: photoInstructions?.slice(0, 400) ?? null
+      };
+    } catch {
+      // try next candidate
+    }
+  }
+
+  return null;
+}
+
+function buildAssistUserMessage(input: CoverPromptAssistInput) {
+  const bottomTexts = buildCoverBottomTexts(input.summary);
+
+  return JSON.stringify(
+    {
+      withHostPhoto: input.withHostPhoto,
+      eventContext: {
+        eventTitle: input.summary.eventTitle,
+        eventType: input.summary.eventType,
+        hostName: input.summary.hostName,
+        theme: input.summary.theme,
+        date: input.summary.date,
+        startsAt: input.summary.startsAt,
+        endsAt: input.summary.endsAt,
+        eventFormat: input.summary.eventFormat,
+        venueName: input.summary.venueName,
+        city: input.summary.city,
+        bottomTexts
+      },
+      draftOrientation: input.draftOrientation,
+      draftPhotoInstructions: input.draftPhotoInstructions
+    },
+    null,
+    2
+  );
+}
+
+const ASSIST_SYSTEM_PROMPT =
+  "Você ajuda organizadores de festas no Brasil a escrever prompts profissionais para gerar convites com IA (formato vertical 9:16). " +
+  "Com base nas ideias rascunho do cliente e nos dados do evento, produza prompts claros, específicos e profissionais em português brasileiro. " +
+  "Regras: " +
+  "1) visualDirection descreve SOMENTE o visual da parte de cima/meio do convite (cores, estilo, elementos decorativos, mood). " +
+  "2) NÃO inclua data, horário, local ou textos do rodapé em visualDirection — esses textos já serão renderizados automaticamente na parte inferior. " +
+  "3) photoInstructions só quando withHostPhoto=true: descreva formato da foto (redonda, quadrada), fundo, borda, posição e tratamento. " +
+  "4) Preserve a intenção do rascunho do cliente; enriqueça com detalhes visuais profissionais sem inventar tema diferente. " +
+  "5) Não invente dados do evento que não foram fornecidos. " +
+  "Responda SOMENTE um JSON válido com as chaves exatas visualDirection (string) e photoInstructions (string ou null).";
 
 export async function generateCoverPromptAssist(
   input: CoverPromptAssistInput
 ): Promise<CoverPromptAssistResult | null> {
-  const openai = getOpenAIClient();
-  if (!openai) return null;
+  const failure = await generateCoverPromptAssistDetailed(input);
+  return failure.ok ? failure.result : null;
+}
 
-  const bottomTexts = buildCoverBottomTexts(input.summary);
-  const eventContext = {
-    eventTitle: input.summary.eventTitle,
-    eventType: input.summary.eventType,
-    hostName: input.summary.hostName,
-    theme: input.summary.theme,
-    date: input.summary.date,
-    startsAt: input.summary.startsAt,
-    endsAt: input.summary.endsAt,
-    eventFormat: input.summary.eventFormat,
-    venueName: input.summary.venueName,
-    city: input.summary.city,
-    bottomTexts
-  };
+export async function generateCoverPromptAssistDetailed(
+  input: CoverPromptAssistInput
+): Promise<
+  | { ok: true; result: CoverPromptAssistResult }
+  | { ok: false; failure: CoverPromptAssistFailure }
+> {
+  const openai = getOpenAIClient();
+  if (!openai) {
+    return { ok: false, failure: { reason: "openai_not_configured" } };
+  }
+
+  const userMessage = buildAssistUserMessage(input);
 
   try {
     const response = await openai.chat.completions.create({
@@ -68,48 +173,50 @@ export async function generateCoverPromptAssist(
       temperature: 0.4,
       response_format: { type: "json_object" },
       messages: [
-        {
-          role: "system",
-          content:
-            "Você ajuda organizadores de festas no Brasil a escrever prompts profissionais para gerar convites com IA (formato vertical 9:16). " +
-            "Com base nas ideias rascunho do cliente e nos dados do evento, produza prompts claros, específicos e profissionais em português brasileiro. " +
-            "Regras: " +
-            "1) visualDirection descreve SOMENTE o visual da parte de cima/meio do convite (cores, estilo, elementos decorativos, mood). " +
-            "2) NÃO inclua data, horário, local ou textos do rodapé em visualDirection — esses textos já serão renderizados automaticamente na parte inferior. " +
-            "3) photoInstructions só quando withHostPhoto=true: descreva formato da foto (redonda, quadrada), fundo, borda, posição e tratamento. " +
-            "4) Preserve a intenção do rascunho do cliente; enriqueça com detalhes visuais profissionais sem inventar tema diferente. " +
-            "5) Não invente dados do evento que não foram fornecidos. " +
-            'Retorne JSON: {"visualDirection":"...","photoInstructions":"..." ou null}.'
-        },
-        {
-          role: "user",
-          content: JSON.stringify(
-            {
-              withHostPhoto: input.withHostPhoto,
-              eventContext,
-              draftOrientation: input.draftOrientation,
-              draftPhotoInstructions: input.draftPhotoInstructions
-            },
-            null,
-            2
-          )
-        }
+        { role: "system", content: ASSIST_SYSTEM_PROMPT },
+        { role: "user", content: userMessage }
       ]
     });
 
-    const content = response.choices[0]?.message?.content?.trim();
-    if (!content) return null;
+    let content = response.choices[0]?.message?.content?.trim() ?? "";
+    if (!content) {
+      return { ok: false, failure: { reason: "empty_response" } };
+    }
 
-    const parsed = parseAssistJson(content);
-    if (!parsed) return null;
+    let parsed = parseAssistJson(content);
+
+    if (!parsed) {
+      const retry = await openai.chat.completions.create({
+        model: OPENAI_TEXT_MODEL,
+        temperature: 0.2,
+        response_format: { type: "json_object" },
+        messages: [
+          {
+            role: "system",
+            content:
+              "Converta o conteúdo abaixo em JSON válido com chaves exatas visualDirection e photoInstructions. " +
+              "Não altere o sentido. photoInstructions pode ser null se não houver foto."
+          },
+          { role: "user", content }
+        ]
+      });
+      content = retry.choices[0]?.message?.content?.trim() ?? content;
+      parsed = parseAssistJson(content);
+    }
+
+    if (!parsed) {
+      console.warn("[cover-prompt-assist] parse_failed", content.slice(0, 500));
+      return { ok: false, failure: { reason: "parse_failed", detail: content.slice(0, 200) } };
+    }
 
     if (!input.withHostPhoto) {
       parsed.photoInstructions = null;
     }
 
-    return parsed;
+    return { ok: true, result: parsed };
   } catch (error) {
-    console.warn("[cover-prompt-assist] falha ao gerar prompts", error);
-    return null;
+    const detail = error instanceof Error ? error.message : String(error);
+    console.warn("[cover-prompt-assist] openai_error", detail);
+    return { ok: false, failure: { reason: "openai_error", detail } };
   }
 }
