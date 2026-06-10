@@ -1,22 +1,17 @@
 "use client";
 
-import { useFormStatus } from "react-dom";
-import { useMemo, useState } from "react";
+import { useActionState, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { createEventAction } from "@/app/criar/actions";
+import { createEventFieldErrorMessage, type CreateEventState } from "@/app/criar/create-event-state";
+import { createEventContinuePath } from "@/lib/auth/routes";
 import { getEventProfile } from "@/lib/events/event-profile";
 import { EVENT_TYPE_OPTIONS } from "@/lib/events/event-types";
 import type { EventType } from "@/types/domain";
 
-function SubmitButton({ label }: { label: string }) {
-  const { pending } = useFormStatus();
-  return (
-    <button className="btn create-submit-btn" type="submit" disabled={pending}>
-      {pending ? "Salvando..." : label}
-    </button>
-  );
-}
-
 export function CreateEventFlow() {
+  const router = useRouter();
+  const [state, formAction, pending] = useActionState<CreateEventState, FormData>(createEventAction, null);
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [selectedType, setSelectedType] = useState<EventType | "">("");
   const [eventFormat, setEventFormat] = useState<"in_person" | "online">("in_person");
@@ -30,6 +25,13 @@ export function CreateEventFlow() {
   );
 
   const selectedLabel = EVENT_TYPE_OPTIONS.find((item) => item.value === selectedType)?.label;
+  const actionError = state?.error ?? createEventFieldErrorMessage(state?.fieldError) ?? "";
+
+  useEffect(() => {
+    if (state?.eventId) {
+      router.push(createEventContinuePath(state.eventId));
+    }
+  }, [state?.eventId, router]);
 
   function goToDetailsStep() {
     if (!selectedType) return;
@@ -121,7 +123,7 @@ export function CreateEventFlow() {
             ← Voltar
           </button>
 
-          <form action={createEventAction} className="praesentia-form praesentia-form-stack">
+          <form action={formAction} className="praesentia-form praesentia-form-stack">
             <input type="hidden" name="eventType" value={selectedType} />
             <input type="hidden" name="eventFormat" value={profile.isFundraising ? "fundraising" : eventFormat} />
 
@@ -253,7 +255,10 @@ export function CreateEventFlow() {
               </>
             )}
 
-            <SubmitButton label={profile.isFundraising ? "Continuar para texto e imagem →" : "Continuar para texto e imagem →"} />
+            <button className="btn create-submit-btn" type="submit" disabled={pending}>
+              {pending ? "Salvando..." : "Continuar para texto e imagem →"}
+            </button>
+            {actionError ? <p style={{ color: "var(--coral)", fontSize: 13, margin: 0 }}>{actionError}</p> : null}
             <p className="create-form-note">
               Plano gratuito: convite, texto, imagem e compartilhamento. Mural ao vivo e cápsula (R$59) ficam no painel do evento.
             </p>

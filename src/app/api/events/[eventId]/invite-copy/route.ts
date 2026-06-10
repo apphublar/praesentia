@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { canManageEvent } from "@/lib/auth/permissions";
+import { apiAuthErrorResponse } from "@/lib/auth/api";
+import { canManageEventById } from "@/lib/auth/event-access";
 import { requireSession } from "@/lib/auth/session";
 import { repositories } from "@/lib/db";
 import { assertTrustedOrigin } from "@/lib/security/origin";
@@ -31,8 +32,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ev
     const event = await repositories.events.findById(eventId);
     if (!event) return NextResponse.json({ error: "Evento não encontrado." }, { status: 404 });
 
-    const membership = await repositories.members.findMembership(eventId, session.user.id);
-    if (!canManageEvent(session.user, membership ?? undefined)) {
+    if (!(await canManageEventById(session.user, eventId))) {
       return NextResponse.json({ error: "Sem permissão." }, { status: 403 });
     }
 
@@ -43,7 +43,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ev
 
     const updated = await repositories.events.setInviteCopy(eventId, session.user.id, inviteCopy);
     return NextResponse.json({ inviteCopy: updated.inviteCopy });
-  } catch {
+  } catch (error) {
+    const authError = apiAuthErrorResponse(error);
+    if (authError) return authError;
     return NextResponse.json({ error: "Erro ao salvar texto." }, { status: 500 });
   }
 }

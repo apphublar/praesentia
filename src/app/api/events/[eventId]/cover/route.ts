@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { canManageEvent } from "@/lib/auth/permissions";
+import { apiAuthErrorResponse } from "@/lib/auth/api";
+import { canManageEventById } from "@/lib/auth/event-access";
 import { requireSession } from "@/lib/auth/session";
 import { repositories } from "@/lib/db";
 import { getAiCoverQuota } from "@/lib/plans/features";
@@ -19,8 +20,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ eve
     const event = await repositories.events.findById(eventId);
     if (!event) return NextResponse.json({ error: "Evento não encontrado" }, { status: 404 });
 
-    const membership = await repositories.members.findMembership(eventId, session.user.id);
-    if (!canManageEvent(session.user, membership ?? undefined)) {
+    if (!(await canManageEventById(session.user, eventId))) {
       return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
     }
 
@@ -57,6 +57,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ eve
       quota: getAiCoverQuota(updated)
     });
   } catch (err) {
+    const authError = apiAuthErrorResponse(err);
+    if (authError) return authError;
     console.error("[cover-upload]", err);
     return NextResponse.json({ error: "Erro ao enviar convite." }, { status: 500 });
   }

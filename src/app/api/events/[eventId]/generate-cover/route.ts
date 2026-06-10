@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
+import { apiAuthErrorResponse } from "@/lib/auth/api";
+import { canManageEventById } from "@/lib/auth/event-access";
 import { requireSession } from "@/lib/auth/session";
-import { canManageEvent } from "@/lib/auth/permissions";
 import { repositories } from "@/lib/db";
 import { generateCoverImage } from "@/lib/openai/cover-image";
 import { isOpenAIConfigured } from "@/lib/openai/client";
@@ -28,8 +29,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ eve
     let event = await repositories.events.findById(eventId);
     if (!event) return NextResponse.json({ error: "Evento não encontrado" }, { status: 404 });
 
-    const membership = await repositories.members.findMembership(eventId, session.user.id);
-    if (!canManageEvent(session.user, membership ?? undefined)) {
+    if (!(await canManageEventById(session.user, eventId))) {
       return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
     }
 
@@ -123,6 +123,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ eve
       quota: getAiCoverQuota(event)
     });
   } catch (err) {
+    const authError = apiAuthErrorResponse(err);
+    if (authError) return authError;
     console.error("[generate-cover]", err);
     return NextResponse.json({ error: "Erro ao gerar imagem" }, { status: 500 });
   }

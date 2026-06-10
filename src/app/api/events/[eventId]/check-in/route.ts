@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { canManageEvent } from "@/lib/auth/permissions";
+import { canManageEventById } from "@/lib/auth/event-access";
 import { requireSession } from "@/lib/auth/session";
 import { repositories } from "@/lib/db";
 import { getEffectiveFeatures } from "@/lib/plans/features";
@@ -19,8 +19,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ eve
   const event = await repositories.events.findById(eventId);
   if (!event) return NextResponse.json({ error: "Evento não encontrado" }, { status: 404 });
 
-  const membership = await repositories.members.findMembership(eventId, session.user.id);
-  if (!canManageEvent(session.user, membership ?? undefined)) {
+  if (!(await canManageEventById(session.user, eventId))) {
     return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
   }
 

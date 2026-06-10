@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { randomUUID } from "node:crypto";
-import { canContribute, canManageEvent, canUploadVideo } from "@/lib/auth/permissions";
+import { canContribute, canUploadVideo } from "@/lib/auth/permissions";
+import { canManageEventById } from "@/lib/auth/event-access";
 import { getCurrentSession } from "@/lib/auth/session";
 import { repositories } from "@/lib/db";
 import { publishRealtimeEvent } from "@/lib/realtime/events";
@@ -39,7 +40,7 @@ export async function POST(request: Request, context: { params: Promise<{ eventI
   const body = await request.json().catch(() => null);
   const action = sanitizeText(body?.action, 40);
   const type = sanitizeText(body?.type, 20);
-  const isManager = canManageEvent(session.user, member ?? undefined);
+  const isManager = await canManageEventById(session.user, eventId);
   const eventItems = await repositories.media.listPublishedByEvent(eventId);
   const userItems = eventItems.filter((item) => item.userId === session.user.id);
   const [rsvps, members] = await Promise.all([

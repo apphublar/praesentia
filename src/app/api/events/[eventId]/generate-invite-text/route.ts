@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
+import { apiAuthErrorResponse } from "@/lib/auth/api";
+import { canManageEventById } from "@/lib/auth/event-access";
 import { requireSession } from "@/lib/auth/session";
-import { canManageEvent } from "@/lib/auth/permissions";
 import { repositories } from "@/lib/db";
 import { isOpenAIConfigured } from "@/lib/openai/client";
 import { fillInviteLink, generateInviteCopy } from "@/lib/openai/invite-text";
@@ -26,8 +27,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ eve
     let event = await repositories.events.findById(eventId);
     if (!event) return NextResponse.json({ error: "Evento não encontrado" }, { status: 404 });
 
-    const membership = await repositories.members.findMembership(eventId, session.user.id);
-    if (!canManageEvent(session.user, membership ?? undefined)) {
+    if (!(await canManageEventById(session.user, eventId))) {
       return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
     }
 
@@ -65,6 +65,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ eve
       quota: getAiTextQuota(event)
     });
   } catch (err) {
+    const authError = apiAuthErrorResponse(err);
+    if (authError) return authError;
     console.error("[generate-invite-text]", err);
     return NextResponse.json({ error: "Erro ao gerar texto do convite." }, { status: 500 });
   }

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { canManageEvent } from "@/lib/auth/permissions";
+import { apiAuthErrorResponse } from "@/lib/auth/api";
+import { canManageEventById } from "@/lib/auth/event-access";
 import { requireSession } from "@/lib/auth/session";
 import { repositories } from "@/lib/db";
 import {
@@ -35,8 +36,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Ative a cápsula antes de expandir o armazenamento." }, { status: 403 });
     }
 
-    const membership = await repositories.members.findMembership(eventId, session.user.id);
-    if (!canManageEvent(session.user, membership ?? undefined)) {
+    if (!(await canManageEventById(session.user, eventId))) {
       return NextResponse.json({ error: "Sem permissão." }, { status: 403 });
     }
 
@@ -82,6 +82,8 @@ export async function POST(request: Request) {
       message: `+${packageGb} GB adicionados à cápsula deste evento.`
     });
   } catch (err) {
+    const authError = apiAuthErrorResponse(err);
+    if (authError) return authError;
     console.error("[add-storage]", err);
     return NextResponse.json({ error: "Erro ao expandir armazenamento." }, { status: 500 });
   }

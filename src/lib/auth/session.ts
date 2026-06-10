@@ -24,12 +24,21 @@ export async function getCurrentSession(): Promise<Session | null> {
   const payload = token ? verifySessionToken(token) : null;
 
   if (payload) {
-    try {
-      const user = await repositories.users.findById(payload.sub);
-      if (user) return { user, payload };
-    } catch {
-      return null;
+    let lastError: unknown;
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      try {
+        const user = await repositories.users.findById(payload.sub);
+        if (user) return { user, payload };
+        return null;
+      } catch (error) {
+        lastError = error;
+        if (attempt === 0) {
+          await new Promise((resolve) => setTimeout(resolve, 120));
+        }
+      }
     }
+    console.error("[auth] user lookup failed", lastError);
+    throw lastError;
   }
 
   if (isDevelopmentBypassAllowed()) {
@@ -51,10 +60,19 @@ export async function getCurrentSession(): Promise<Session | null> {
   return null;
 }
 
+export class AuthError extends Error {
+  code: "UNAUTHENTICATED" | "FORBIDDEN" | "REAUTH_REQUIRED";
+
+  constructor(code: AuthError["code"], message?: string) {
+    super(message ?? code);
+    this.code = code;
+  }
+}
+
 export async function requireSession() {
   const session = await getCurrentSession();
   if (!session) {
-    throw new Error("UNAUTHENTICATED");
+    throw new AuthError("UNAUTHENTICATED");
   }
   return session;
 }
@@ -75,13 +93,13 @@ export function isPlatformAdmin(user: User) {
 export async function requirePlatformAdmin() {
   const session = await requireSession();
   if (!isPlatformAdmin(session.user)) {
-    throw new Error("FORBIDDEN");
+    throw new AuthError("FORBIDDEN");
   }
   return session;
 }
 
 export function requireRecentAuthentication(session: Session) {
   if (!isRecentlyReauthenticated(session.payload)) {
-    throw new Error("REAUTH_REQUIRED");
+    throw new AuthError("REAUTH_REQUIRED");
   }
 }

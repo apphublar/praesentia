@@ -3,14 +3,21 @@ import { NextResponse } from "next/server";
 import { isProtectedRoute } from "@/lib/auth/routes";
 import { SESSION_COOKIE_NAME, verifySessionTokenEdge } from "@/lib/auth/session-token-edge";
 
-function clearSessionCookie(response: NextResponse) {
-  response.cookies.set(SESSION_COOKIE_NAME, "", {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.APP_ENV === "production",
-    path: "/",
-    maxAge: 0
-  });
+function redirectToLogin(request: NextRequest, pathname: string, clearCookie = false) {
+  const url = request.nextUrl.clone();
+  url.pathname = "/login";
+  url.searchParams.set("next", pathname);
+  const response = NextResponse.redirect(url);
+  if (clearCookie) {
+    response.cookies.set(SESSION_COOKIE_NAME, "", {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.APP_ENV === "production",
+      path: "/",
+      maxAge: 0
+    });
+  }
+  return response;
 }
 
 export async function middleware(request: NextRequest) {
@@ -21,21 +28,16 @@ export async function middleware(request: NextRequest) {
   if (!isProduction) return NextResponse.next();
 
   const token = request.cookies.get(SESSION_COOKIE_NAME)?.value;
-  if (!token) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    url.searchParams.set("next", pathname);
-    return NextResponse.redirect(url);
+  if (!token) return redirectToLogin(request, pathname);
+
+  const secretAvailable = Boolean(process.env.SESSION_SECRET);
+  if (!secretAvailable) {
+    return NextResponse.next();
   }
 
   const payload = await verifySessionTokenEdge(token);
   if (!payload) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    url.searchParams.set("next", pathname);
-    const response = NextResponse.redirect(url);
-    clearSessionCookie(response);
-    return response;
+    return redirectToLogin(request, pathname, true);
   }
 
   return NextResponse.next();

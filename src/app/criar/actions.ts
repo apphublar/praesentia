@@ -1,8 +1,8 @@
 "use server";
 
-import { redirect } from "next/navigation";
-import { requirePageSession } from "@/lib/auth/session";
-import { CREATE_EVENT_PATH, createEventContinuePath } from "@/lib/auth/routes";
+import { revalidatePath } from "next/cache";
+import type { CreateEventState } from "@/app/criar/create-event-state";
+import { getCurrentSession } from "@/lib/auth/session";
 import { repositories } from "@/lib/db";
 import { getEventProfile, resolveEventFormat } from "@/lib/events/event-profile";
 import { normalizeEventType } from "@/lib/events/event-types";
@@ -18,8 +18,15 @@ function optional(value: FormDataEntryValue | null, maxLength: number) {
   return text || undefined;
 }
 
-export async function createEventAction(formData: FormData) {
-  const session = await requirePageSession("/dashboard/criar");
+function validationError(fieldError: string): CreateEventState {
+  return { fieldError };
+}
+
+export async function createEventAction(_prev: CreateEventState, formData: FormData): Promise<CreateEventState> {
+  const session = await getCurrentSession();
+  if (!session) {
+    return { error: "Sessão expirada. Faça login novamente para continuar." };
+  }
 
   const eventType = normalizeEventType(required(formData.get("eventType"), 30)) as EventType;
   const profile = getEventProfile(eventType);
@@ -43,85 +50,95 @@ export async function createEventAction(formData: FormData) {
   const goalAmount = goalAmountRaw ? Number(goalAmountRaw.replace(",", ".")) : undefined;
 
   if (!title || !hostName) {
-    redirect(`${CREATE_EVENT_PATH}?erro=campos-obrigatorios`);
+    return validationError("campos-obrigatorios");
   }
 
   if (profile.isFundraising) {
     if (!pixKey || !pixReceiverName || !isValidPixKey(pixKey)) {
-      redirect(`${CREATE_EVENT_PATH}?erro=pix-obrigatorio`);
+      return validationError("pix-obrigatorio");
     }
   } else if (!theme || !date || !startsAt || !endsAt) {
-    redirect(`${CREATE_EVENT_PATH}?erro=campos-obrigatorios`);
+    return validationError("campos-obrigatorios");
   }
 
   const safeType = normalizeEventType(eventType);
 
   if (eventFormat === "online" && !onlineMeetingUrl) {
-    redirect(`${CREATE_EVENT_PATH}?erro=link-online-obrigatorio`);
+    return validationError("link-online-obrigatorio");
   }
 
   if (eventFormat === "in_person" && (!venueName || !venueAddress || !city)) {
-    redirect(`${CREATE_EVENT_PATH}?erro=local-obrigatorio`);
+    return validationError("local-obrigatorio");
   }
 
   const today = new Date().toISOString().slice(0, 10);
   const resolvedDate = date || today;
 
-  let event = await repositories.events.create({
-    ownerId: session.user.id,
-    title,
-    theme: profile.isFundraising ? (theme || "Arrecadação") : theme,
-    eventType: safeType,
-    hostName,
-    eventFormat,
-    onlineMeetingUrl: eventFormat === "online" ? onlineMeetingUrl : undefined,
-    date: resolvedDate,
-    startsAt,
-    endsAt,
-    venueName:
-      eventFormat === "fundraising"
-        ? "Vaquinha online"
-        : eventFormat === "online"
-          ? "Evento online"
-          : venueName,
-    venueAddress:
-      eventFormat === "fundraising"
-        ? "Contribuição via Pix"
-        : eventFormat === "online"
-          ? onlineMeetingUrl
-          : venueAddress,
-    city: eventFormat === "fundraising" ? "Online" : eventFormat === "online" ? "Online" : city
-  });
-
-  if (profile.isFundraising || pixKey) {
-    event = await repositories.events.updatePixSettings(event.id, session.user.id, {
-      enabled: true,
-      receiverName: pixReceiverName || hostName,
-      key: pixKey,
-      suggestedAmount: goalAmount && goalAmount > 0 ? goalAmount : undefined,
-      message: story || theme
+  try {
+    let event = await repositories.events.create({
+      ownerId: session.user.id,
+      title,
+      theme: profile.isFundraising ? (theme || "Arrecadação") : theme,
+      eventType: safeType,
+      hostName,
+      eventFormat,
+      onlineMeetingUrl: eventFormat === "online" ? onlineMeetingUrl : undefined,
+      date: resolvedDate,
+      startsAt,
+      endsAt,
+      venueName:
+        eventFormat === "fundraising"
+          ? "Vaquinha online"
+          : eventFormat === "online"
+            ? "Evento online"
+            : venueName,
+      venueAddress:
+        eventFormat === "fundraising"
+          ? "Contribuição via Pix"
+          : eventFormat === "online"
+            ? onlineMeetingUrl
+            : venueAddress,
+      city: eventFormat === "fundraising" ? "Online" : eventFormat === "online" ? "Online" : city
     });
+
+    if (profile.isFundraising || pixKey) {
+      event = await repositories.events.updatePixSettings(event.id, session.user.id, {
+        enabled: true,
+        receiverName: pixReceiverName || hostName,
+        key: pixKey,
+        suggestedAmount: goalAmount && goalAmount > 0 ? goalAmount : undefined,
+        message: story || theme
+      });
+    }
+
+    if (story) {
+      event = await repositories.events.setInviteCopy(event.id, session.user.id, {
+        headline: title,
+        message: story,
+        whatsapp: profile.isFundraising
+          ? `Apoie a vaquinha "${title}". Contribua via Pix: {{link}}`
+          : `Você está convidado(a) para ${title}. Confirme aqui: {{link}}`,
+        hashtags: profile.isFundraising ? ["#vaquinha", "#pix", "#praesentia"] : []
+      });
+    }
+
+    try {
+      await repositories.audit.record({
+        actorUserId: session.user.id,
+        eventId: event.id,
+        action: "event.created",
+        targetType: "event",
+        targetId: event.id,
+        metadata: { source: "create_page", eventType: safeType, eventFormat }
+      });
+    } catch (auditError) {
+      console.error("[createEventAction] audit.record failed", auditError);
+    }
+
+    revalidatePath("/dashboard", "layout");
+    return { eventId: event.id };
+  } catch (error) {
+    console.error("[createEventAction] failed", error);
+    return { error: "Não foi possível criar o evento agora. Tente novamente em instantes." };
   }
-
-  if (story) {
-    event = await repositories.events.setInviteCopy(event.id, session.user.id, {
-      headline: title,
-      message: story,
-      whatsapp: profile.isFundraising
-        ? `Apoie a vaquinha "${title}". Contribua via Pix: {{link}}`
-        : `Você está convidado(a) para ${title}. Confirme aqui: {{link}}`,
-      hashtags: profile.isFundraising ? ["#vaquinha", "#pix", "#praesentia"] : []
-    });
-  }
-
-  await repositories.audit.record({
-    actorUserId: session.user.id,
-    eventId: event.id,
-    action: "event.created",
-    targetType: "event",
-    targetId: event.id,
-    metadata: { source: "create_page", eventType: safeType, eventFormat }
-  });
-
-  redirect(createEventContinuePath(event.id));
 }

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
+import { canManageEventById } from "@/lib/auth/event-access";
 import { getCurrentSession } from "@/lib/auth/session";
-import { canManageEvent } from "@/lib/auth/permissions";
 import { repositories } from "@/lib/db";
 import { publishRealtimeEvent } from "@/lib/realtime/events";
 import { assertTrustedOrigin } from "@/lib/security/origin";
@@ -16,8 +16,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ event
   const event = await repositories.events.findById(eventId);
   if (!event) return NextResponse.json({ error: "Evento não encontrado." }, { status: 404 });
 
-  const member = await repositories.members.findMembership(event.id, session.user.id);
-  if (!canManageEvent(session.user, member ?? undefined)) return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
+  if (!(await canManageEventById(session.user, eventId))) return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
 
   const body = await request.json().catch(() => ({}));
   const nextScreen = {
