@@ -675,6 +675,7 @@ function rowToGuestRsvp(row: Record<string, unknown>): GuestRsvp {
     eventId: String(row.event_id),
     guestName: String(row.guest_name),
     phone: row.phone ? String(row.phone) : undefined,
+    companionName: row.companion_name ? String(row.companion_name) : undefined,
     wantsCapsule: Boolean(row.wants_capsule),
     checkedInAt: row.checked_in_at ? new Date(String(row.checked_in_at)).toISOString() : undefined,
     confirmedAt: new Date(String(row.confirmed_at)).toISOString()
@@ -685,8 +686,14 @@ export const postgresGuestRsvps: GuestRsvpRepository = {
   async create(input: CreateGuestRsvpInput): Promise<GuestRsvp> {
     const sql = getSql();
     const rows = await sql`
-      insert into guest_rsvps (event_id, guest_name, phone, wants_capsule)
-      values (${input.eventId}, ${input.guestName}, ${input.phone ?? null}, ${input.wantsCapsule})
+      insert into guest_rsvps (event_id, guest_name, phone, companion_name, wants_capsule)
+      values (
+        ${input.eventId},
+        ${input.guestName},
+        ${input.phone ?? null},
+        ${input.companionName ?? null},
+        ${input.wantsCapsule}
+      )
       returning *
     `;
     return rowToGuestRsvp(rows[0]);
@@ -702,7 +709,7 @@ export const postgresGuestRsvps: GuestRsvpRepository = {
     const sql = getSql();
     const rows = await sql`
       select * from guest_rsvps
-      where event_id = ${eventId}::uuid and id = ${rsvpId}::uuid
+      where event_id = ${eventId} and id = ${rsvpId}
       limit 1
     `;
     return rows[0] ? rowToGuestRsvp(rows[0]) : null;
@@ -711,7 +718,7 @@ export const postgresGuestRsvps: GuestRsvpRepository = {
     const sql = getSql();
     const rows = await sql`
       update guest_rsvps set checked_in_at = now()
-      where id = ${rsvpId}::uuid and event_id = ${eventId}::uuid
+      where id = ${rsvpId} and event_id = ${eventId}
       returning *
     `;
     if (!rows[0]) throw new Error("RSVP_NOT_FOUND");
@@ -721,7 +728,7 @@ export const postgresGuestRsvps: GuestRsvpRepository = {
     const sql = getSql();
     const rows = await sql`
       update guest_rsvps set checked_in_at = null
-      where id = ${rsvpId}::uuid and event_id = ${eventId}::uuid
+      where id = ${rsvpId} and event_id = ${eventId}
       returning *
     `;
     if (!rows[0]) throw new Error("RSVP_NOT_FOUND");

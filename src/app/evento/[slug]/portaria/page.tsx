@@ -19,12 +19,12 @@ export default async function PortariaPage({
 
   if (!token || token !== event.freeCode) {
     return (
-      <main style={{ minHeight: "100dvh", display: "grid", placeItems: "center", background: "var(--bg)", padding: 24 }}>
-        <section style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: 20, padding: 32, maxWidth: 400, textAlign: "center" }}>
-          <div style={{ fontSize: 48, marginBottom: 16 }}>🔒</div>
-          <h1 style={{ fontFamily: "DM Serif Display, serif", fontSize: 28, margin: "0 0 12px" }}>Acesso restrito</h1>
-          <p style={{ color: "var(--ink-soft)", lineHeight: 1.6 }}>
-            Este link de check-in é inválido ou expirado. Peça ao organizador do evento o link correto.
+      <main className="portaria-page portaria-page-locked">
+        <section className="portaria-lock-card">
+          <div className="portaria-lock-icon" aria-hidden="true">🔒</div>
+          <h1>Link de check-in inválido</h1>
+          <p>
+            Este endereço não está autorizado para check-in. Peça ao organizador do evento o link correto.
           </p>
         </section>
       </main>
@@ -37,18 +37,29 @@ export default async function PortariaPage({
     "guestRsvps.listByEvent"
   );
 
+  const eventDate = event.date
+    ? new Date(`${event.date}T12:00:00`).toLocaleDateString("pt-BR", {
+        weekday: "long",
+        day: "numeric",
+        month: "long"
+      })
+    : null;
+
   return (
-    <main style={{ minHeight: "100dvh", background: "var(--bg)", padding: "24px 16px 80px" }}>
-      <div style={{ maxWidth: 680, margin: "0 auto" }}>
-        <div style={{ marginBottom: 24 }}>
-          <span style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--ink-soft)" }}>
-            check-in dos convidados
-          </span>
-          <h1 style={{ fontFamily: "DM Serif Display, serif", fontSize: 32, margin: "6px 0 4px", lineHeight: 1.1 }}>
-            {event.title}
-          </h1>
-          <p style={{ color: "var(--ink-soft)", fontSize: 14 }}>{event.hostName}</p>
-        </div>
+    <main className="portaria-page">
+      <div className="portaria-shell">
+        <header className="portaria-header">
+          <span className="portaria-kicker">Check-in dos convidados</span>
+          <h1>{event.title}</h1>
+          <p className="portaria-subtitle">
+            {event.hostName}
+            {eventDate ? ` · ${eventDate}` : ""}
+            {event.startsAt ? ` · ${event.startsAt}` : ""}
+          </p>
+          <p className="portaria-help">
+            Busque pelo nome, confirme a entrada e registre convidado + acompanhante juntos quando houver.
+          </p>
+        </header>
 
         <PortariaPanel eventId={event.id} token={token} initialRsvps={rsvps} />
       </div>

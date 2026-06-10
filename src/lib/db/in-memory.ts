@@ -455,6 +455,7 @@ export const inMemoryGuestRsvps: GuestRsvpRepository = {
       eventId: input.eventId,
       guestName: input.guestName,
       phone: input.phone,
+      companionName: input.companionName,
       wantsCapsule: input.wantsCapsule,
       confirmedAt: new Date().toISOString()
     };

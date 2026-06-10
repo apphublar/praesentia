@@ -18,17 +18,29 @@ export function RsvpForm({
   const [step, setStep] = useState<Step>("form");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [hasCompanion, setHasCompanion] = useState(false);
+  const [companionName, setCompanionName] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
 
   async function handleConfirm(wantsCapsule: boolean) {
+    if (hasCompanion && !companionName.trim()) {
+      setError("Informe o nome completo do acompanhante.");
+      return;
+    }
+
     setPending(true);
     setError("");
     try {
       const res = await fetch(`/api/events/${eventId}/rsvp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ guestName: name.trim(), phone: phone.trim() || undefined, wantsCapsule })
+        body: JSON.stringify({
+          guestName: name.trim(),
+          phone: phone.trim() || undefined,
+          companionName: hasCompanion ? companionName.trim() : undefined,
+          wantsCapsule
+        })
       });
       const data = await res.json();
       if (!res.ok) {
@@ -51,8 +63,18 @@ export function RsvpForm({
         </div>
         <h2 className="public-event-section-title">Presença confirmada!</h2>
         <p className="public-event-message">
-          Obrigado, <strong>{name}</strong>! Sua presença em <strong>{eventTitle}</strong> está confirmada.
+          Obrigado, <strong>{name}</strong>!
+          {hasCompanion && companionName.trim() ? (
+            <> Você e <strong>{companionName.trim()}</strong> estão confirmados para <strong>{eventTitle}</strong>.</>
+          ) : (
+            <> Sua presença em <strong>{eventTitle}</strong> está confirmada.</>
+          )}
         </p>
+        {hasCompanion && companionName.trim() ? (
+          <p className="public-event-message" style={{ fontSize: 14 }}>
+            No dia do evento, entrem juntos na portaria — a entrada será registrada para os dois.
+          </p>
+        ) : null}
         {capsuleAvailable ? (
           <a className="btn public-rsvp-action" href={`/login?next=/evento/${eventSlug}`}>
             Criar conta para participar do mural
@@ -86,21 +108,48 @@ export function RsvpForm({
   return (
     <section className="public-rsvp-form">
       <h2 className="public-event-section-title">Confirmar presença</h2>
-      <p className="public-event-message">Informe seus dados para confirmar que você vai estar lá.</p>
+      <p className="public-event-message">Informe seu nome completo. Se vier com acompanhante, inclua o nome dele(a) também.</p>
       <div className="praesentia-form praesentia-form-stack">
         <label className="field">
-          <span>Seu nome *</span>
+          <span>Nome completo *</span>
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Como você quer ser chamado(a)?"
+            placeholder="Seu nome como no documento ou convite"
             maxLength={120}
             required
           />
         </label>
+
+        <label className="settings-switch public-rsvp-companion-toggle">
+          <input
+            type="checkbox"
+            checked={hasCompanion}
+            onChange={(e) => {
+              setHasCompanion(e.target.checked);
+              if (!e.target.checked) setCompanionName("");
+            }}
+          />
+          <span>Vou levar acompanhante</span>
+        </label>
+
+        {hasCompanion ? (
+          <label className="field public-rsvp-companion-field">
+            <span>Nome completo do acompanhante *</span>
+            <input
+              type="text"
+              value={companionName}
+              onChange={(e) => setCompanionName(e.target.value)}
+              placeholder="Nome completo de quem vem com você"
+              maxLength={120}
+            />
+            <p className="cover-field-help">No check-in do evento, vocês entram juntos com um único registro.</p>
+          </label>
+        ) : null}
+
         <label className="field">
-          <span>WhatsApp (opcional)</span>
+          <span>WhatsApp (opcional, só para o organizador)</span>
           <input
             type="tel"
             value={phone}
@@ -109,14 +158,15 @@ export function RsvpForm({
             maxLength={20}
           />
         </label>
+
         {error ? <p className="public-rsvp-error">{error}</p> : null}
         <button
           className="btn public-rsvp-action"
           type="button"
-          disabled={!name.trim() || pending}
+          disabled={!name.trim() || pending || (hasCompanion && !companionName.trim())}
           onClick={() => (capsuleAvailable ? setStep("capsule") : handleConfirm(false))}
         >
-          {pending ? "Confirmando..." : "Confirmar presença"}
+          {pending ? "Confirmando..." : hasCompanion ? "Confirmar presença (2 pessoas)" : "Confirmar presença"}
         </button>
       </div>
     </section>

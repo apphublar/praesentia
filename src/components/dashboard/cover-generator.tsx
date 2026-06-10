@@ -5,6 +5,12 @@ import type { Event } from "@/types/domain";
 import { generateEventCoverImageClient } from "@/lib/api/generate-cover";
 import { apiErrorMessage, dashboardFetchJson } from "@/lib/api/dashboard-fetch";
 import { resizeDataUrlForCover, resizeImageForCover } from "@/lib/images/resize-host-photo";
+import {
+  buildCoverEventBriefLines,
+  buildDefaultCoverOrientation,
+  COVER_IMAGE_FORMAT,
+  toCoverFormEventInput
+} from "@/lib/openai/cover-invitation-spec";
 
 export type CoverQuota = {
   maxGenerations: number;
@@ -182,10 +188,13 @@ export function CoverGenerator({
   onCoverChange,
   eventTitle = "",
   eventHostName = "",
+  eventTheme = "",
+  eventType = "outros",
   eventDate = "",
   eventStartsAt = "",
   eventEndsAt = "",
   eventVenueName = "",
+  eventVenueAddress = "",
   eventCity = "",
   eventFormat = "in_person",
   onlineMeetingUrl
@@ -203,14 +212,34 @@ export function CoverGenerator({
   onCoverChange?: (url: string) => void;
   eventTitle?: string;
   eventHostName?: string;
+  eventTheme?: string;
+  eventType?: Event["eventType"];
   eventDate?: string;
   eventStartsAt?: string;
   eventEndsAt?: string;
   eventVenueName?: string;
+  eventVenueAddress?: string;
   eventCity?: string;
   eventFormat?: Event["eventFormat"];
   onlineMeetingUrl?: string;
 }) {
+  const coverFormInput = toCoverFormEventInput({
+    eventTitle,
+    eventType,
+    eventHostName,
+    eventTheme,
+    eventDate,
+    eventStartsAt,
+    eventEndsAt,
+    eventFormat,
+    eventVenueName,
+    eventVenueAddress,
+    eventCity,
+    onlineMeetingUrl
+  });
+  const eventBriefLines = buildCoverEventBriefLines(coverFormInput);
+  const defaultOrientation = buildDefaultCoverOrientation(coverFormInput);
+
   const [coverUrl, setCoverUrl] = useState(currentCoverUrl ?? "");
   const [imageError, setImageError] = useState(false);
   const [hostPhotoUrl, setHostPhotoUrl] = useState(initialHostPhotoUrl ?? "");
@@ -220,7 +249,7 @@ export function CoverGenerator({
   const [quota, setQuota] = useState(initialQuota);
   const [loading, setLoading] = useState(false);
   const [editHint, setEditHint] = useState("");
-  const [orientation, setOrientation] = useState("");
+  const [orientation, setOrientation] = useState(defaultOrientation);
   const [includeFields, setIncludeFields] = useState(DEFAULT_INCLUDE);
   const [error, setError] = useState("");
 
@@ -329,17 +358,39 @@ export function CoverGenerator({
   return (
     <article className="card dashboard-card">
       <span className="pill">imagem do convite</span>
-      <h2 className="display" style={{ fontSize: 28, margin: "12px 0 4px" }}>Imagem para WhatsApp e Stories</h2>
-      <p style={{ color: "var(--ink-soft)", lineHeight: 1.6, fontSize: 14, marginBottom: 20 }}>
-        {isPaid
-          ? `Plano pago: até ${quota.maxGenerations} versões por IA e ${quota.maxEdits} ajustes.`
-          : "Gere a arte do convite com IA uma vez gratuitamente — ou envie a sua própria."}
-      </p>
+      <div className="cover-generator-heading">
+        <div>
+          <h2 className="display" style={{ fontSize: 28, margin: "12px 0 4px" }}>Imagem para WhatsApp e Stories</h2>
+          <p style={{ color: "var(--ink-soft)", lineHeight: 1.6, fontSize: 14, margin: 0 }}>
+            {isPaid
+              ? `Plano pago: até ${quota.maxGenerations} versões por IA e ${quota.maxEdits} ajustes.`
+              : "Gere a arte do convite com IA — ou envie a sua própria."}
+          </p>
+        </div>
+        <span className="cover-format-badge">{COVER_IMAGE_FORMAT.label}</span>
+      </div>
 
       <div className="cover-builder-layout">
         {/* ── Coluna esquerda: configurações ── */}
         <div className="cover-settings-column">
           <div className="praesentia-form praesentia-form-stack">
+            <section className="cover-event-brief">
+              <div className="cover-event-brief-head">
+                <span className="field"><span>Dados do convite (preenchidos automaticamente)</span></span>
+                <p className="cover-field-help">
+                  Estes dados vêm do cadastro do evento e entram na imagem. Para alterar, edite as configurações do evento.
+                </p>
+              </div>
+              <dl className="cover-event-brief-grid">
+                {eventBriefLines.map((line) => (
+                  <div key={line.label} className="cover-event-brief-item">
+                    <dt>{line.label}</dt>
+                    <dd>{line.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
+
             <div className="cover-host-photo-block">
               <label className="field">
                 <span>Foto do homenageado (opcional)</span>
@@ -383,10 +434,14 @@ export function CoverGenerator({
             </div>
 
             <label className="field">
-              <span>Descreva a imagem que você quer</span>
+              <span>Orientação visual da imagem</span>
               <textarea value={orientation} onChange={(e) => setOrientation(e.target.value)}
-                maxLength={400} rows={3}
-                placeholder="Ex: convite rosa e dourado com flores, estilo elegante, fundo claro, vibe festa infantil..." />
+                maxLength={400} rows={4}
+                placeholder="Descreva cores, elementos decorativos e estilo do convite..." />
+              <p className="cover-field-help">
+                Sugestão pré-preenchida com base no seu evento. Ajuste cores e elementos (sol, nuvens, flores, balões).
+                Proporção fixa {COVER_IMAGE_FORMAT.aspectRatio} para WhatsApp e Stories.
+              </p>
             </label>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>

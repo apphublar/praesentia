@@ -28,6 +28,17 @@ export default async function DashboardContinueCreatePage({ params }: { params: 
           eventId={event.id}
           eventSlug={event.slug}
           eventTitle={event.title}
+          eventHostName={event.hostName}
+          eventTheme={event.theme}
+          eventType={event.eventType}
+          eventDate={event.date}
+          eventStartsAt={event.startsAt}
+          eventEndsAt={event.endsAt}
+          eventVenueName={event.venueName}
+          eventVenueAddress={event.venueAddress}
+          eventCity={event.city}
+          eventFormat={event.eventFormat}
+          onlineMeetingUrl={event.onlineMeetingUrl}
           isFundraising={event.eventFormat === "fundraising"}
           initialCopy={event.inviteCopy}
           initialCoverUrl={event.coverImageUrl}

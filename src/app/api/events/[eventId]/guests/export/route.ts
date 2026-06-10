@@ -22,10 +22,12 @@ export async function GET(_request: Request, { params }: { params: Promise<{ eve
     }
 
     const guestRsvps = await repositories.guestRsvps.listByEvent(eventId);
-    const header = ["Nome", "Telefone", "Confirmado em", "Check-in", "Quer cápsula"];
+    const header = ["Nome", "Acompanhante", "Telefone", "Pessoas", "Confirmado em", "Check-in", "Quer cápsula"];
     const rows = guestRsvps.map((rsvp) => [
       rsvp.guestName,
+      rsvp.companionName ?? "",
       rsvp.phone ?? "",
+      rsvp.companionName ? "2" : "1",
       new Date(rsvp.confirmedAt).toLocaleString("pt-BR"),
       rsvp.checkedInAt ? new Date(rsvp.checkedInAt).toLocaleString("pt-BR") : "",
       rsvp.wantsCapsule ? "Sim" : "Não"

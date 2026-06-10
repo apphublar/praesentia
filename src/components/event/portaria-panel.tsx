@@ -1,7 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { GuestRsvp } from "@/types/domain";
+import {
+  guestCheckInLabel,
+  guestMatchesSearch,
+  guestPartySize,
+  sumPartySize
+} from "@/lib/guests/rsvp-display";
 
 export function PortariaPanel({
   eventId,
@@ -17,10 +23,15 @@ export function PortariaPanel({
   const [search, setSearch] = useState("");
   const [error, setError] = useState("");
 
-  const checkedInCount = rsvps.filter((r) => r.checkedInAt).length;
-  const filtered = search.trim()
-    ? rsvps.filter((r) => r.guestName.toLowerCase().includes(search.toLowerCase().trim()))
-    : rsvps;
+  const totalPeople = useMemo(() => sumPartySize(rsvps), [rsvps]);
+  const checkedInPeople = useMemo(
+    () => sumPartySize(rsvps.filter((rsvp) => rsvp.checkedInAt)),
+    [rsvps]
+  );
+  const filtered = useMemo(
+    () => rsvps.filter((rsvp) => guestMatchesSearch(rsvp, search)),
+    [rsvps, search]
+  );
 
   async function toggleCheckIn(rsvp: GuestRsvp) {
     setLoadingId(rsvp.id);
@@ -32,11 +43,11 @@ export function PortariaPanel({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token, rsvpId: rsvp.id, action })
       });
-      const data = await res.json();
-      if (res.ok) {
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.rsvp) {
         setRsvps((current) => current.map((item) => (item.id === rsvp.id ? data.rsvp : item)));
       } else {
-        setError(data.error ?? "Não foi possível atualizar o check-in.");
+        setError(typeof data.error === "string" ? data.error : "Não foi possível registrar a entrada. Tente novamente.");
       }
     } catch {
       setError("Erro de conexão. Tente novamente.");
@@ -44,95 +55,84 @@ export function PortariaPanel({
     setLoadingId(null);
   }
 
+  function checkInButtonLabel(rsvp: GuestRsvp) {
+    const size = guestPartySize(rsvp);
+    if (rsvp.checkedInAt) return "Desfazer";
+    return size > 1 ? `Dar entrada (${size} pessoas)` : "Dar entrada";
+  }
+
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: 16, padding: "16px 20px", display: "flex", gap: 24, flexWrap: "wrap" }}>
-        <div>
-          <div style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", color: "var(--ink-soft)", letterSpacing: "0.05em" }}>Confirmados</div>
-          <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 40, lineHeight: 1 }}>{rsvps.length}</div>
+    <div className="portaria-panel">
+      <div className="portaria-stats">
+        <div className="portaria-stat">
+          <span className="portaria-stat-label">Confirmados</span>
+          <strong className="portaria-stat-value">{totalPeople}</strong>
+          <span className="portaria-stat-hint">{rsvps.length} convite{rsvps.length !== 1 ? "s" : ""}</span>
         </div>
-        <div>
-          <div style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", color: "var(--ink-soft)", letterSpacing: "0.05em" }}>Já entraram</div>
-          <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 40, lineHeight: 1, color: "var(--green)" }}>{checkedInCount}</div>
+        <div className="portaria-stat is-success">
+          <span className="portaria-stat-label">Já entraram</span>
+          <strong className="portaria-stat-value">{checkedInPeople}</strong>
         </div>
-        <div>
-          <div style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", color: "var(--ink-soft)", letterSpacing: "0.05em" }}>Aguardando</div>
-          <div style={{ fontFamily: "DM Serif Display, serif", fontSize: 40, lineHeight: 1, color: "var(--gold)" }}>{rsvps.length - checkedInCount}</div>
+        <div className="portaria-stat is-waiting">
+          <span className="portaria-stat-label">Aguardando</span>
+          <strong className="portaria-stat-value">{Math.max(0, totalPeople - checkedInPeople)}</strong>
         </div>
       </div>
 
-      <input
-        type="search"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        placeholder="Buscar convidado pelo nome…"
-        style={{
-          width: "100%",
-          padding: "12px 16px",
-          borderRadius: 12,
-          border: "1px solid var(--line)",
-          background: "var(--card)",
-          fontSize: 16,
-          fontFamily: "inherit"
-        }}
-      />
+      <label className="portaria-search">
+        <span className="portaria-search-icon" aria-hidden="true">🔍</span>
+        <input
+          type="search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Buscar pelo nome do convidado ou acompanhante…"
+        />
+      </label>
 
-      {error ? (
-        <p style={{ color: "var(--coral)", background: "rgba(255,107,92,.08)", padding: "10px 14px", borderRadius: 10, margin: 0 }}>{error}</p>
-      ) : null}
+      {error ? <p className="portaria-error">{error}</p> : null}
 
       {filtered.length === 0 ? (
-        <p style={{ color: "var(--ink-soft)", textAlign: "center", padding: "24px 0" }}>
-          {search ? `Nenhum convidado encontrado para "${search}"` : "Nenhum convidado confirmou presença ainda."}
-        </p>
+        <div className="portaria-empty">
+          <p>{search ? `Nenhum convidado encontrado para "${search}"` : "Nenhum convidado confirmou presença ainda."}</p>
+        </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {filtered.map((rsvp) => (
-            <div
-              key={rsvp.id}
-              style={{
-                background: rsvp.checkedInAt ? "rgba(111,191,115,.10)" : "var(--card)",
-                border: `1px solid ${rsvp.checkedInAt ? "rgba(111,191,115,.4)" : "var(--line)"}`,
-                borderRadius: 14,
-                padding: "14px 16px",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                gap: 12
-              }}
-            >
-              <div>
-                <strong style={{ fontSize: 16 }}>{rsvp.guestName}</strong>
-                {rsvp.phone && (
-                  <div style={{ color: "var(--ink-soft)", fontSize: 13, marginTop: 2 }}>{rsvp.phone}</div>
-                )}
-                {rsvp.checkedInAt && (
-                  <div style={{ color: "var(--green)", fontSize: 12, fontWeight: 700, marginTop: 2 }}>
-                    ✓ Entrou {new Date(rsvp.checkedInAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-                  </div>
-                )}
-              </div>
-              <button
-                type="button"
-                onClick={() => toggleCheckIn(rsvp)}
-                disabled={loadingId === rsvp.id}
-                style={{
-                  padding: "10px 18px",
-                  borderRadius: 999,
-                  border: "none",
-                  cursor: "pointer",
-                  fontFamily: "inherit",
-                  fontWeight: 700,
-                  fontSize: 14,
-                  background: rsvp.checkedInAt ? "var(--bg-soft)" : "var(--green)",
-                  color: rsvp.checkedInAt ? "var(--ink-soft)" : "#fff",
-                  flexShrink: 0
-                }}
+        <div className="portaria-guest-list">
+          {filtered.map((rsvp) => {
+            const partySize = guestPartySize(rsvp);
+            return (
+              <article
+                key={rsvp.id}
+                className={`portaria-guest-card${rsvp.checkedInAt ? " is-checked-in" : ""}`}
               >
-                {loadingId === rsvp.id ? "..." : rsvp.checkedInAt ? "Desfazer" : "Dar entrada"}
-              </button>
-            </div>
-          ))}
+                <div className="portaria-guest-main">
+                  <div className="portaria-guest-name">{rsvp.guestName}</div>
+                  {rsvp.companionName ? (
+                    <div className="portaria-guest-companion">
+                      <span className="portaria-guest-companion-label">Acompanhante</span>
+                      <span>{rsvp.companionName}</span>
+                    </div>
+                  ) : null}
+                  {rsvp.checkedInAt ? (
+                    <div className="portaria-guest-checked">
+                      ✓ Entrada registrada {new Date(rsvp.checkedInAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                      {partySize > 1 ? ` · ${partySize} pessoas` : ""}
+                    </div>
+                  ) : partySize > 1 ? (
+                    <div className="portaria-guest-party-hint">Entrada conjunta · {partySize} pessoas</div>
+                  ) : null}
+                </div>
+                <button
+                  type="button"
+                  className={`btn portaria-checkin-btn${rsvp.checkedInAt ? " secondary" : ""}`}
+                  onClick={() => toggleCheckIn(rsvp)}
+                  disabled={loadingId === rsvp.id}
+                  aria-label={`${checkInButtonLabel(rsvp)} para ${guestCheckInLabel(rsvp)}`}
+                >
+                  {loadingId === rsvp.id ? "..." : checkInButtonLabel(rsvp)}
+                </button>
+              </article>
+            );
+          })}
         </div>
       )}
     </div>

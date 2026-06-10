@@ -115,10 +115,13 @@ export default async function EventDashboardPage({ params }: { params: Promise<{
                 initialQuota={coverQuota}
                 eventTitle={event.title}
                 eventHostName={event.hostName}
+                eventTheme={event.theme}
+                eventType={event.eventType}
                 eventDate={event.date}
                 eventStartsAt={event.startsAt}
                 eventEndsAt={event.endsAt}
                 eventVenueName={event.venueName}
+                eventVenueAddress={event.venueAddress}
                 eventCity={event.city}
                 eventFormat={event.eventFormat}
                 onlineMeetingUrl={event.onlineMeetingUrl}

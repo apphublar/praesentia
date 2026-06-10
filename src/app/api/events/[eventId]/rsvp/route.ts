@@ -19,13 +19,20 @@ export async function POST(request: Request, { params }: { params: Promise<{ eve
     const body = await request.json();
     const guestName = sanitizeText(body.guestName, 120);
     const phone = body.phone ? sanitizeText(body.phone, 20) : undefined;
+    const companionName = body.companionName ? sanitizeText(body.companionName, 120) : undefined;
     const wantsCapsule = Boolean(body.wantsCapsule) && canAccessCapsule(event);
 
     if (!guestName) {
       return NextResponse.json({ error: "Informe seu nome para confirmar presença." }, { status: 400 });
     }
 
-    const rsvp = await repositories.guestRsvps.create({ eventId, guestName, phone, wantsCapsule });
+    const rsvp = await repositories.guestRsvps.create({
+      eventId,
+      guestName,
+      phone,
+      companionName: companionName || undefined,
+      wantsCapsule
+    });
 
     if (session) {
       await repositories.members.ensureGuestMembership(eventId, session.user.id);
@@ -34,6 +41,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ eve
     return NextResponse.json({ rsvp });
   } catch (err) {
     console.error("[rsvp]", err);
+    const detail = err instanceof Error ? err.message : "";
+    if (/companion_name|guest_rsvps|relation.*does not exist/i.test(detail)) {
+      return NextResponse.json(
+        { error: "Banco desatualizado. Execute a migração 007-guest-companion.sql no Supabase." },
+        { status: 503 }
+      );
+    }
     return NextResponse.json({ error: "Erro ao confirmar presença." }, { status: 500 });
   }
 }

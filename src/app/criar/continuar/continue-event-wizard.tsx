@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import type { InviteCopy } from "@/types/domain";
+import type { Event, InviteCopy } from "@/types/domain";
 import { InviteTextEditor, type TextQuota } from "@/components/dashboard/invite-text-editor";
 import { CoverGenerator, type CoverQuota } from "@/components/dashboard/cover-generator";
 import { EventSharePanel } from "@/components/dashboard/event-share-panel";
@@ -11,6 +11,17 @@ export function ContinueEventWizard({
   eventId,
   eventSlug,
   eventTitle,
+  eventHostName,
+  eventTheme,
+  eventType,
+  eventDate,
+  eventStartsAt,
+  eventEndsAt,
+  eventVenueName,
+  eventVenueAddress,
+  eventCity,
+  eventFormat,
+  onlineMeetingUrl,
   isFundraising,
   initialCopy,
   initialCoverUrl,
@@ -21,6 +32,17 @@ export function ContinueEventWizard({
   eventId: string;
   eventSlug: string;
   eventTitle: string;
+  eventHostName: string;
+  eventTheme?: string;
+  eventType: Event["eventType"];
+  eventDate: string;
+  eventStartsAt: string;
+  eventEndsAt: string;
+  eventVenueName: string;
+  eventVenueAddress?: string;
+  eventCity: string;
+  eventFormat: Event["eventFormat"];
+  onlineMeetingUrl?: string;
   isFundraising: boolean;
   initialCopy?: InviteCopy;
   initialCoverUrl?: string;
@@ -81,6 +103,17 @@ export function ContinueEventWizard({
             initialQuota={coverQuota}
             onCoverChange={setCoverUrl}
             eventTitle={eventTitle}
+            eventHostName={eventHostName}
+            eventTheme={eventTheme}
+            eventType={eventType}
+            eventDate={eventDate}
+            eventStartsAt={eventStartsAt}
+            eventEndsAt={eventEndsAt}
+            eventVenueName={eventVenueName}
+            eventVenueAddress={eventVenueAddress}
+            eventCity={eventCity}
+            eventFormat={eventFormat}
+            onlineMeetingUrl={onlineMeetingUrl}
           />
           <div className="continue-wizard-actions">
             <button type="button" className="btn secondary" onClick={() => setStep(1)}>
@@ -106,9 +139,11 @@ export function ContinueEventWizard({
             headline={copy?.headline}
             message={copy?.message}
           />
-          <button type="button" className="btn" onClick={() => router.push(`/dashboard/eventos/${eventId}`)}>
-            Ir para o painel do evento →
-          </button>
+          <div className="continue-wizard-actions">
+            <button type="button" className="btn" onClick={() => router.push(`/dashboard/eventos/${eventId}`)}>
+              Ir para o painel do evento →
+            </button>
+          </div>
         </section>
       )}
     </div>

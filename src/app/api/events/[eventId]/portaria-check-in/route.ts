@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { repositories } from "@/lib/db";
+import { isValidEntityId } from "@/lib/security/ids";
 import { sanitizeText } from "@/lib/security/sanitize";
-
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export async function POST(request: Request, { params }: { params: Promise<{ eventId: string }> }) {
   try {
@@ -17,7 +16,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ eve
       return NextResponse.json({ error: "Token e ID obrigatórios." }, { status: 400 });
     }
 
-    if (!UUID_RE.test(eventId) || !UUID_RE.test(rsvpId)) {
+    if (!isValidEntityId(eventId) || !isValidEntityId(rsvpId)) {
       return NextResponse.json({ error: "Identificador inválido." }, { status: 400 });
     }
 
@@ -44,6 +43,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ eve
     const message = err instanceof Error ? err.message : "";
     if (message === "RSVP_NOT_FOUND") {
       return NextResponse.json({ error: "Convidado não encontrado neste evento." }, { status: 404 });
+    }
+    if (/companion_name|guest_rsvps|relation.*does not exist/i.test(message)) {
+      return NextResponse.json(
+        { error: "Banco desatualizado. Execute as migrações 001 e 007 no Supabase." },
+        { status: 503 }
+      );
     }
     return NextResponse.json({ error: "Não foi possível registrar a entrada. Tente novamente." }, { status: 500 });
   }

@@ -20,6 +20,7 @@ export type CreateGuestRsvpInput = {
   eventId: string;
   guestName: string;
   phone?: string;
+  companionName?: string;
   wantsCapsule: boolean;
 };
 
