@@ -4,6 +4,7 @@ import { canManageEventById } from "@/lib/auth/event-access";
 import { requireSession } from "@/lib/auth/session";
 import { repositories } from "@/lib/db";
 import { getEffectiveFeatures } from "@/lib/plans/features";
+import { guestCompanionNames, guestPartySize } from "@/lib/guests/rsvp-display";
 
 export async function GET(_request: Request, { params }: { params: Promise<{ eventId: string }> }) {
   try {
@@ -25,9 +26,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ eve
     const header = ["Nome", "Acompanhante", "Telefone", "Pessoas", "Confirmado em", "Check-in", "Quer cápsula"];
     const rows = guestRsvps.map((rsvp) => [
       rsvp.guestName,
-      rsvp.companionName ?? "",
+      guestCompanionNames(rsvp).join("; "),
       rsvp.phone ?? "",
-      rsvp.companionName ? "2" : "1",
+      String(guestPartySize(rsvp)),
       new Date(rsvp.confirmedAt).toLocaleString("pt-BR"),
       rsvp.checkedInAt ? new Date(rsvp.checkedInAt).toLocaleString("pt-BR") : "",
       rsvp.wantsCapsule ? "Sim" : "Não"

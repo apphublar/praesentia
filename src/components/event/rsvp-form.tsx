@@ -18,17 +18,26 @@ export function RsvpForm({
   const [step, setStep] = useState<Step>("form");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [hasCompanion, setHasCompanion] = useState(false);
-  const [companionName, setCompanionName] = useState("");
+  const [companions, setCompanions] = useState<string[]>([]);
+  const [companionDraft, setCompanionDraft] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
 
-  async function handleConfirm(wantsCapsule: boolean) {
-    if (hasCompanion && !companionName.trim()) {
-      setError("Informe o nome completo do acompanhante.");
-      return;
-    }
+  const partySize = 1 + companions.length;
 
+  function addCompanion() {
+    const trimmed = companionDraft.trim();
+    if (!trimmed) return;
+    setCompanions((current) => [...current, trimmed]);
+    setCompanionDraft("");
+    setError("");
+  }
+
+  function removeCompanion(index: number) {
+    setCompanions((current) => current.filter((_, i) => i !== index));
+  }
+
+  async function handleConfirm(wantsCapsule: boolean) {
     setPending(true);
     setError("");
     try {
@@ -38,7 +47,7 @@ export function RsvpForm({
         body: JSON.stringify({
           guestName: name.trim(),
           phone: phone.trim() || undefined,
-          companionName: hasCompanion ? companionName.trim() : undefined,
+          companionNames: companions,
           wantsCapsule
         })
       });
@@ -64,15 +73,26 @@ export function RsvpForm({
         <h2 className="public-event-section-title">Presença confirmada!</h2>
         <p className="public-event-message">
           Obrigado, <strong>{name}</strong>!
-          {hasCompanion && companionName.trim() ? (
-            <> Você e <strong>{companionName.trim()}</strong> estão confirmados para <strong>{eventTitle}</strong>.</>
+          {companions.length ? (
+            <>
+              {" "}
+              Sua família ({partySize} pessoa{partySize !== 1 ? "s" : ""}) está confirmada para <strong>{eventTitle}</strong>.
+            </>
           ) : (
             <> Sua presença em <strong>{eventTitle}</strong> está confirmada.</>
           )}
         </p>
-        {hasCompanion && companionName.trim() ? (
+        {companions.length ? (
+          <ul className="public-rsvp-companion-list">
+            <li>{name.trim()}</li>
+            {companions.map((companion) => (
+              <li key={companion}>{companion}</li>
+            ))}
+          </ul>
+        ) : null}
+        {companions.length ? (
           <p className="public-event-message" style={{ fontSize: 14 }}>
-            No dia do evento, entrem juntos na portaria — a entrada será registrada para os dois.
+            No dia do evento, entrem juntos na portaria — a entrada será registrada para todos de uma vez.
           </p>
         ) : null}
         {capsuleAvailable ? (
@@ -108,7 +128,9 @@ export function RsvpForm({
   return (
     <section className="public-rsvp-form">
       <h2 className="public-event-section-title">Confirmar presença</h2>
-      <p className="public-event-message">Informe seu nome completo. Se vier com acompanhante, inclua o nome dele(a) também.</p>
+      <p className="public-event-message">
+        Informe seu nome completo. Se vier com família ou acompanhantes, adicione o nome de cada pessoa.
+      </p>
       <div className="praesentia-form praesentia-form-stack">
         <label className="field">
           <span>Nome completo *</span>
@@ -122,31 +144,48 @@ export function RsvpForm({
           />
         </label>
 
-        <label className="settings-switch public-rsvp-companion-toggle">
-          <input
-            type="checkbox"
-            checked={hasCompanion}
-            onChange={(e) => {
-              setHasCompanion(e.target.checked);
-              if (!e.target.checked) setCompanionName("");
-            }}
-          />
-          <span>Vou levar acompanhante</span>
-        </label>
-
-        {hasCompanion ? (
-          <label className="field public-rsvp-companion-field">
-            <span>Nome completo do acompanhante *</span>
+        <div className="public-rsvp-companions-block">
+          <span className="field">
+            <span>Acompanhantes</span>
+          </span>
+          {companions.length ? (
+            <ul className="public-rsvp-companion-list">
+              {companions.map((companion, index) => (
+                <li key={`${companion}-${index}`}>
+                  <span>{companion}</span>
+                  <button type="button" className="public-rsvp-companion-remove" onClick={() => removeCompanion(index)}>
+                    Remover
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          <div className="public-rsvp-companion-add-row">
             <input
               type="text"
-              value={companionName}
-              onChange={(e) => setCompanionName(e.target.value)}
-              placeholder="Nome completo de quem vem com você"
+              value={companionDraft}
+              onChange={(e) => setCompanionDraft(e.target.value)}
+              placeholder="Nome completo do acompanhante"
               maxLength={120}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  addCompanion();
+                }
+              }}
             />
-            <p className="cover-field-help">No check-in do evento, vocês entram juntos com um único registro.</p>
-          </label>
-        ) : null}
+            <button type="button" className="btn secondary" onClick={addCompanion} disabled={!companionDraft.trim()}>
+              Adicionar
+            </button>
+          </div>
+          {companions.length ? (
+            <p className="cover-field-help">
+              Total: {partySize} pessoa{partySize !== 1 ? "s" : ""} (você + {companions.length} acompanhante{companions.length !== 1 ? "s" : ""})
+            </p>
+          ) : (
+            <p className="cover-field-help">Opcional. Adicione quantos acompanhantes forem levar.</p>
+          )}
+        </div>
 
         <label className="field">
           <span>WhatsApp (opcional, só para o organizador)</span>
@@ -163,10 +202,14 @@ export function RsvpForm({
         <button
           className="btn public-rsvp-action"
           type="button"
-          disabled={!name.trim() || pending || (hasCompanion && !companionName.trim())}
+          disabled={!name.trim() || pending}
           onClick={() => (capsuleAvailable ? setStep("capsule") : handleConfirm(false))}
         >
-          {pending ? "Confirmando..." : hasCompanion ? "Confirmar presença (2 pessoas)" : "Confirmar presença"}
+          {pending
+            ? "Confirmando..."
+            : partySize > 1
+              ? `Confirmar presença (${partySize} pessoas)`
+              : "Confirmar presença"}
         </button>
       </div>
     </section>

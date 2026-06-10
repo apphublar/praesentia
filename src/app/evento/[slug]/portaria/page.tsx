@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { PortariaPanel } from "@/components/event/portaria-panel";
 import { repositories } from "@/lib/db";
 import { safeRepositoryCall } from "@/lib/db/safe";
+import { formatEventDateLine } from "@/lib/events/format-event-date";
 
 export default async function PortariaPage({
   params,
@@ -37,13 +38,7 @@ export default async function PortariaPage({
     "guestRsvps.listByEvent"
   );
 
-  const eventDate = event.date
-    ? new Date(`${event.date}T12:00:00`).toLocaleDateString("pt-BR", {
-        weekday: "long",
-        day: "numeric",
-        month: "long"
-      })
-    : null;
+  const eventDate = formatEventDateLine(event.date);
 
   return (
     <main className="portaria-page">

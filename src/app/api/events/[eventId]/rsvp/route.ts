@@ -19,7 +19,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ eve
     const body = await request.json();
     const guestName = sanitizeText(body.guestName, 120);
     const phone = body.phone ? sanitizeText(body.phone, 20) : undefined;
-    const companionName = body.companionName ? sanitizeText(body.companionName, 120) : undefined;
+    const rawCompanions = Array.isArray(body.companionNames) ? body.companionNames : [];
+    const companionNames = rawCompanions
+      .map((name: unknown) => sanitizeText(String(name ?? ""), 120))
+      .filter(Boolean);
+    const companionName = body.companionName ? sanitizeText(body.companionName, 120) : companionNames[0];
     const wantsCapsule = Boolean(body.wantsCapsule) && canAccessCapsule(event);
 
     if (!guestName) {
@@ -31,6 +35,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ eve
       guestName,
       phone,
       companionName: companionName || undefined,
+      companionNames: companionNames.length ? companionNames : companionName ? [companionName] : [],
       wantsCapsule
     });
 
@@ -42,9 +47,15 @@ export async function POST(request: Request, { params }: { params: Promise<{ eve
   } catch (err) {
     console.error("[rsvp]", err);
     const detail = err instanceof Error ? err.message : "";
-    if (/companion_name|guest_rsvps|relation.*does not exist/i.test(detail)) {
+    if (/relation "guest_rsvps" does not exist/i.test(detail)) {
       return NextResponse.json(
-        { error: "Banco desatualizado. Execute a migração 007-guest-companion.sql no Supabase." },
+        { error: "Banco desatualizado. Execute a migração 001-plan-flow.sql no Supabase." },
+        { status: 503 }
+      );
+    }
+    if (/companion_names|companion_name|column.*does not exist/i.test(detail)) {
+      return NextResponse.json(
+        { error: "Banco desatualizado. Execute as migrações 007 e 008 no Supabase." },
         { status: 503 }
       );
     }

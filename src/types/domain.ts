@@ -91,6 +91,7 @@ export type GuestRsvp = {
   guestName: string;
   phone?: string;
   companionName?: string;
+  companionNames?: string[];
   wantsCapsule: boolean;
   checkedInAt?: string;
   confirmedAt: string;

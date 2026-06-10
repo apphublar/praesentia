@@ -21,6 +21,7 @@ export type CreateGuestRsvpInput = {
   guestName: string;
   phone?: string;
   companionName?: string;
+  companionNames?: string[];
   wantsCapsule: boolean;
 };
 
@@ -124,6 +125,7 @@ export interface GuestRsvpRepository {
   create(input: CreateGuestRsvpInput): Promise<GuestRsvp>;
   listByEvent(eventId: string): Promise<GuestRsvp[]>;
   findById(eventId: string, rsvpId: string): Promise<GuestRsvp | null>;
+  updateCompanions(eventId: string, rsvpId: string, companionNames: string[]): Promise<GuestRsvp>;
   checkIn(eventId: string, rsvpId: string, actorUserId: string): Promise<GuestRsvp>;
   undoCheckIn(eventId: string, rsvpId: string, actorUserId: string): Promise<GuestRsvp>;
 }

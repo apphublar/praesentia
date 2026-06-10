@@ -44,7 +44,21 @@ export async function POST(request: Request, { params }: { params: Promise<{ eve
     const mode = sanitizeText(body.mode, 20) || "generate";
     const editHint = sanitizeText(body.editHint, 400);
     const orientation = sanitizeText(body.orientation, 400);
-    const includeFields = (body.includeFields ?? {}) as Record<string, boolean>;
+    const coverFields = (body.coverFields ?? {}) as Record<string, string>;
+    const sanitizedCoverFields = {
+      eventTitle: sanitizeText(coverFields.eventTitle, 160),
+      hostName: sanitizeText(coverFields.hostName, 120),
+      theme: sanitizeText(coverFields.theme, 160),
+      date: sanitizeText(coverFields.date, 40),
+      startsAt: sanitizeText(coverFields.startsAt, 20),
+      endsAt: sanitizeText(coverFields.endsAt, 20),
+      venueName: sanitizeText(coverFields.venueName, 160),
+      venueAddress: sanitizeText(coverFields.venueAddress, 220),
+      venueZip: sanitizeText(coverFields.venueZip, 12),
+      venueComplement: sanitizeText(coverFields.venueComplement, 120),
+      city: sanitizeText(coverFields.city, 120),
+      onlineMeetingUrl: sanitizeText(coverFields.onlineMeetingUrl, 400)
+    };
     const primaryPhotoDataUrl =
       typeof body.primaryPhotoDataUrl === "string" && body.primaryPhotoDataUrl.startsWith("data:image/")
         ? body.primaryPhotoDataUrl
@@ -92,13 +106,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ eve
     const requestSummary = buildCoverRequestSummary(event, {
       orientation: orientation || undefined,
       editHint: mode === "edit" ? editHint : undefined,
-      includeFields: {
-        title: includeFields.title !== false,
-        date: includeFields.date !== false,
-        location: includeFields.location !== false,
-        hostName: includeFields.hostName !== false,
-        theme: includeFields.theme !== false
-      }
+      coverFields: sanitizedCoverFields
     });
 
     const reservation = await reserveAiCoverUsage({

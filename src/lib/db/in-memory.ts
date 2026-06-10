@@ -450,12 +450,14 @@ const guestRsvpStore: GuestRsvp[] = [];
 
 export const inMemoryGuestRsvps: GuestRsvpRepository = {
   async create(input: CreateGuestRsvpInput): Promise<GuestRsvp> {
+    const companions = (input.companionNames ?? []).map((name) => name.trim()).filter(Boolean);
     const rsvp: GuestRsvp = {
       id: createId("rsvp"),
       eventId: input.eventId,
       guestName: input.guestName,
       phone: input.phone,
-      companionName: input.companionName,
+      companionName: companions[0] ?? input.companionName,
+      companionNames: companions.length ? companions : input.companionName ? [input.companionName] : [],
       wantsCapsule: input.wantsCapsule,
       confirmedAt: new Date().toISOString()
     };
@@ -467,6 +469,15 @@ export const inMemoryGuestRsvps: GuestRsvpRepository = {
   },
   async findById(eventId, rsvpId) {
     return guestRsvpStore.find((item) => item.id === rsvpId && item.eventId === eventId) ?? null;
+  },
+  async updateCompanions(eventId, rsvpId, companionNames) {
+    const rsvp = guestRsvpStore.find((item) => item.id === rsvpId && item.eventId === eventId);
+    if (!rsvp) throw new Error("RSVP_NOT_FOUND");
+    if (rsvp.checkedInAt) throw new Error("ALREADY_CHECKED_IN");
+    const names = companionNames.map((name) => name.trim()).filter(Boolean);
+    rsvp.companionNames = names;
+    rsvp.companionName = names[0];
+    return rsvp;
   },
   async checkIn(eventId, rsvpId, _actorUserId) {
     const rsvp = guestRsvpStore.find((item) => item.id === rsvpId && item.eventId === eventId);

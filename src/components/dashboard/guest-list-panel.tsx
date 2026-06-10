@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { GuestRsvp } from "@/types/domain";
-import { guestPartySize, sumPartySize } from "@/lib/guests/rsvp-display";
+import { guestCompanionNames, guestPartySize, sumPartySize } from "@/lib/guests/rsvp-display";
 
 export function GuestListPanel({
   eventId,
@@ -121,9 +121,9 @@ export function GuestListPanel({
               <div key={rsvp.id} className={`guest-list-row${rsvp.checkedInAt ? " is-checked-in" : ""}`}>
                 <div>
                   <strong>{rsvp.guestName}</strong>
-                  {rsvp.companionName ? (
-                    <div className="guest-list-companion">+ {rsvp.companionName}</div>
-                  ) : null}
+                  {guestCompanionNames(rsvp).map((companion) => (
+                    <div key={companion} className="guest-list-companion">+ {companion}</div>
+                  ))}
                   <div className="guest-list-meta">
                     Confirmou em {new Date(rsvp.confirmedAt).toLocaleDateString("pt-BR")}
                     {partySize > 1 ? ` · ${partySize} pessoas` : ""}

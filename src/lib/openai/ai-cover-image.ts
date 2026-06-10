@@ -2,6 +2,8 @@ import { PublicAiCoverError, toPublicCoverImageErrorMessage } from "@/lib/openai
 import {
   buildCoverInvitationSpec,
   buildPremiumCoverPrompt,
+  mergeCoverRequestSummary,
+  type CoverFieldsOverride,
   type CoverIncludeFields,
   type CoverRequestSummary
 } from "@/lib/openai/cover-invitation-spec";
@@ -63,7 +65,8 @@ async function refineCoverImagePromptWithGpt(
           content:
             "You are an expert prompt engineer for OpenAI gpt-image models creating premium Brazilian party invitations. " +
             "Write ONE detailed English prompt for the image model. " +
-            "The invitation must render the exact Portuguese texts provided — never placeholders, never 'Invalid Date', never English UI text. " +
+            "The invitation must render ONLY the exact Portuguese texts provided — never placeholders, never 'Invalid Date', never English visible text. " +
+            "Decorative headers must be in Brazilian Portuguese (e.g. Aniversário, Festa Infantil), never English words like celebration, birthday, or party. " +
             "When a real photo is provided, instruct the model to remove the background completely, cut out the person cleanly, and place them in a soft circular frame as the central focal point. " +
             "Return ONLY the final prompt."
         },
@@ -78,6 +81,7 @@ Requirements:
 - Vertical 9:16 layout with clear hierarchy: title header, central photo area, date/time/location blocks, elegant footer
 - Limited cohesive palette from spec
 - Exact Portuguese strings must appear legibly
+- ALL visible text strictly Brazilian Portuguese — zero English words in the design
 - Professional typography (script + sans-serif)
 - Soft lighting, watercolor/pastel polish when appropriate
 - If withHostPhoto=true: background removal + circular frame + clean integration is mandatory`
@@ -382,25 +386,13 @@ export function buildCoverRequestSummary(
   input: {
     orientation?: string;
     editHint?: string;
-    includeFields: CoverIncludeFields;
+    coverFields?: CoverFieldsOverride;
+    includeFields?: CoverIncludeFields;
   }
 ): CoverRequestSummary {
-  return {
-    eventId: event.id,
-    eventTitle: event.title,
-    eventType: event.eventType,
-    hostName: event.hostName,
-    theme: event.theme,
-    date: event.date,
-    startsAt: event.startsAt,
-    endsAt: event.endsAt,
-    eventFormat: event.eventFormat,
-    venueName: event.venueName,
-    venueAddress: event.venueAddress,
-    city: event.city,
-    onlineMeetingUrl: event.onlineMeetingUrl,
+  return mergeCoverRequestSummary(event, {
     orientation: input.orientation,
     editHint: input.editHint,
-    includeFields: input.includeFields
-  };
+    coverFields: input.coverFields
+  });
 }

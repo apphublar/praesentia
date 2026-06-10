@@ -669,13 +669,32 @@ export const postgresLikes: LikeRepository = {
   }
 };
 
+function parseCompanionNames(row: Record<string, unknown>): string[] {
+  const raw = row.companion_names;
+  if (Array.isArray(raw)) {
+    return raw.map((item) => String(item).trim()).filter(Boolean);
+  }
+  if (typeof raw === "string") {
+    try {
+      const parsed = JSON.parse(raw) as unknown;
+      if (Array.isArray(parsed)) return parsed.map((item) => String(item).trim()).filter(Boolean);
+    } catch {
+      /* ignore */
+    }
+  }
+  const legacy = row.companion_name ? String(row.companion_name).trim() : "";
+  return legacy ? [legacy] : [];
+}
+
 function rowToGuestRsvp(row: Record<string, unknown>): GuestRsvp {
+  const companionNames = parseCompanionNames(row);
   return {
     id: String(row.id),
     eventId: String(row.event_id),
     guestName: String(row.guest_name),
     phone: row.phone ? String(row.phone) : undefined,
-    companionName: row.companion_name ? String(row.companion_name) : undefined,
+    companionName: companionNames[0],
+    companionNames,
     wantsCapsule: Boolean(row.wants_capsule),
     checkedInAt: row.checked_in_at ? new Date(String(row.checked_in_at)).toISOString() : undefined,
     confirmedAt: new Date(String(row.confirmed_at)).toISOString()
@@ -685,18 +704,33 @@ function rowToGuestRsvp(row: Record<string, unknown>): GuestRsvp {
 export const postgresGuestRsvps: GuestRsvpRepository = {
   async create(input: CreateGuestRsvpInput): Promise<GuestRsvp> {
     const sql = getSql();
-    const rows = await sql`
-      insert into guest_rsvps (event_id, guest_name, phone, companion_name, wants_capsule)
-      values (
-        ${input.eventId},
-        ${input.guestName},
-        ${input.phone ?? null},
-        ${input.companionName ?? null},
-        ${input.wantsCapsule}
-      )
-      returning *
-    `;
-    return rowToGuestRsvp(rows[0]);
+    const companions = (input.companionNames ?? []).map((name) => name.trim()).filter(Boolean);
+    const legacyName = companions[0] ?? input.companionName?.trim();
+
+    try {
+      const rows = await sql`
+        insert into guest_rsvps (event_id, guest_name, phone, companion_name, companion_names, wants_capsule)
+        values (
+          ${input.eventId},
+          ${input.guestName},
+          ${input.phone ?? null},
+          ${legacyName ?? null},
+          ${JSON.stringify(companions)}::jsonb,
+          ${input.wantsCapsule}
+        )
+        returning *
+      `;
+      return rowToGuestRsvp(rows[0]);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "";
+      if (!/companion_names|companion_name|column/.test(message)) throw err;
+      const rows = await sql`
+        insert into guest_rsvps (event_id, guest_name, phone, wants_capsule)
+        values (${input.eventId}, ${input.guestName}, ${input.phone ?? null}, ${input.wantsCapsule})
+        returning *
+      `;
+      return rowToGuestRsvp(rows[0]);
+    }
   },
   async listByEvent(eventId: string): Promise<GuestRsvp[]> {
     const sql = getSql();
@@ -714,15 +748,58 @@ export const postgresGuestRsvps: GuestRsvpRepository = {
     `;
     return rows[0] ? rowToGuestRsvp(rows[0]) : null;
   },
+  async updateCompanions(eventId, rsvpId, companionNames) {
+    const sql = getSql();
+    const names = companionNames.map((name) => name.trim()).filter(Boolean);
+    const existing = await this.findById(eventId, rsvpId);
+    if (!existing) throw new Error("RSVP_NOT_FOUND");
+    if (existing.checkedInAt) throw new Error("ALREADY_CHECKED_IN");
+
+    try {
+      const rows = await sql`
+        update guest_rsvps
+        set companion_names = ${JSON.stringify(names)}::jsonb,
+            companion_name = ${names[0] ?? null}
+        where id = ${rsvpId} and event_id = ${eventId}
+        returning *
+      `;
+      if (!rows[0]) throw new Error("RSVP_NOT_FOUND");
+      return rowToGuestRsvp(rows[0]);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "";
+      if (!/companion_names|companion_name|column/.test(message)) throw err;
+      const rows = await sql`
+        update guest_rsvps
+        set companion_name = ${names[0] ?? null}
+        where id = ${rsvpId} and event_id = ${eventId}
+        returning *
+      `;
+      if (!rows[0]) throw new Error("RSVP_NOT_FOUND");
+      return rowToGuestRsvp(rows[0]);
+    }
+  },
   async checkIn(eventId, rsvpId, _actorUserId) {
     const sql = getSql();
-    const rows = await sql`
-      update guest_rsvps set checked_in_at = now()
-      where id = ${rsvpId} and event_id = ${eventId}
-      returning *
-    `;
-    if (!rows[0]) throw new Error("RSVP_NOT_FOUND");
-    return rowToGuestRsvp(rows[0]);
+    try {
+      const rows = await sql`
+        update guest_rsvps set checked_in_at = now()
+        where id = ${rsvpId} and event_id = ${eventId}
+        returning *
+      `;
+      if (!rows[0]) throw new Error("RSVP_NOT_FOUND");
+      return rowToGuestRsvp(rows[0]);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "";
+      if (message === "RSVP_NOT_FOUND") throw err;
+      if (/guest_rsvps|relation.*does not exist/i.test(message)) throw err;
+      const rows = await sql`
+        update guest_rsvps set checked_in_at = now()
+        where id = ${rsvpId} and event_id = ${eventId}
+        returning id, event_id, guest_name, phone, wants_capsule, checked_in_at, confirmed_at
+      `;
+      if (!rows[0]) throw new Error("RSVP_NOT_FOUND");
+      return rowToGuestRsvp(rows[0]);
+    }
   },
   async undoCheckIn(eventId, rsvpId, _actorUserId) {
     const sql = getSql();

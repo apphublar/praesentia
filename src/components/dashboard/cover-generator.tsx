@@ -6,11 +6,14 @@ import { generateEventCoverImageClient } from "@/lib/api/generate-cover";
 import { apiErrorMessage, dashboardFetchJson } from "@/lib/api/dashboard-fetch";
 import { resizeDataUrlForCover, resizeImageForCover } from "@/lib/images/resize-host-photo";
 import {
-  buildCoverEventBriefLines,
   buildDefaultCoverOrientation,
+  buildInitialCoverEditableFields,
+  coverEditableFieldsToOverride,
   COVER_IMAGE_FORMAT,
-  toCoverFormEventInput
+  toCoverFormEventInput,
+  type CoverEditableFields
 } from "@/lib/openai/cover-invitation-spec";
+import { formatEventDateLine } from "@/lib/events/format-event-date";
 
 export type CoverQuota = {
   maxGenerations: number;
@@ -23,7 +26,13 @@ export type CoverQuota = {
   testingMode?: boolean;
 };
 
-const DEFAULT_INCLUDE = { title: true, date: true, location: true, hostName: true, theme: true };
+function updateCoverField<K extends keyof CoverEditableFields>(
+  setter: React.Dispatch<React.SetStateAction<CoverEditableFields>>,
+  key: K,
+  value: CoverEditableFields[K]
+) {
+  setter((current) => ({ ...current, [key]: value }));
+}
 
 /* ── Preview do convite (coluna direita) ── */
 function InvitePreview({
@@ -31,15 +40,6 @@ function InvitePreview({
   imageError,
   onImageError,
   eventTitle,
-  eventHostName,
-  eventDate,
-  eventStartsAt,
-  eventEndsAt,
-  eventVenueName,
-  eventCity,
-  eventFormat,
-  onlineMeetingUrl,
-  shareLink,
   waMessage,
   canDownload
 }: {
@@ -47,29 +47,9 @@ function InvitePreview({
   imageError: boolean;
   onImageError: () => void;
   eventTitle: string;
-  eventHostName: string;
-  eventDate: string;
-  eventStartsAt: string;
-  eventEndsAt: string;
-  eventVenueName: string;
-  eventCity: string;
-  eventFormat: Event["eventFormat"];
-  onlineMeetingUrl?: string;
-  shareLink: string;
   waMessage: string;
   canDownload: boolean;
 }) {
-  const [copied, setCopied] = useState(false);
-
-  const dateLabel = eventDate
-    ? new Date(`${eventDate}T12:00:00`).toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })
-    : null;
-  const timeLabel = eventStartsAt && eventEndsAt ? `${eventStartsAt}–${eventEndsAt}` : eventStartsAt || null;
-  const locationLabel =
-    eventFormat === "online" ? (onlineMeetingUrl || "Evento online") :
-    eventFormat === "fundraising" ? "Contribuição via Pix" :
-    `${eventVenueName}${eventCity ? `, ${eventCity}` : ""}`;
-
   async function handleShare() {
     if (coverUrl && !imageError && typeof navigator !== "undefined" && navigator.share) {
       try {
@@ -82,7 +62,7 @@ function InvitePreview({
           }
         }
 
-        const shareData: ShareData = { title: eventTitle, text: waMessage, url: shareLink };
+        const shareData: ShareData = { title: eventTitle || "Convite", text: waMessage };
         if (fileToShare && navigator.canShare?.({ files: [fileToShare] })) {
           (shareData as ShareData & { files: File[] }).files = [fileToShare];
         }
@@ -95,20 +75,17 @@ function InvitePreview({
     window.open(`https://wa.me/?text=${encodeURIComponent(waMessage)}`, "_blank", "noopener");
   }
 
-  async function copyLink() {
-    await navigator.clipboard.writeText(shareLink);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }
-
   return (
     <div className="cover-preview-column">
+      <p className="cover-preview-format-note">
+        Prévia em proporção padrão {COVER_IMAGE_FORMAT.aspectRatio} ({COVER_IMAGE_FORMAT.size}) para WhatsApp e Stories.
+      </p>
       <div className="cover-phone-frame">
         {coverUrl && !imageError ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={coverUrl}
-            alt={`Convite de ${eventTitle}`}
+            alt={`Convite de ${eventTitle || "evento"}`}
             className="cover-phone-image"
             onError={onImageError}
           />
@@ -122,39 +99,9 @@ function InvitePreview({
             </span>
           </div>
         )}
-
-        <div className="cover-phone-details">
-          {eventTitle && (
-            <div className="cover-phone-title">{eventTitle}</div>
-          )}
-          {eventHostName && (
-            <div className="cover-phone-host">{eventHostName}</div>
-          )}
-          {(dateLabel || timeLabel) && (
-            <div className="cover-phone-meta">
-              <span>📅</span>
-              <span>{[dateLabel, timeLabel].filter(Boolean).join(" · ")}</span>
-            </div>
-          )}
-          {locationLabel && (
-            <div className="cover-phone-meta">
-              <span>{eventFormat === "online" ? "💻" : eventFormat === "fundraising" ? "💙" : "📍"}</span>
-              <span>{locationLabel}</span>
-            </div>
-          )}
-          <div className="cover-phone-rsvp-btn">Confirmar presença</div>
-        </div>
       </div>
 
       <div className="cover-share-section">
-        <div className="cover-share-link-row">
-          <span className="cover-share-link-label">Link do convite:</span>
-          <code className="cover-share-link-code">{shareLink}</code>
-          <button type="button" className="btn secondary cover-share-copy-btn" onClick={copyLink}>
-            {copied ? "Copiado!" : "Copiar"}
-          </button>
-        </div>
-
         <div className="cover-share-actions">
           {canDownload && coverUrl && !imageError && (
             <a href={coverUrl} download="convite.png" className="btn secondary cover-share-btn">
@@ -237,7 +184,6 @@ export function CoverGenerator({
     eventCity,
     onlineMeetingUrl
   });
-  const eventBriefLines = buildCoverEventBriefLines(coverFormInput);
   const defaultOrientation = buildDefaultCoverOrientation(coverFormInput);
 
   const [coverUrl, setCoverUrl] = useState(currentCoverUrl ?? "");
@@ -250,7 +196,7 @@ export function CoverGenerator({
   const [loading, setLoading] = useState(false);
   const [editHint, setEditHint] = useState("");
   const [orientation, setOrientation] = useState(defaultOrientation);
-  const [includeFields, setIncludeFields] = useState(DEFAULT_INCLUDE);
+  const [coverFields, setCoverFields] = useState(() => buildInitialCoverEditableFields(coverFormInput));
   const [error, setError] = useState("");
 
   const appUrl = typeof window !== "undefined" ? window.location.origin : "";
@@ -285,7 +231,7 @@ export function CoverGenerator({
         mode,
         editHint: mode === "edit" ? editHint : undefined,
         orientation: orientation || undefined,
-        includeFields,
+        coverFields: coverEditableFieldsToOverride(coverFields),
         primaryPhotoDataUrl,
         promptVersion: mode === "edit" ? "cover-image-correction-v1" : "cover-image-v1"
       });
@@ -376,19 +322,73 @@ export function CoverGenerator({
           <div className="praesentia-form praesentia-form-stack">
             <section className="cover-event-brief">
               <div className="cover-event-brief-head">
-                <span className="field"><span>Dados do convite (preenchidos automaticamente)</span></span>
+                <span className="field"><span>Dados do convite</span></span>
                 <p className="cover-field-help">
-                  Estes dados vêm do cadastro do evento e entram na imagem. Para alterar, edite as configurações do evento.
+                  Pré-preenchidos com o cadastro do evento. Edite ou apague o que não quiser na imagem — campos vazios não entram no convite.
                 </p>
               </div>
-              <dl className="cover-event-brief-grid">
-                {eventBriefLines.map((line) => (
-                  <div key={line.label} className="cover-event-brief-item">
-                    <dt>{line.label}</dt>
-                    <dd>{line.value}</dd>
-                  </div>
-                ))}
-              </dl>
+              <div className="cover-event-brief-grid cover-event-brief-form">
+                <label className="field">
+                  <span>Título do evento</span>
+                  <input value={coverFields.eventTitle} onChange={(e) => updateCoverField(setCoverFields, "eventTitle", e.target.value)} maxLength={160} />
+                </label>
+                <label className="field">
+                  <span>Homenageado(a)</span>
+                  <input value={coverFields.hostName} onChange={(e) => updateCoverField(setCoverFields, "hostName", e.target.value)} maxLength={120} />
+                </label>
+                <label className="field">
+                  <span>Tema do convite</span>
+                  <input value={coverFields.theme} onChange={(e) => updateCoverField(setCoverFields, "theme", e.target.value)} maxLength={160} />
+                </label>
+                <label className="field">
+                  <span>Data</span>
+                  <input type="date" value={coverFields.date} onChange={(e) => updateCoverField(setCoverFields, "date", e.target.value)} />
+                  {coverFields.date ? (
+                    <p className="cover-field-help">{formatEventDateLine(coverFields.date) ?? coverFields.date}</p>
+                  ) : null}
+                </label>
+                <div className="cover-event-brief-row">
+                  <label className="field">
+                    <span>Início</span>
+                    <input type="time" value={coverFields.startsAt} onChange={(e) => updateCoverField(setCoverFields, "startsAt", e.target.value)} />
+                  </label>
+                  <label className="field">
+                    <span>Término</span>
+                    <input type="time" value={coverFields.endsAt} onChange={(e) => updateCoverField(setCoverFields, "endsAt", e.target.value)} />
+                  </label>
+                </div>
+                {eventFormat === "online" ? (
+                  <label className="field">
+                    <span>Link do evento online</span>
+                    <input value={coverFields.onlineMeetingUrl} onChange={(e) => updateCoverField(setCoverFields, "onlineMeetingUrl", e.target.value)} maxLength={400} />
+                  </label>
+                ) : eventFormat !== "fundraising" ? (
+                  <>
+                    <label className="field">
+                      <span>Local / salão</span>
+                      <input value={coverFields.venueName} onChange={(e) => updateCoverField(setCoverFields, "venueName", e.target.value)} maxLength={160} />
+                    </label>
+                    <label className="field">
+                      <span>Endereço</span>
+                      <input value={coverFields.venueAddress} onChange={(e) => updateCoverField(setCoverFields, "venueAddress", e.target.value)} maxLength={220} />
+                    </label>
+                    <div className="cover-event-brief-row">
+                      <label className="field">
+                        <span>CEP</span>
+                        <input value={coverFields.venueZip} onChange={(e) => updateCoverField(setCoverFields, "venueZip", e.target.value)} maxLength={12} placeholder="00000-000" />
+                      </label>
+                      <label className="field">
+                        <span>Complemento</span>
+                        <input value={coverFields.venueComplement} onChange={(e) => updateCoverField(setCoverFields, "venueComplement", e.target.value)} maxLength={120} placeholder="Apto, bloco, salão..." />
+                      </label>
+                    </div>
+                    <label className="field">
+                      <span>Cidade</span>
+                      <input value={coverFields.city} onChange={(e) => updateCoverField(setCoverFields, "city", e.target.value)} maxLength={120} />
+                    </label>
+                  </>
+                ) : null}
+              </div>
             </section>
 
             <div className="cover-host-photo-block">
@@ -414,33 +414,13 @@ export function CoverGenerator({
               {hostPhotoSaved ? <p className="settings-status is-ok">Foto salva! Agora gere a imagem com IA.</p> : null}
             </div>
 
-            <div>
-              <span className="field"><span>O que incluir na arte</span></span>
-              <div className="cover-include-grid">
-                {(Object.keys(DEFAULT_INCLUDE) as Array<keyof typeof DEFAULT_INCLUDE>).map((key) => (
-                  <label key={key} className="settings-switch cover-include-option">
-                    <input type="checkbox" checked={includeFields[key]}
-                      onChange={(e) => setIncludeFields((c) => ({ ...c, [key]: e.target.checked }))} />
-                    <span>
-                      {key === "title" && "Título"}
-                      {key === "date" && "Data"}
-                      {key === "location" && "Local / link"}
-                      {key === "hostName" && "Organizador"}
-                      {key === "theme" && "Tema"}
-                    </span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
             <label className="field">
               <span>Orientação visual da imagem</span>
               <textarea value={orientation} onChange={(e) => setOrientation(e.target.value)}
                 maxLength={400} rows={4}
                 placeholder="Descreva cores, elementos decorativos e estilo do convite..." />
               <p className="cover-field-help">
-                Sugestão pré-preenchida com base no seu evento. Ajuste cores e elementos (sol, nuvens, flores, balões).
-                Proporção fixa {COVER_IMAGE_FORMAT.aspectRatio} para WhatsApp e Stories.
+                Sugestão com base no seu evento. Ajuste ou apague tudo para escrever do zero. Todo texto na imagem será em português do Brasil.
               </p>
             </label>
 
@@ -520,16 +500,7 @@ export function CoverGenerator({
           coverUrl={coverUrl}
           imageError={imageError}
           onImageError={() => setImageError(true)}
-          eventTitle={eventTitle}
-          eventHostName={eventHostName}
-          eventDate={eventDate}
-          eventStartsAt={eventStartsAt}
-          eventEndsAt={eventEndsAt}
-          eventVenueName={eventVenueName}
-          eventCity={eventCity}
-          eventFormat={eventFormat}
-          onlineMeetingUrl={onlineMeetingUrl}
-          shareLink={shareLink}
+          eventTitle={coverFields.eventTitle || eventTitle}
           waMessage={waMessage}
           canDownload={quota.allowsCustomUpload}
         />

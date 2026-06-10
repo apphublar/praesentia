@@ -32,6 +32,18 @@ export async function POST(request: Request, { params }: { params: Promise<{ eve
       return NextResponse.json({ error: "Convidado não encontrado neste evento." }, { status: 404 });
     }
 
+    if (action === "update_companions") {
+      if (existing.checkedInAt) {
+        return NextResponse.json({ error: "Não é possível alterar acompanhantes após a entrada." }, { status: 400 });
+      }
+      const rawNames = Array.isArray(body.companionNames) ? body.companionNames : [];
+      const companionNames = rawNames
+        .map((name: unknown) => sanitizeText(String(name ?? ""), 120))
+        .filter(Boolean);
+      const rsvp = await repositories.guestRsvps.updateCompanions(eventId, rsvpId, companionNames);
+      return NextResponse.json({ rsvp });
+    }
+
     const rsvp =
       action === "undo"
         ? await repositories.guestRsvps.undoCheckIn(eventId, rsvpId, "portaria")
@@ -44,9 +56,18 @@ export async function POST(request: Request, { params }: { params: Promise<{ eve
     if (message === "RSVP_NOT_FOUND") {
       return NextResponse.json({ error: "Convidado não encontrado neste evento." }, { status: 404 });
     }
-    if (/companion_name|guest_rsvps|relation.*does not exist/i.test(message)) {
+    if (message === "ALREADY_CHECKED_IN") {
+      return NextResponse.json({ error: "Entrada já registrada." }, { status: 400 });
+    }
+    if (/relation "guest_rsvps" does not exist/i.test(message)) {
       return NextResponse.json(
-        { error: "Banco desatualizado. Execute as migrações 001 e 007 no Supabase." },
+        { error: "Banco desatualizado. Execute a migração 001-plan-flow.sql no Supabase." },
+        { status: 503 }
+      );
+    }
+    if (/checked_in_at|column.*does not exist/i.test(message)) {
+      return NextResponse.json(
+        { error: "Banco desatualizado. Execute a migração 001-plan-flow.sql no Supabase." },
         { status: 503 }
       );
     }

@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import type { GuestRsvp } from "@/types/domain";
 import {
   guestCheckInLabel,
+  guestCompanionNames,
   guestMatchesSearch,
   guestPartySize,
   sumPartySize
@@ -33,32 +34,53 @@ export function PortariaPanel({
     [rsvps, search]
   );
 
+  async function postPortariaAction(rsvpId: string, payload: Record<string, unknown>) {
+    const res = await fetch(`/api/events/${eventId}/portaria-check-in`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token, rsvpId, ...payload })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(typeof data.error === "string" ? data.error : "Não foi possível concluir a ação.");
+    }
+    return data.rsvp as GuestRsvp;
+  }
+
   async function toggleCheckIn(rsvp: GuestRsvp) {
     setLoadingId(rsvp.id);
     setError("");
     const action = rsvp.checkedInAt ? "undo" : "check_in";
     try {
-      const res = await fetch(`/api/events/${eventId}/portaria-check-in`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, rsvpId: rsvp.id, action })
+      const updated = await postPortariaAction(rsvp.id, { action });
+      setRsvps((current) => current.map((item) => (item.id === rsvp.id ? updated : item)));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro de conexão. Tente novamente.");
+    }
+    setLoadingId(null);
+  }
+
+  async function removeCompanion(rsvp: GuestRsvp, index: number) {
+    if (rsvp.checkedInAt) return;
+    const nextNames = guestCompanionNames(rsvp).filter((_, i) => i !== index);
+    setLoadingId(rsvp.id);
+    setError("");
+    try {
+      const updated = await postPortariaAction(rsvp.id, {
+        action: "update_companions",
+        companionNames: nextNames
       });
-      const data = await res.json().catch(() => ({}));
-      if (res.ok && data.rsvp) {
-        setRsvps((current) => current.map((item) => (item.id === rsvp.id ? data.rsvp : item)));
-      } else {
-        setError(typeof data.error === "string" ? data.error : "Não foi possível registrar a entrada. Tente novamente.");
-      }
-    } catch {
-      setError("Erro de conexão. Tente novamente.");
+      setRsvps((current) => current.map((item) => (item.id === rsvp.id ? updated : item)));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro de conexão. Tente novamente.");
     }
     setLoadingId(null);
   }
 
   function checkInButtonLabel(rsvp: GuestRsvp) {
     const size = guestPartySize(rsvp);
-    if (rsvp.checkedInAt) return "Desfazer";
-    return size > 1 ? `Dar entrada (${size} pessoas)` : "Dar entrada";
+    if (rsvp.checkedInAt) return "Desfazer entrada";
+    return size > 1 ? `Dar entrada em todos (${size} pessoas)` : "Dar entrada";
   }
 
   return (
@@ -98,6 +120,7 @@ export function PortariaPanel({
       ) : (
         <div className="portaria-guest-list">
           {filtered.map((rsvp) => {
+            const companions = guestCompanionNames(rsvp);
             const partySize = guestPartySize(rsvp);
             return (
               <article
@@ -106,11 +129,24 @@ export function PortariaPanel({
               >
                 <div className="portaria-guest-main">
                   <div className="portaria-guest-name">{rsvp.guestName}</div>
-                  {rsvp.companionName ? (
-                    <div className="portaria-guest-companion">
-                      <span className="portaria-guest-companion-label">Acompanhante</span>
-                      <span>{rsvp.companionName}</span>
-                    </div>
+                  {companions.length ? (
+                    <ul className="portaria-companion-list">
+                      {companions.map((companion, index) => (
+                        <li key={`${companion}-${index}`}>
+                          <span>{companion}</span>
+                          {!rsvp.checkedInAt ? (
+                            <button
+                              type="button"
+                              className="portaria-companion-remove"
+                              onClick={() => removeCompanion(rsvp, index)}
+                              disabled={loadingId === rsvp.id}
+                            >
+                              Remover
+                            </button>
+                          ) : null}
+                        </li>
+                      ))}
+                    </ul>
                   ) : null}
                   {rsvp.checkedInAt ? (
                     <div className="portaria-guest-checked">
