@@ -10,8 +10,9 @@ export function canViewEvent(user: User | null, event: Event, member?: EventMemb
   return member.accessStatus === "active";
 }
 
-export function canManageEvent(user: User, member?: EventMember) {
+export function canManageEvent(user: User, member?: EventMember, ownerId?: string | null) {
   if (isPlatformAdmin(user)) return true;
+  if (ownerId && ownerId === user.id) return true;
   return member?.accessStatus === "active" && ["owner", "manager"].includes(member.role);
 }
 

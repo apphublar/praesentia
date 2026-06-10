@@ -15,6 +15,7 @@ import type {
 } from "@/lib/db/repositories";
 import { bytesFromGb, PLANS } from "@/lib/plans";
 import { normalizeEventType } from "@/lib/events/event-types";
+import { normalizeInviteCopy } from "@/lib/events/invite-copy";
 import type { Event, EventMember, EventType, GuestRsvp, InviteCopy, MediaItem, PlanTier, User, UserSubscription } from "@/types/domain";
 
 function rowToUser(row: Record<string, unknown>): User {
@@ -47,7 +48,7 @@ function rowToEvent(row: Record<string, unknown>): Event {
     aiCoverPendingUrls: Array.isArray(row.ai_cover_pending_urls)
       ? (row.ai_cover_pending_urls as string[])
       : undefined,
-    inviteCopy: row.invite_copy ? (row.invite_copy as InviteCopy) : undefined,
+    inviteCopy: normalizeInviteCopy(row.invite_copy as Partial<InviteCopy>),
     eventFormat: (row.event_format as Event["eventFormat"]) ?? "in_person",
     onlineMeetingUrl: row.online_meeting_url ? String(row.online_meeting_url) : undefined,
     capsuleActivatedAt: row.capsule_activated_at

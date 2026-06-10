@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { previewWhatsappMessage } from "@/lib/events/invite-copy";
 
 export function EventSharePanel({
   eventSlug,
@@ -20,11 +21,7 @@ export function EventSharePanel({
   const [copied, setCopied] = useState(false);
   const appUrl = typeof window !== "undefined" ? window.location.origin : "";
   const eventLink = `${appUrl}/evento/${eventSlug}`;
-  const waBody = whatsappText?.includes("{{link}}")
-    ? whatsappText.replace(/\{\{link\}\}/g, eventLink)
-    : whatsappText
-      ? `${whatsappText} ${eventLink}`
-      : `${headline ? `${headline}\n\n` : ""}${message ? `${message}\n\n` : ""}${eventLink}`;
+  const waBody = previewWhatsappMessage(whatsappText ?? headline ?? message, eventLink);
 
   async function copyAll() {
     await navigator.clipboard.writeText(waBody);

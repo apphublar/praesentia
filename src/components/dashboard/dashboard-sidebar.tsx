@@ -45,9 +45,19 @@ function SidebarLink({
 }) {
   const isHash = href.includes("#");
 
+  function handleNavigate() {
+    onNavigate();
+    if (!isHash) return;
+    const sectionId = href.split("#")[1];
+    if (!sectionId) return;
+    window.setTimeout(() => {
+      document.getElementById(sectionId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 120);
+  }
+
   if (isHash) {
     return (
-      <a href={href} className={`dashboard-nav-link${active ? " is-active" : ""}`} onClick={onNavigate}>
+      <a href={href} className={`dashboard-nav-link${active ? " is-active" : ""}`} onClick={handleNavigate}>
         <span className="dashboard-nav-icon">{icon}</span>
         <span>{label}</span>
       </a>

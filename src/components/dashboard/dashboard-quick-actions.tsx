@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { IconLink, IconQr, IconShare } from "@/components/dashboard/dashboard-icons";
+import { previewWhatsappMessage } from "@/lib/events/invite-copy";
 
 export function DashboardQuickActions({
   eventSlug,
@@ -16,11 +17,7 @@ export function DashboardQuickActions({
   const [qrOpen, setQrOpen] = useState(false);
   const appUrl = typeof window !== "undefined" ? window.location.origin : "https://www.praesentia.com.br";
   const eventLink = `${appUrl}/evento/${eventSlug}`;
-  const waBody = whatsappText?.includes("{{link}}")
-    ? whatsappText.replace(/\{\{link\}\}/g, eventLink)
-    : whatsappText
-      ? `${whatsappText} ${eventLink}`
-      : `Confira ${eventTitle}:\n${eventLink}`;
+  const waBody = previewWhatsappMessage(whatsappText, eventLink);
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(eventLink)}`;
 
   async function copyLink() {

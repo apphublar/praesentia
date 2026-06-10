@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { DashboardEventProvider } from "@/components/dashboard/dashboard-context";
+import { DashboardHashScroll } from "@/components/dashboard/dashboard-hash-scroll";
 import { toDashboardEventSummary } from "@/components/dashboard/dashboard-event-summary";
 import { repositories } from "@/lib/db";
 
@@ -14,5 +15,10 @@ export default async function EventDashboardLayout({
   const event = await repositories.events.findById(id);
   if (!event) notFound();
 
-  return <DashboardEventProvider event={toDashboardEventSummary(event)}>{children}</DashboardEventProvider>;
+  return (
+    <DashboardEventProvider event={toDashboardEventSummary(event)}>
+      <DashboardHashScroll />
+      {children}
+    </DashboardEventProvider>
+  );
 }

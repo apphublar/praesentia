@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { InviteCopy } from "@/types/domain";
+import { previewWhatsappMessage, resolveInviteCopy } from "@/lib/events/invite-copy";
 
 export type TextQuota = {
   maxGenerations: number;
@@ -10,13 +11,6 @@ export type TextQuota = {
   remainingEdits: number;
   canGenerate: boolean;
   canEdit: boolean;
-};
-
-const emptyCopy: InviteCopy = {
-  headline: "",
-  message: "",
-  whatsapp: "",
-  hashtags: []
 };
 
 export function InviteTextEditor({
@@ -36,7 +30,7 @@ export function InviteTextEditor({
   onCopyChange?: (copy: InviteCopy) => void;
   compactTitle?: string;
 }) {
-  const [copy, setCopy] = useState<InviteCopy>(initialCopy ?? emptyCopy);
+  const [copy, setCopy] = useState<InviteCopy>(() => resolveInviteCopy(initialCopy));
   const [quota, setQuota] = useState(initialQuota);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -47,8 +41,9 @@ export function InviteTextEditor({
   const eventLink = `${appUrl}/evento/${eventSlug}`;
 
   function updateCopy(next: InviteCopy) {
-    setCopy(next);
-    onCopyChange?.(next);
+    const safe = resolveInviteCopy(next);
+    setCopy(safe);
+    onCopyChange?.(safe);
     setSaved(false);
   }
 
@@ -98,9 +93,7 @@ export function InviteTextEditor({
     setSaving(false);
   }
 
-  const whatsappPreview = copy.whatsapp.includes("{{link}}")
-    ? copy.whatsapp.replace(/\{\{link\}\}/g, eventLink)
-    : copy.whatsapp ? `${copy.whatsapp} ${eventLink}` : eventLink;
+  const whatsappPreview = previewWhatsappMessage(copy.whatsapp, eventLink);
 
   return (
     <article className="card dashboard-card">
@@ -142,23 +135,23 @@ export function InviteTextEditor({
             placeholder='Use {{link}} onde quiser inserir o link do evento.'
           />
         </label>
-        {copy.whatsapp && (
+        {copy.whatsapp.trim() ? (
           <p style={{ color: "var(--ink-soft)", fontSize: 13, lineHeight: 1.55, margin: 0 }}>
             Prévia: {whatsappPreview}
           </p>
-        )}
+        ) : null}
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 20 }}>
         <button type="button" className="btn secondary" onClick={saveManual} disabled={saving}>
           {saving ? "Salvando..." : saved ? "Salvo ✓" : "Salvar texto"}
         </button>
-        {quota.canGenerate && (
+        {quota.canGenerate ? (
           <button type="button" className="btn" onClick={generateWithAi} disabled={loading}>
             {loading ? "Gerando..." : "✨ Gerar sugestão com IA (1x)"}
           </button>
-        )}
-        {error && <p style={{ color: "var(--coral)", fontSize: 13 }}>{error}</p>}
+        ) : null}
+        {error ? <p style={{ color: "var(--coral)", fontSize: 13 }}>{error}</p> : null}
       </div>
     </article>
   );

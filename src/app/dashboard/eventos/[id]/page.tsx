@@ -44,12 +44,17 @@ export default async function EventDashboardPage({ params }: { params: Promise<{
     null,
     "members.findMembership"
   );
+  const ownerId = await safeRepositoryCall(
+    () => repositories.events.findOwnerId(event.id),
+    null,
+    "events.findOwnerId"
+  );
   const subscription = await safeRepositoryCall(
     () => repositories.subscriptions.findActiveByUser(session.user.id),
     null,
     "subscriptions.findActiveByUser"
   );
-  const allowed = canManageEvent(session.user, membership ?? undefined);
+  const allowed = canManageEvent(session.user, membership ?? undefined, ownerId);
   const capsuleActive = hasCapsuleAccess(event);
   const textQuota = getAiTextQuota(event);
   const coverQuota = getAiCoverQuota(event);

@@ -8,5 +8,5 @@ export async function resolvePostLoginPath(userId: string, requestedNext?: strin
 
   const events = await repositories.events.listByOwner(userId);
   if (events.length === 0) return "/criar";
-  return `/dashboard/eventos/${events[0].id}`;
+  return "/dashboard";
 }
