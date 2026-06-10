@@ -2942,17 +2942,18 @@ p + a.btn,
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: 20px;
-  overflow: hidden;
+  overflow: visible;
   box-shadow: 0 6px 24px rgba(27,18,9,.10);
+  line-height: 0;
 }
 
 .cover-phone-image {
   width: 100%;
-  aspect-ratio: 9 / 16;
-  object-fit: contain;
-  object-position: top center;
+  height: auto;
+  max-width: 100%;
   display: block;
-  background: var(--bg-soft);
+  border-radius: 20px;
+  vertical-align: top;
 }
 
 .cover-preview-format-note {
@@ -3015,6 +3016,161 @@ p + a.btn,
   border-radius: 999px;
 }
 
+.cover-gen-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(27, 18, 9, 0.55);
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  backdrop-filter: blur(2px);
+}
+
+.cover-gen-overlay-card {
+  width: min(520px, 100%);
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 24px 60px rgba(27, 18, 9, 0.18);
+}
+
+.cover-gen-overlay-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.cover-gen-overlay-spinner {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 3px solid var(--line);
+  border-top-color: var(--coral);
+  animation: cover-gen-spin 0.9s linear infinite;
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+
+@keyframes cover-gen-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.cover-gen-overlay-kicker {
+  margin: 0 0 4px;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--coral);
+}
+
+.cover-gen-overlay-title {
+  margin: 0;
+  font-size: 22px;
+  line-height: 1.2;
+}
+
+.cover-gen-progress-track {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--bg-soft);
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.cover-gen-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--coral), var(--gold));
+  transition: width 0.45s ease;
+}
+
+.cover-gen-progress-label {
+  margin: 0 0 18px;
+  font-size: 14px;
+  color: var(--ink-soft);
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cover-gen-progress-pct {
+  font-weight: 800;
+  color: var(--ink);
+  flex-shrink: 0;
+}
+
+.cover-gen-story {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 16px;
+  border-radius: 14px;
+  background: var(--bg-soft);
+  border: 1px solid var(--line);
+  min-height: 120px;
+  animation: cover-gen-fade 0.5s ease;
+}
+
+@keyframes cover-gen-fade {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.cover-gen-story-emoji {
+  font-size: 28px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.cover-gen-story-title {
+  margin: 0 0 6px;
+  font-size: 16px;
+}
+
+.cover-gen-story-text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+
+.cover-gen-overlay-tip {
+  margin: 16px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink);
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(255, 107, 74, 0.08);
+  border: 1px solid rgba(255, 107, 74, 0.18);
+}
+
+.cover-gen-overlay-tip-muted {
+  background: transparent;
+  border-color: transparent;
+  color: var(--ink-soft);
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.cover-prompt-assist-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 /* Share section */
 .cover-share-section {
   display: flex;
@@ -3061,6 +3217,7 @@ p + a.btn,
 .cover-share-btn {
   text-align: center;
   text-decoration: none;
+  width: 100%;
 }
 
 .cover-share-whatsapp-btn {

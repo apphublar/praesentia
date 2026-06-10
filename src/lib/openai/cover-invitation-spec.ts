@@ -1,8 +1,7 @@
 import { formatEventDateLine } from "@/lib/events/format-event-date";
-import { EVENT_TYPE_LABELS } from "@/lib/events/event-types";
-import type { Event, EventType } from "@/types/domain";
+import type { Event } from "@/types/domain";
 
-/** @deprecated Campos vazios no coverFields já definem o que entra na arte. */
+/** @deprecated Mantido por compatibilidade de tipos legados. */
 export type CoverIncludeFields = {
   title?: boolean;
   date?: boolean;
@@ -43,30 +42,18 @@ export type CoverRequestSummary = {
   city: string;
   onlineMeetingUrl?: string;
   orientation?: string;
+  photoInstructions?: string;
   editHint?: string;
   includeFields?: CoverIncludeFields;
 };
 
 export type CoverInvitationSpec = {
-  eventType: string;
-  eventTypeLabel: string;
-  invitationTitle: string;
-  honoreeName: string;
-  celebrationLine: string;
-  decorativeHeader: string;
-  dateLine: string | null;
-  timeLine: string | null;
-  locationLine: string | null;
-  visualTheme: string;
-  colorPalette: string[];
-  decorativeElements: string[];
-  aesthetic: string;
-  typography: string;
-  layoutDescription: string;
+  imageSize: string;
+  aspectRatio: string;
+  visualDirection: string;
+  photoInstructions: string | null;
   withHostPhoto: boolean;
-  photoIntegration: string;
-  userBrief: string;
-  exactTexts: string[];
+  bottomTexts: string[];
 };
 
 export type CoverEditableFields = {
@@ -84,74 +71,18 @@ export type CoverEditableFields = {
   onlineMeetingUrl: string;
 };
 
-const EVENT_VISUAL_PRESETS: Partial<
-  Record<
-    EventType,
-    { palette: string[]; elements: string[]; aesthetic: string; defaultTheme?: string; decorativeHeader?: string }
-  >
-> = {
-  aniversario: {
-    palette: ["soft baby pink", "white", "soft gold"],
-    elements: ["smiling sun illustration", "fluffy clouds", "delicate stars", "number balloon", "small hearts", "soft watercolor accents"],
-    aesthetic: "luxury kids birthday invitation, cute but sophisticated, Instagram Story ready",
-    defaultTheme: "Festa de Aniversário",
-    decorativeHeader: "Aniversário"
-  },
-  festa_infantil: {
-    palette: ["soft baby pink", "white", "soft gold", "pastel blue"],
-    elements: ["smiling sun", "fluffy clouds", "stars", "balloon", "confetti", "watercolor details"],
-    aesthetic: "premium children's party invitation, playful and elegant",
-    defaultTheme: "Festa Infantil",
-    decorativeHeader: "Festa Infantil"
-  },
-  cha_fraldas: {
-    palette: ["soft mint", "white", "pastel yellow"],
-    elements: ["clouds", "stars", "soft ribbons", "baby-themed watercolor accents"],
-    aesthetic: "gentle baby shower invitation, warm and delicate",
-    decorativeHeader: "Chá de Fraldas"
-  },
-  cha_revelacao: {
-    palette: ["soft pink", "soft blue", "white", "gold accents"],
-    elements: ["balloons", "clouds", "question mark motif", "stars"],
-    aesthetic: "gender reveal party invitation, festive and modern",
-    decorativeHeader: "Chá Revelação"
-  },
-  festa_15_anos: {
-    palette: ["blush pink", "white", "gold", "champagne"],
-    elements: ["elegant florals", "subtle sparkles", "crown motif", "soft gradient background"],
-    aesthetic: "quinceanera luxury invitation, elegant and feminine",
-    decorativeHeader: "15 Anos"
-  },
-  casamento: {
-    palette: ["ivory", "white", "soft gold", "sage green"],
-    elements: ["elegant florals", "minimal line art", "soft arch frame"],
-    aesthetic: "wedding invitation, refined and romantic",
-    decorativeHeader: "Casamento"
-  },
-  formatura: {
-    palette: ["navy blue", "white", "gold"],
-    elements: ["graduation cap motif", "confetti", "clean geometric accents"],
-    aesthetic: "graduation celebration invitation, modern and proud",
-    decorativeHeader: "Formatura"
-  },
-  batizado: {
-    palette: ["white", "soft blue", "gold", "ivory"],
-    elements: ["dove motif", "soft clouds", "cross or angel watercolor accent"],
-    aesthetic: "baptism invitation, serene and elegant",
-    decorativeHeader: "Batizado"
-  }
-};
+export const COVER_IMAGE_FORMAT = {
+  aspectRatio: "9:16",
+  size: "1024×1536",
+  apiSize: "1024x1536",
+  label: "Vertical 9:16 · WhatsApp e Stories"
+} as const;
+
+export const DEFAULT_PHOTO_INSTRUCTIONS =
+  "Use a foto real do homenageado. Recorte a pessoa, remova o fundo original e coloque no centro do convite em moldura circular, com borda dourada suave.";
 
 export function formatCoverDateLine(date: string) {
   return formatEventDateLine(date);
-}
-
-function formatCoverTimeLine(startsAt: string, endsAt: string) {
-  const start = startsAt?.trim();
-  const end = endsAt?.trim();
-  if (!start) return null;
-  if (end && end !== start) return `${start} às ${end}`;
-  return start;
 }
 
 function isPlaceholderText(value?: string) {
@@ -165,33 +96,12 @@ function fieldOrNull(value?: string) {
   return trimmed;
 }
 
-function resolveInvitationTitle(summary: CoverRequestSummary) {
-  const theme = fieldOrNull(summary.theme);
-  if (theme) return theme;
-  const title = fieldOrNull(summary.eventTitle);
-  if (title) return title;
-  const preset = EVENT_VISUAL_PRESETS[summary.eventType as EventType];
-  return preset?.defaultTheme ?? "Convite Especial";
-}
-
-function resolveHonoreeName(summary: CoverRequestSummary) {
-  const host = fieldOrNull(summary.hostName);
-  if (host) return host;
-  const title = fieldOrNull(summary.eventTitle);
-  if (title) return title;
-  return null;
-}
-
-function resolveCelebrationLine(honoreeName: string | null) {
-  if (!honoreeName) return null;
-  return `Venha celebrar com ${honoreeName}!`;
-}
-
-function resolveDecorativeHeader(summary: CoverRequestSummary, invitationTitle: string) {
-  const preset = EVENT_VISUAL_PRESETS[summary.eventType as EventType];
-  const theme = fieldOrNull(summary.theme);
-  if (theme && theme !== invitationTitle) return theme;
-  return preset?.decorativeHeader ?? invitationTitle;
+function formatCoverTimeLine(startsAt: string, endsAt: string) {
+  const start = startsAt?.trim();
+  const end = endsAt?.trim();
+  if (!start) return null;
+  if (end && end !== start) return `${start} às ${end}`;
+  return start;
 }
 
 function buildLocationLine(summary: CoverRequestSummary) {
@@ -222,45 +132,13 @@ function buildLocationLine(summary: CoverRequestSummary) {
   return headline || addressLine || null;
 }
 
-function inferPaletteFromBrief(brief: string, fallback: string[]) {
-  const text = brief.toLowerCase();
-  if (/dourad|gold|ouro/.test(text) && /rosa|pink/.test(text)) return ["soft baby pink", "white", "soft gold"];
-  if (/azul|blue|marinho|navy/.test(text)) return ["soft blue", "white", "gold accents"];
-  if (/verde|green|sage/.test(text)) return ["sage green", "white", "soft gold"];
-  if (/rosa|pink|rose/.test(text)) return ["soft baby pink", "white", "soft gold"];
-  return fallback;
-}
+/** Textos que entram somente na faixa inferior — apenas campos preenchidos pelo cliente. */
+export function buildCoverBottomTexts(summary: CoverRequestSummary) {
+  const lines: string[] = [];
 
-function inferElementsFromBrief(brief: string, fallback: string[]) {
-  const text = brief.toLowerCase();
-  const extras: string[] = [];
-  if (/sol|sun|volta ao sol/.test(text)) extras.push("smiling sun illustration");
-  if (/nuvem|cloud/.test(text)) extras.push("fluffy clouds");
-  if (/estrela|star/.test(text)) extras.push("delicate stars");
-  if (/balão|balao|balloon/.test(text)) extras.push("number balloon");
-  if (/flor|flower/.test(text)) extras.push("soft floral watercolor accents");
-  if (/aquarela|watercolor/.test(text)) extras.push("watercolor texture details");
-  return extras.length ? [...new Set([...extras, ...fallback.slice(0, 3)])] : fallback;
-}
-
-export function buildCoverInvitationSpec(
-  summary: CoverRequestSummary,
-  options: { withHostPhoto: boolean; size: string }
-): CoverInvitationSpec {
-  const eventType = summary.eventType as EventType;
-  const preset = EVENT_VISUAL_PRESETS[eventType];
-  const eventTypeLabel = EVENT_TYPE_LABELS[eventType] ?? "Evento especial";
-  const userBrief =
-    summary.orientation?.trim() ||
-    summary.editHint?.trim() ||
-    preset?.defaultTheme ||
-    `Convite premium vertical para ${eventTypeLabel}`;
-
-  const invitationTitle = resolveInvitationTitle(summary);
-  const honoreeName = resolveHonoreeName(summary);
-  const celebrationLine = honoreeName ? resolveCelebrationLine(honoreeName) : null;
-  const decorativeHeader = resolveDecorativeHeader(summary, invitationTitle);
-
+  const title = fieldOrNull(summary.eventTitle);
+  const theme = fieldOrNull(summary.theme);
+  const hostName = fieldOrNull(summary.hostName);
   const dateLine = summary.date?.trim() ? formatCoverDateLine(summary.date) : null;
   const timeLine =
     summary.startsAt?.trim() || summary.endsAt?.trim()
@@ -268,147 +146,77 @@ export function buildCoverInvitationSpec(
       : null;
   const locationLine = buildLocationLine(summary);
 
-  const exactTexts: string[] = [];
-  if (fieldOrNull(summary.theme) && summary.theme!.trim() !== invitationTitle) {
-    exactTexts.push(summary.theme!.trim());
-  } else if (fieldOrNull(summary.eventTitle) && summary.eventTitle.trim() !== invitationTitle) {
-    exactTexts.push(summary.eventTitle.trim());
-  }
-  exactTexts.push(decorativeHeader);
-  if (celebrationLine) exactTexts.push(celebrationLine);
-  if (dateLine) exactTexts.push(`DATA: ${dateLine}`);
-  if (timeLine) exactTexts.push(`HORÁRIO: ${timeLine}`);
-  if (locationLine) exactTexts.push(`LOCAL: ${locationLine}`);
+  if (title) lines.push(title);
+  if (theme && theme !== title) lines.push(theme);
+  if (hostName) lines.push(`Venha celebrar com ${hostName}!`);
+  if (dateLine) lines.push(`DATA: ${dateLine}`);
+  if (timeLine) lines.push(`HORÁRIO: ${timeLine}`);
+  if (locationLine) lines.push(`LOCAL: ${locationLine}`);
 
-  const palette = inferPaletteFromBrief(userBrief, preset?.palette ?? ["white", "soft pastel tones", "gold accents"]);
-  const decorativeElements = inferElementsFromBrief(
-    `${userBrief} ${invitationTitle}`,
-    preset?.elements ?? ["soft decorative accents", "elegant borders", "subtle stars"]
-  );
+  return lines;
+}
+
+export function buildCoverInvitationSpec(
+  summary: CoverRequestSummary,
+  options: { withHostPhoto: boolean; size?: string }
+): CoverInvitationSpec {
+  const visualDirection = [summary.orientation?.trim(), summary.editHint?.trim()].filter(Boolean).join("\n\n");
+
+  const photoInstructions = options.withHostPhoto
+    ? summary.photoInstructions?.trim() || DEFAULT_PHOTO_INSTRUCTIONS
+    : null;
 
   return {
-    eventType: summary.eventType,
-    eventTypeLabel,
-    invitationTitle,
-    honoreeName: honoreeName ?? "",
-    celebrationLine: celebrationLine ?? "",
-    decorativeHeader,
-    dateLine,
-    timeLine,
-    locationLine,
-    visualTheme: userBrief,
-    colorPalette: palette,
-    decorativeElements,
-    aesthetic: preset?.aesthetic ?? "premium Brazilian party invitation, clean layout, Instagram Story format",
-    typography: "elegant mix of script and sans-serif, highly readable Brazilian Portuguese text, clear hierarchy",
-    layoutDescription: `Vertical invitation ${options.size}, clear top-to-bottom hierarchy: decorative header in Portuguese, central focal area${options.withHostPhoto ? " with real photo" : ""}, structured info blocks with icons for date/time/location, generous spacing, professional print-ready finish`,
+    imageSize: options.size ?? COVER_IMAGE_FORMAT.apiSize,
+    aspectRatio: COVER_IMAGE_FORMAT.aspectRatio,
+    visualDirection,
+    photoInstructions,
     withHostPhoto: options.withHostPhoto,
-    photoIntegration: options.withHostPhoto
-      ? "Use the REAL person from the uploaded photo. Completely remove the original background (no car seat, no room, no clutter). Create a clean cutout and place the person inside a soft circular frame as the main focal point. Preserve the real face and expression. Integrate naturally with the invitation design."
-      : "No reference photo. Use illustrated celebration elements only.",
-    userBrief,
-    exactTexts
+    bottomTexts: buildCoverBottomTexts(summary)
   };
 }
 
 export function buildPremiumCoverPrompt(spec: CoverInvitationSpec) {
-  const textBlock = spec.exactTexts.map((line) => `- "${line}"`).join("\n");
-  const languageRules =
-    "LANGUAGE (CRITICAL): Every visible word in the image MUST be Brazilian Portuguese. " +
-    "Never use English decorative words such as celebration, birthday, party, welcome, or similar. " +
-    "Only use the exact Portuguese strings listed below.";
+  const bottomBlock =
+    spec.bottomTexts.length > 0
+      ? spec.bottomTexts.map((line) => `- "${line}"`).join("\n")
+      : "- (nenhum texto de rodapé — não invente data, horário ou local)";
 
-  const shared = `${languageRules}
+  const photoBlock = spec.withHostPhoto
+    ? `PHOTO OF HONOREE (follow EXACTLY):
+${spec.photoInstructions}
 
-DECORATIVE HEADER (Portuguese, large script area):
-"${spec.decorativeHeader}"
-
-VISUAL DIRECTION FROM ORGANIZER:
-${spec.visualTheme}
-
-COLOR PALETTE (strict):
-${spec.colorPalette.join(", ")}
-
-DECORATIVE ELEMENTS:
-${spec.decorativeElements.join(", ")}
-
-LAYOUT:
-${spec.layoutDescription}
-
-TYPOGRAPHY:
-${spec.typography}
-
-EXACT PORTUGUESE TEXT TO RENDER LEGIBLY IN THE IMAGE:
-${textBlock}
-
-STYLE:
-${spec.aesthetic}
-high-end party invitation,
-soft lighting,
-professional graphic design,
-WhatsApp/Instagram Story format,
-generous whitespace,
-clear visual hierarchy,
-no app logos,
-no watermarks,
-no placeholder text,
-no English text,
-no misspelled dates.`;
-
-  if (spec.withHostPhoto) {
-    return `Create a premium vertical party invitation design in Brazilian Portuguese.
-
-Event type: ${spec.eventTypeLabel}
-Honoree: ${spec.honoreeName || "celebrated guest"}
-
-PHOTO INTEGRATION (CRITICAL):
-${spec.photoIntegration}
-
-${shared}`;
-  }
+Use the REAL person from the uploaded reference photo.`
+    : "No reference photo — do not add a person photo.";
 
   return `Create a premium vertical party invitation in Brazilian Portuguese.
 
-Event type: ${spec.eventTypeLabel}
+IMAGE FORMAT (FIXED — do not change):
+Aspect ratio ${spec.aspectRatio}, size ${spec.imageSize}, WhatsApp/Instagram Story format.
 
-${shared}`;
+ORGANIZER VISUAL DIRECTION (follow EXACTLY — do not add elements, colors or styles not written here):
+${spec.visualDirection || "Clean elegant invitation background. No extra decorative clipart."}
+
+${photoBlock}
+
+LAYOUT (mandatory):
+1. Top and middle area: visual design and photo treatment exactly as described above.
+2. Bottom area ONLY: render the Portuguese text lines listed below, legibly, with icons if appropriate.
+3. Do NOT place event information (date, time, location, names) outside the bottom area.
+4. Do NOT add any text that is not listed in the bottom section below.
+
+BOTTOM TEXT LINES (Portuguese — copy character by character, preserve accents é á ã ç ô):
+${bottomBlock}
+
+LANGUAGE:
+- Brazilian Portuguese only for visible text.
+- Preserve all accents exactly as written.
+- Do not add English words.
+- Do not invent fields the client left empty.
+
+QUALITY:
+Professional invitation design, clear hierarchy, no watermarks, no app logos, no placeholder text.`;
 }
-
-export type CoverFormEventInput = {
-  eventTitle: string;
-  eventType: string;
-  hostName: string;
-  theme?: string;
-  date: string;
-  startsAt: string;
-  endsAt: string;
-  eventFormat: Event["eventFormat"];
-  venueName: string;
-  venueAddress?: string;
-  venueZip?: string;
-  venueComplement?: string;
-  city: string;
-  onlineMeetingUrl?: string;
-};
-
-export const COVER_IMAGE_FORMAT = {
-  aspectRatio: "9:16",
-  size: "1024×1536",
-  label: "Vertical 9:16 · WhatsApp e Stories"
-} as const;
-
-const DEFAULT_ORIENTATION_HINTS_PT: Partial<Record<EventType, string>> = {
-  aniversario:
-    "Paleta rosa bebê, branco e dourado. Sol sorridente, nuvens fofas, estrelas delicadas e balão festivo. Estilo convite premium de luxo infantil.",
-  festa_infantil:
-    "Cores pastel alegres, sol, nuvens, estrelas, confetes e detalhes em aquarela. Visual festivo, delicado e elegante.",
-  cha_fraldas: "Tons suaves mint, branco e amarelo pastel. Nuvens, estrelas e laços delicados. Clima acolhedor de chá de bebê.",
-  cha_revelacao: "Rosa e azul pastel com detalhes dourados. Balões, nuvens e estrelas. Visual moderno e festivo.",
-  festa_15_anos: "Rosa blush, branco e dourado. Flores elegantes, brilhos sutis e coroa. Estilo sofisticado e feminino.",
-  casamento: "Ivory, branco, dourado e verde sage. Flores elegantes e moldura suave. Convite romântico e refinado.",
-  formatura: "Azul marinho, branco e dourado. Confetes e detalhes geométricos modernos.",
-  batizado: "Branco, azul claro e dourado. Pomba, nuvens suaves e detalhes serenos."
-};
 
 export function buildInitialCoverEditableFields(input: CoverFormEventInput): CoverEditableFields {
   return {
@@ -428,36 +236,30 @@ export function buildInitialCoverEditableFields(input: CoverFormEventInput): Cov
 }
 
 export function coverEditableFieldsToOverride(fields: CoverEditableFields): CoverFieldsOverride {
-  return {
-    eventTitle: fields.eventTitle,
-    hostName: fields.hostName,
-    theme: fields.theme,
-    date: fields.date,
-    startsAt: fields.startsAt,
-    endsAt: fields.endsAt,
-    venueName: fields.venueName,
-    venueAddress: fields.venueAddress,
-    venueZip: fields.venueZip,
-    venueComplement: fields.venueComplement,
-    city: fields.city,
-    onlineMeetingUrl: fields.onlineMeetingUrl
-  };
+  return { ...fields };
 }
 
-export function buildDefaultCoverOrientation(input: CoverFormEventInput) {
-  const eventType = input.eventType as EventType;
-  const hint =
-    DEFAULT_ORIENTATION_HINTS_PT[eventType] ??
-    "Convite vertical premium com cores pastel harmoniosas, tipografia elegante e layout clean para WhatsApp.";
-
-  const themePart = !isPlaceholderText(input.theme)
-    ? `Tema visual: ${input.theme!.trim()}.`
-    : !isPlaceholderText(input.eventTitle)
-      ? `Celebrando: ${input.eventTitle.trim()}.`
-      : "";
-
-  return [themePart, hint].filter(Boolean).join(" ");
+/** Orientação livre — sem texto pré-definido. */
+export function buildDefaultCoverOrientation(_input?: CoverFormEventInput) {
+  return "";
 }
+
+export type CoverFormEventInput = {
+  eventTitle: string;
+  eventType: string;
+  hostName: string;
+  theme?: string;
+  date: string;
+  startsAt: string;
+  endsAt: string;
+  eventFormat: Event["eventFormat"];
+  venueName: string;
+  venueAddress?: string;
+  venueZip?: string;
+  venueComplement?: string;
+  city: string;
+  onlineMeetingUrl?: string;
+};
 
 export function toCoverFormEventInput(input: {
   eventTitle?: string;
@@ -512,6 +314,7 @@ export function mergeCoverRequestSummary(
   >,
   input: {
     orientation?: string;
+    photoInstructions?: string;
     editHint?: string;
     coverFields?: CoverFieldsOverride;
   }
@@ -539,6 +342,7 @@ export function mergeCoverRequestSummary(
     city: pick("city", event.city),
     onlineMeetingUrl: pick("onlineMeetingUrl", event.onlineMeetingUrl ?? ""),
     orientation: input.orientation,
+    photoInstructions: input.photoInstructions,
     editHint: input.editHint
   };
 }

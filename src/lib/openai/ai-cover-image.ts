@@ -58,33 +58,25 @@ async function refineCoverImagePromptWithGpt(
   try {
     const response = await openai.chat.completions.create({
       model: OPENAI_TEXT_MODEL,
-      temperature: 0.25,
+      temperature: 0.15,
       messages: [
         {
           role: "system",
           content:
-            "You are an expert prompt engineer for OpenAI gpt-image models creating premium Brazilian party invitations. " +
-            "Write ONE detailed English prompt for the image model. " +
-            "The invitation must render ONLY the exact Portuguese texts provided — never placeholders, never 'Invalid Date', never English visible text. " +
-            "Decorative headers must be in Brazilian Portuguese (e.g. Aniversário, Festa Infantil), never English words like celebration, birthday, or party. " +
-            "When a real photo is provided, instruct the model to remove the background completely, cut out the person cleanly, and place them in a soft circular frame as the central focal point. " +
-            "Return ONLY the final prompt."
+            "You write ONE English prompt for OpenAI gpt-image models. " +
+            "Rules: fixed 9:16 format; follow organizer visualDirection EXACTLY with zero extra clipart; " +
+            "event texts only in bottomTexts at the bottom of the image; " +
+            "follow photoInstructions exactly when withHostPhoto is true; " +
+            "preserve Portuguese accents in bottomTexts character by character; " +
+            "do not invent text. Return ONLY the final prompt."
         },
         {
           role: "user",
-          content: `Build the best possible image generation prompt using this structured invitation spec:
+          content: `Turn this spec into an image generation prompt:
 
 ${JSON.stringify(spec, null, 2)}
 
-Requirements:
-- Premium luxury invitation like high-end Instagram Story / WhatsApp invite
-- Vertical 9:16 layout with clear hierarchy: title header, central photo area, date/time/location blocks, elegant footer
-- Limited cohesive palette from spec
-- Exact Portuguese strings must appear legibly
-- ALL visible text strictly Brazilian Portuguese — zero English words in the design
-- Professional typography (script + sans-serif)
-- Soft lighting, watercolor/pastel polish when appropriate
-- If withHostPhoto=true: background removal + circular frame + clean integration is mandatory`
+Layout: top/middle = visual direction + photo treatment; bottom = only bottomTexts lines.`
         }
       ]
     });
@@ -385,6 +377,7 @@ export function buildCoverRequestSummary(
   event: Event,
   input: {
     orientation?: string;
+    photoInstructions?: string;
     editHint?: string;
     coverFields?: CoverFieldsOverride;
     includeFields?: CoverIncludeFields;
@@ -392,6 +385,7 @@ export function buildCoverRequestSummary(
 ): CoverRequestSummary {
   return mergeCoverRequestSummary(event, {
     orientation: input.orientation,
+    photoInstructions: input.photoInstructions,
     editHint: input.editHint,
     coverFields: input.coverFields
   });

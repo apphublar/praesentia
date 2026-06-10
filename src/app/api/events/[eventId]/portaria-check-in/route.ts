@@ -65,7 +65,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ eve
         { status: 503 }
       );
     }
-    if (/checked_in_at|column.*does not exist/i.test(message)) {
+    if (/companion_names|companion_name/i.test(message) && /column.*does not exist/i.test(message)) {
+      return NextResponse.json(
+        { error: "Banco desatualizado. Execute as migrações 007 e 008 no Supabase." },
+        { status: 503 }
+      );
+    }
+    if (/checked_in_at/i.test(message) && /column.*does not exist/i.test(message)) {
       return NextResponse.json(
         { error: "Banco desatualizado. Execute a migração 001-plan-flow.sql no Supabase." },
         { status: 503 }

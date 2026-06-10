@@ -6,7 +6,6 @@ import { generateEventCoverImageClient } from "@/lib/api/generate-cover";
 import { apiErrorMessage, dashboardFetchJson } from "@/lib/api/dashboard-fetch";
 import { resizeDataUrlForCover, resizeImageForCover } from "@/lib/images/resize-host-photo";
 import {
-  buildDefaultCoverOrientation,
   buildInitialCoverEditableFields,
   coverEditableFieldsToOverride,
   COVER_IMAGE_FORMAT,
@@ -14,6 +13,7 @@ import {
   type CoverEditableFields
 } from "@/lib/openai/cover-invitation-spec";
 import { formatEventDateLine } from "@/lib/events/format-event-date";
+import { CoverGenerationOverlay } from "@/components/dashboard/cover-generation-overlay";
 
 export type CoverQuota = {
   maxGenerations: number;
@@ -39,46 +39,17 @@ function InvitePreview({
   coverUrl,
   imageError,
   onImageError,
-  eventTitle,
-  waMessage,
-  canDownload
+  eventTitle
 }: {
   coverUrl: string;
   imageError: boolean;
   onImageError: () => void;
   eventTitle: string;
-  waMessage: string;
-  canDownload: boolean;
 }) {
-  async function handleShare() {
-    if (coverUrl && !imageError && typeof navigator !== "undefined" && navigator.share) {
-      try {
-        let fileToShare: File | null = null;
-        if (!coverUrl.startsWith("data:")) {
-          const res = await fetch(coverUrl);
-          if (res.ok) {
-            const blob = await res.blob();
-            fileToShare = new File([blob], "convite.png", { type: blob.type || "image/png" });
-          }
-        }
-
-        const shareData: ShareData = { title: eventTitle || "Convite", text: waMessage };
-        if (fileToShare && navigator.canShare?.({ files: [fileToShare] })) {
-          (shareData as ShareData & { files: File[] }).files = [fileToShare];
-        }
-        await navigator.share(shareData);
-        return;
-      } catch {
-        /* fall through to WhatsApp link */
-      }
-    }
-    window.open(`https://wa.me/?text=${encodeURIComponent(waMessage)}`, "_blank", "noopener");
-  }
-
   return (
     <div className="cover-preview-column">
       <p className="cover-preview-format-note">
-        Prévia em proporção padrão {COVER_IMAGE_FORMAT.aspectRatio} ({COVER_IMAGE_FORMAT.size}) para WhatsApp e Stories.
+        Prévia do convite completo · proporção {COVER_IMAGE_FORMAT.aspectRatio} ({COVER_IMAGE_FORMAT.size}).
       </p>
       <div className="cover-phone-frame">
         {coverUrl && !imageError ? (
@@ -101,21 +72,11 @@ function InvitePreview({
         )}
       </div>
 
-      <div className="cover-share-section">
-        <div className="cover-share-actions">
-          {canDownload && coverUrl && !imageError && (
-            <a href={coverUrl} download="convite.png" className="btn secondary cover-share-btn">
-              ⬇ Baixar imagem
-            </a>
-          )}
-          <button type="button" className="btn cover-share-whatsapp-btn" onClick={handleShare}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style={{ flexShrink: 0 }}>
-              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-            </svg>
-            Compartilhar convite no WhatsApp
-          </button>
-        </div>
-      </div>
+      {coverUrl && !imageError ? (
+        <a href={coverUrl} download="convite.png" className="btn secondary cover-share-btn">
+          ⬇ Baixar imagem
+        </a>
+      ) : null}
     </div>
   );
 }
@@ -184,7 +145,6 @@ export function CoverGenerator({
     eventCity,
     onlineMeetingUrl
   });
-  const defaultOrientation = buildDefaultCoverOrientation(coverFormInput);
 
   const [coverUrl, setCoverUrl] = useState(currentCoverUrl ?? "");
   const [imageError, setImageError] = useState(false);
@@ -194,16 +154,15 @@ export function CoverGenerator({
   const [pending, setPending] = useState<string[]>(pendingUrls);
   const [quota, setQuota] = useState(initialQuota);
   const [loading, setLoading] = useState(false);
+  const [generatingCover, setGeneratingCover] = useState(false);
+  const [assistingPrompt, setAssistingPrompt] = useState(false);
+  const [promptAssistOk, setPromptAssistOk] = useState(false);
   const [editHint, setEditHint] = useState("");
-  const [orientation, setOrientation] = useState(defaultOrientation);
+  const [orientation, setOrientation] = useState("");
+  const [photoInstructions, setPhotoInstructions] = useState("");
   const [coverFields, setCoverFields] = useState(() => buildInitialCoverEditableFields(coverFormInput));
   const [error, setError] = useState("");
 
-  const appUrl = typeof window !== "undefined" ? window.location.origin : "";
-  const shareLink = `${appUrl}/evento/${eventSlug}`;
-  const waMessage = inviteWhatsappText
-    ? inviteWhatsappText.replace(/\{\{link\}\}/g, shareLink)
-    : `Você está convidado(a) para ${eventTitle || "o evento"}! Confirme sua presença: ${shareLink}`;
   const isPaid = capsuleActive && planTier !== "free";
 
   function applyCover(url: string, nextSource?: Event["coverSource"]) {
@@ -223,27 +182,66 @@ export function CoverGenerator({
 
   async function generate(mode: "generate" | "edit" = "generate") {
     setLoading(true);
+    setGeneratingCover(true);
     setError("");
+    setPromptAssistOk(false);
     try {
       const primaryPhotoDataUrl = await resolvePrimaryPhotoDataUrl();
       const result = await generateEventCoverImageClient({
         eventId,
         mode,
         editHint: mode === "edit" ? editHint : undefined,
-        orientation: orientation || undefined,
+        orientation: orientation.trim() || undefined,
+        photoInstructions: hostPhotoUrl ? photoInstructions.trim() || undefined : undefined,
         coverFields: coverEditableFieldsToOverride(coverFields),
         primaryPhotoDataUrl,
         promptVersion: mode === "edit" ? "cover-image-correction-v1" : "cover-image-v1"
       });
-      if (result.error) { setError(result.error); setLoading(false); return; }
+      if (result.error) { setError(result.error); return; }
       if (typeof result.coverImageUrl === "string") applyCover(result.coverImageUrl, "ai");
       if (Array.isArray(result.pendingUrls)) setPending(result.pendingUrls);
       if (result.quota) setQuota(result.quota);
       if (mode === "edit") setEditHint("");
     } catch (err) {
       setError(apiErrorMessage(err, "Erro de conexão. Tente novamente."));
+    } finally {
+      setGeneratingCover(false);
+      setLoading(false);
     }
-    setLoading(false);
+  }
+
+  async function assistCoverPrompt() {
+    setAssistingPrompt(true);
+    setLoading(true);
+    setError("");
+    setPromptAssistOk(false);
+    try {
+      const { response, data } = await dashboardFetchJson(`/api/events/${eventId}/generate-cover-prompt`, {
+        method: "POST",
+        body: JSON.stringify({
+          draftOrientation: orientation,
+          draftPhotoInstructions: photoInstructions,
+          withHostPhoto: Boolean(hostPhotoUrl),
+          coverFields: coverEditableFieldsToOverride(coverFields)
+        })
+      });
+      if (!response.ok) {
+        setError(String(data.error ?? "Erro ao gerar prompt com IA."));
+        return;
+      }
+      if (typeof data.visualDirection === "string" && data.visualDirection.trim()) {
+        setOrientation(data.visualDirection.trim());
+      }
+      if (hostPhotoUrl && typeof data.photoInstructions === "string" && data.photoInstructions.trim()) {
+        setPhotoInstructions(data.photoInstructions.trim());
+      }
+      setPromptAssistOk(true);
+    } catch (err) {
+      setError(apiErrorMessage(err, "Erro de conexão. Tente novamente."));
+    } finally {
+      setAssistingPrompt(false);
+      setLoading(false);
+    }
   }
 
   async function selectVersion(url: string) {
@@ -324,7 +322,7 @@ export function CoverGenerator({
               <div className="cover-event-brief-head">
                 <span className="field"><span>Dados do convite</span></span>
                 <p className="cover-field-help">
-                  Pré-preenchidos com o cadastro do evento. Edite ou apague o que não quiser na imagem — campos vazios não entram no convite.
+                  Pré-preenchidos com o cadastro do evento. Edite ou apague o que não quiser — campos vazios não entram no convite. Os textos preenchidos aparecem na parte inferior da imagem.
                 </p>
               </div>
               <div className="cover-event-brief-grid cover-event-brief-form">
@@ -412,17 +410,50 @@ export function CoverGenerator({
                 </label>
               </div>
               {hostPhotoSaved ? <p className="settings-status is-ok">Foto salva! Agora gere a imagem com IA.</p> : null}
+              <label className="field">
+                <span>Como a foto deve aparecer no convite</span>
+                <textarea
+                  value={photoInstructions}
+                  onChange={(e) => { setPhotoInstructions(e.target.value); setPromptAssistOk(false); }}
+                  maxLength={400}
+                  rows={3}
+                  placeholder="Ex: moldura redonda, sem fundo, borda dourada, foto quadrada com fundo branco..."
+                  disabled={!hostPhotoUrl}
+                />
+                <p className="cover-field-help">
+                  Descreva formato (redonda, quadrada), fundo (com ou sem), borda (com ou sem) e posição. Só usado quando há foto enviada.
+                </p>
+              </label>
             </div>
 
             <label className="field">
               <span>Orientação visual da imagem</span>
-              <textarea value={orientation} onChange={(e) => setOrientation(e.target.value)}
-                maxLength={400} rows={4}
-                placeholder="Descreva cores, elementos decorativos e estilo do convite..." />
+              <textarea value={orientation} onChange={(e) => { setOrientation(e.target.value); setPromptAssistOk(false); }}
+                maxLength={1000} rows={5}
+                placeholder="Descreva livremente o estilo do convite: cores, personagens, elementos decorativos, tema..." />
               <p className="cover-field-help">
-                Sugestão com base no seu evento. Ajuste ou apague tudo para escrever do zero. Todo texto na imagem será em português do Brasil.
+                Campo livre — a IA segue exatamente o que você escrever aqui para o visual do convite (parte de cima/meio). Não há tema pré-definido.
               </p>
             </label>
+
+            <div className="cover-prompt-assist-row">
+              <button
+                type="button"
+                className="btn secondary"
+                onClick={() => assistCoverPrompt()}
+                disabled={loading || assistingPrompt}
+              >
+                {assistingPrompt ? "Criando prompt profissional…" : "✨ Pedir ajuda da IA para criar o prompt perfeito"}
+              </button>
+              <p className="cover-field-help" style={{ margin: 0 }}>
+                Escreva suas ideias nos campos acima (visual e foto). A IA transforma em prompts profissionais com base no que você preencheu — depois é só clicar em gerar imagem.
+              </p>
+              {promptAssistOk ? (
+                <p className="settings-status is-ok" style={{ margin: 0 }}>
+                  Prompts prontos! Revise os textos e clique em gerar convite.
+                </p>
+              ) : null}
+            </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {quota.testingMode ? (
@@ -432,7 +463,7 @@ export function CoverGenerator({
               ) : null}
               {(quota.canGenerate || coverUrl || imageError) && (
                 <button type="button" className="btn" onClick={() => generate("generate")} disabled={loading || !quota.canGenerate}>
-                  {loading ? "Gerando convite com IA… (até 3 min)" : quota.testingMode
+                  {generatingCover ? "Gerando convite com IA…" : quota.testingMode
                     ? "✨ Gerar nova versão (teste)"
                     : isPaid || quota.maxGenerations > 1
                     ? `✨ Gerar versão (${quota.remainingGenerations} restante${quota.remainingGenerations !== 1 ? "s" : ""})`
@@ -501,10 +532,10 @@ export function CoverGenerator({
           imageError={imageError}
           onImageError={() => setImageError(true)}
           eventTitle={coverFields.eventTitle || eventTitle}
-          waMessage={waMessage}
-          canDownload={quota.allowsCustomUpload}
         />
       </div>
+
+      <CoverGenerationOverlay active={generatingCover} capsuleActive={capsuleActive} />
     </article>
   );
 }

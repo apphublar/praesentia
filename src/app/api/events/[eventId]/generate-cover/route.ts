@@ -43,7 +43,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ eve
     const body = await request.json().catch(() => ({}));
     const mode = sanitizeText(body.mode, 20) || "generate";
     const editHint = sanitizeText(body.editHint, 400);
-    const orientation = sanitizeText(body.orientation, 400);
+    const orientation = sanitizeText(body.orientation, 1000);
+    const photoInstructions = sanitizeText(body.photoInstructions, 400);
     const coverFields = (body.coverFields ?? {}) as Record<string, string>;
     const sanitizedCoverFields = {
       eventTitle: sanitizeText(coverFields.eventTitle, 160),
@@ -105,6 +106,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ eve
 
     const requestSummary = buildCoverRequestSummary(event, {
       orientation: orientation || undefined,
+      photoInstructions: photoInstructions || undefined,
       editHint: mode === "edit" ? editHint : undefined,
       coverFields: sanitizedCoverFields
     });

@@ -8,6 +8,7 @@ export type GenerateCoverInput = {
   mode?: "generate" | "edit" | "select";
   editHint?: string;
   orientation?: string;
+  photoInstructions?: string;
   coverFields?: Record<string, string>;
   primaryPhotoDataUrl?: string | null;
   coverImageUrl?: string;
@@ -36,6 +37,7 @@ export async function generateEventCoverImageClient(input: GenerateCoverInput): 
         mode: input.mode ?? "generate",
         editHint: input.editHint,
         orientation: input.orientation,
+        photoInstructions: input.photoInstructions,
         coverFields: input.coverFields,
         primaryPhotoDataUrl: input.primaryPhotoDataUrl,
         coverImageUrl: input.coverImageUrl,
