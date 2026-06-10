@@ -9,9 +9,9 @@ export function getSql() {
 
   if (!sqlClient) {
     sqlClient = postgres(process.env.DATABASE_URL, {
-      max: 10,
-      idle_timeout: 20,
-      connect_timeout: 10,
+      max: 3,           // serverless: keep connections low to avoid pool exhaustion
+      idle_timeout: 30,
+      connect_timeout: 30,
       prepare: false
     });
   }
