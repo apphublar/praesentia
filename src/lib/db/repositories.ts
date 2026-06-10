@@ -111,6 +111,7 @@ export interface LikeRepository {
 export interface GuestRsvpRepository {
   create(input: CreateGuestRsvpInput): Promise<GuestRsvp>;
   listByEvent(eventId: string): Promise<GuestRsvp[]>;
+  findById(eventId: string, rsvpId: string): Promise<GuestRsvp | null>;
   checkIn(eventId: string, rsvpId: string, actorUserId: string): Promise<GuestRsvp>;
   undoCheckIn(eventId: string, rsvpId: string, actorUserId: string): Promise<GuestRsvp>;
 }

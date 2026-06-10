@@ -28,16 +28,42 @@ async function uploadBufferToR2(buffer: Buffer, key: string, contentType: string
   return getPublicMediaUrl(key);
 }
 
+export async function verifyPublicImageUrl(url: string) {
+  if (url.startsWith("data:")) return true;
+
+  try {
+    const response = await fetch(url, { method: "HEAD", signal: AbortSignal.timeout(8000) });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
+function toDataUrl(buffer: Buffer, contentType: string) {
+  const base64 = buffer.toString("base64");
+  return `data:${contentType};base64,${base64}`;
+}
+
 export async function persistImageBuffer(input: {
   buffer: Buffer;
   key: string;
   contentType: string;
+  preferDataUrlBelowBytes?: number;
 }) {
+  const preferDataUrlBelowBytes = input.preferDataUrlBelowBytes ?? 1_500_000;
+
   const publicUrl = await uploadBufferToR2(input.buffer, input.key, input.contentType);
+  if (publicUrl && (await verifyPublicImageUrl(publicUrl))) {
+    return publicUrl;
+  }
+
+  if (input.buffer.byteLength <= preferDataUrlBelowBytes) {
+    return toDataUrl(input.buffer, input.contentType);
+  }
+
   if (publicUrl) return publicUrl;
 
-  const base64 = input.buffer.toString("base64");
-  return `data:${input.contentType};base64,${base64}`;
+  throw new Error("Falha ao publicar imagem. Configure o acesso público do R2 ou envie um arquivo menor.");
 }
 
 export async function persistRemoteImage(input: {

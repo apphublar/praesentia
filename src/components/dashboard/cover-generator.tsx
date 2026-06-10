@@ -280,12 +280,18 @@ export function CoverGenerator({
     setLoading(true);
     setError("");
     setHostPhotoSaved(false);
+    const previewUrl = URL.createObjectURL(file);
+    setHostPhotoUrl(previewUrl);
     try {
       const formData = new FormData();
       formData.append("file", file);
       const { response, data } = await dashboardFetchJson(`/api/events/${eventId}/host-photo`, { method: "POST", body: formData });
       if (!response.ok) { setError(String(data.error ?? "Erro ao enviar foto.")); setLoading(false); return; }
-      if (typeof data.hostPhotoUrl === "string") { setHostPhotoUrl(data.hostPhotoUrl); setHostPhotoSaved(true); }
+      if (typeof data.hostPhotoUrl === "string") {
+        URL.revokeObjectURL(previewUrl);
+        setHostPhotoUrl(data.hostPhotoUrl);
+        setHostPhotoSaved(true);
+      }
     } catch (err) {
       setError(apiErrorMessage(err, "Erro de conexão."));
     }
@@ -332,7 +338,8 @@ export function CoverGenerator({
                 {hostPhotoUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={hostPhotoUrl} alt="Foto do homenageado" width={80} height={80}
-                    style={{ borderRadius: 10, objectFit: "cover", border: "1px solid var(--line)", flexShrink: 0 }} />
+                    style={{ borderRadius: 10, objectFit: "cover", border: "1px solid var(--line)", flexShrink: 0 }}
+                    onError={() => setHostPhotoUrl("")} />
                 ) : (
                   <div className="cover-host-photo-placeholder">Sem foto</div>
                 )}
@@ -366,14 +373,14 @@ export function CoverGenerator({
             </div>
 
             <label className="field">
-              <span>Orientação para a IA</span>
+              <span>Descreva a imagem que você quer</span>
               <textarea value={orientation} onChange={(e) => setOrientation(e.target.value)}
                 maxLength={400} rows={3}
-                placeholder="Ex: fundo azul claro, flores delicadas, estilo minimalista, tons pastéis..." />
+                placeholder="Ex: convite rosa e dourado com flores, estilo elegante, fundo claro, vibe festa infantil..." />
             </label>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {quota.canGenerate && (
+              {(quota.canGenerate || (imageError && coverUrl)) && (
                 <button type="button" className="btn" onClick={() => generate("generate")} disabled={loading}>
                   {loading ? "Gerando com IA… (até 1 min)" : isPaid
                     ? `✨ Gerar versão (${quota.remainingGenerations} restante${quota.remainingGenerations !== 1 ? "s" : ""})`
@@ -385,7 +392,7 @@ export function CoverGenerator({
                   ↻ Tentar novamente
                 </button>
               )}
-              {!quota.canGenerate && !coverUrl && (
+              {!quota.canGenerate && !coverUrl && !imageError && (
                 <p style={{ color: "var(--ink-soft)", fontSize: 13 }}>Limite de gerações atingido. Envie sua própria imagem abaixo.</p>
               )}
 

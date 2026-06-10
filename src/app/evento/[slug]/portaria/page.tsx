@@ -24,7 +24,7 @@ export default async function PortariaPage({
           <div style={{ fontSize: 48, marginBottom: 16 }}>🔒</div>
           <h1 style={{ fontFamily: "DM Serif Display, serif", fontSize: 28, margin: "0 0 12px" }}>Acesso restrito</h1>
           <p style={{ color: "var(--ink-soft)", lineHeight: 1.6 }}>
-            Este link de portaria é inválido ou expirado. Peça ao organizador do evento o link correto.
+            Este link de check-in é inválido ou expirado. Peça ao organizador do evento o link correto.
           </p>
         </section>
       </main>
@@ -42,7 +42,7 @@ export default async function PortariaPage({
       <div style={{ maxWidth: 680, margin: "0 auto" }}>
         <div style={{ marginBottom: 24 }}>
           <span style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--ink-soft)" }}>
-            portaria · check-in
+            check-in dos convidados
           </span>
           <h1 style={{ fontFamily: "DM Serif Display, serif", fontSize: 32, margin: "6px 0 4px", lineHeight: 1.1 }}>
             {event.title}

@@ -62,14 +62,14 @@ export function GuestListPanel({
             {rsvps.length} confirmado{rsvps.length !== 1 ? "s" : ""}
           </h2>
           <p style={{ color: "var(--ink-soft)", fontSize: 14 }}>
-            {checkedInCount} já entraram · use na portaria ou entrada do evento
+            {checkedInCount} já entraram · use na entrada do evento
           </p>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           {eventFreeCode && (
             <button type="button" className="btn" onClick={copyPortariaLink}
               style={{ background: "var(--ink)", color: "var(--bg)" }}>
-              {copiedPortaria ? "✓ Link copiado!" : "🚪 Copiar link da portaria"}
+              {copiedPortaria ? "✓ Link copiado!" : "🚪 Copiar link do check-in"}
             </button>
           )}
           <a className="btn secondary" href={`/api/events/${eventId}/guests/export`}>

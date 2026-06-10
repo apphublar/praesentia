@@ -12,7 +12,6 @@ export type CoverIncludeFields = {
   theme?: boolean;
 };
 
-const HOST_PHOTO_EDIT_TIMEOUT_MS = 35_000;
 const COVER_STORAGE_KEY = (eventId: string) => `events/${eventId}/cover/${Date.now()}.png`;
 
 function formatEventDate(date: string) {
@@ -31,16 +30,16 @@ function buildLocationLine(event: Event) {
   if (event.eventFormat === "online") {
     return event.onlineMeetingUrl ? `Evento online: ${event.onlineMeetingUrl}` : "Evento online";
   }
-  return `${event.venueName}, ${event.venueAddress} — ${event.city}`;
+  return `${event.venueName}, ${event.city}`;
 }
 
 function buildDetailsBlock(event: Event, include: CoverIncludeFields) {
   const lines: string[] = [];
-  if (include.title !== false) lines.push(`Title text: "${event.title}"`);
-  if (include.hostName !== false) lines.push(`Organizer: ${event.hostName}`);
-  if (include.theme !== false && event.theme) lines.push(`Theme/style: ${event.theme}`);
-  if (include.date !== false) lines.push(`Date: ${formatEventDate(event.date)} at ${event.startsAt}`);
-  if (include.location !== false) lines.push(`Location: ${buildLocationLine(event)}`);
+  if (include.title !== false) lines.push(`Evento: "${event.title}"`);
+  if (include.hostName !== false) lines.push(`Organizador: ${event.hostName}`);
+  if (include.theme !== false && event.theme) lines.push(`Tema: ${event.theme}`);
+  if (include.date !== false) lines.push(`Data: ${formatEventDate(event.date)} às ${event.startsAt}`);
+  if (include.location !== false) lines.push(`Local: ${buildLocationLine(event)}`);
   return lines.join("\n");
 }
 
@@ -51,56 +50,24 @@ export function buildCoverImagePrompt(
   includeFields: CoverIncludeFields = {}
 ) {
   const typeLabel = EVENT_TYPE_LABELS[event.eventType] ?? "evento especial";
-  const isFundraising = event.eventFormat === "fundraising";
+  const userBrief = orientation?.trim() || editHint?.trim() || `Convite vertical bonito e festivo para ${event.title}`;
   const details = buildDetailsBlock(event, includeFields);
-  const orientationLine = orientation ? `\nOrganizer style direction: ${orientation}` : "";
-  const editLine = editHint ? `\nAdjustment requested: ${editHint}` : "";
   const honoreeLine = event.hostPhotoUrl
-    ? "\nUse the provided photo of the honoree as the central subject. Keep their likeness recognizable in a festive invitation style."
+    ? "Inclua uma pessoa homenageada como foco visual central, com aparência festiva e reconhecível."
     : "";
 
-  if (isFundraising) {
-    return `Create a compelling vertical fundraising campaign card inspired by Brazilian crowdfunding platforms like Vakinha.
+  return `Crie uma imagem vertical (formato Stories/WhatsApp) para convite de ${typeLabel} no Brasil.
 
-Campaign: "${event.title}"
-Organizer: ${event.hostName}
-${details}${orientationLine}${editLine}${honoreeLine}
+Pedido do organizador: ${userBrief}
 
-Design requirements:
-- Portrait vertical format for WhatsApp and Instagram Stories
-- Trustworthy, emotional, clean Brazilian design
-- Visual cues for solidarity and community support
-- NO payment UI — decorative background only
-- Include elegant space where text could be overlaid later, but do NOT render readable typography in the image`;
-  }
+${details}
+${honoreeLine}
 
-  return `Create a beautiful, elegant vertical digital invitation card for a ${typeLabel}.
-
-${details}${orientationLine}${editLine}${honoreeLine}
-
-Design requirements:
-- Portrait orientation (vertical format, ideal for WhatsApp and Instagram Stories)
-- Style matches the theme: ${event.theme}
-- Elegant, modern, festive design appropriate for a ${typeLabel}
-- Brazilian Portuguese aesthetic
-- High quality invitation background design
-- NO text or typography in the image — only decorative visual elements and background design`;
-}
-
-function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
-  return new Promise((resolve) => {
-    const timer = setTimeout(() => resolve(null), ms);
-    promise.then(
-      (value) => {
-        clearTimeout(timer);
-        resolve(value);
-      },
-      () => {
-        clearTimeout(timer);
-        resolve(null);
-      }
-    );
-  });
+Regras:
+- Retrato vertical 9:16, alta qualidade, estética brasileira contemporânea
+- Visual celebrativo e elegante, pronto para compartilhar no WhatsApp
+- NÃO escreva texto legível na imagem — apenas arte, decoração e composição visual
+- Sem logos, sem interface de pagamento, sem marcas d'água`;
 }
 
 async function loadImageBuffer(imageUrl: string) {
@@ -142,40 +109,29 @@ async function persistOpenAIImage(eventId: string, payload: OpenAIImagePayload |
 async function generateFromHostPhoto(openai: NonNullable<ReturnType<typeof getOpenAIClient>>, event: Event, prompt: string) {
   if (!event.hostPhotoUrl) return null;
 
-  const runEdit = async () => {
-    const { buffer, mime } = await loadImageBuffer(event.hostPhotoUrl!);
+  try {
+    const { buffer, mime } = await loadImageBuffer(event.hostPhotoUrl);
     const imageFile = await toFile(buffer, "host-photo.png", { type: mime });
 
-    if (isGptImageModel(OPENAI_IMAGE_MODEL)) {
-      const response = await openai.images.edit({
-        model: OPENAI_IMAGE_MODEL,
-        image: imageFile,
-        prompt,
-        n: 1,
-        size: "1024x1536"
-      });
-      return response.data?.[0] ?? null;
-    }
+    const response = isGptImageModel(OPENAI_IMAGE_MODEL)
+      ? await openai.images.edit({
+          model: OPENAI_IMAGE_MODEL,
+          image: imageFile,
+          prompt,
+          n: 1,
+          size: "1024x1536"
+        })
+      : await openai.images.edit({
+          model: "dall-e-2",
+          image: imageFile,
+          prompt,
+          n: 1,
+          size: "1024x1024"
+        });
 
-    const response = await openai.images.edit({
-      model: "dall-e-2",
-      image: imageFile,
-      prompt,
-      n: 1,
-      size: "1024x1024"
-    });
-    return response.data?.[0] ?? null;
-  };
-
-  try {
-    const payload = await withTimeout(runEdit(), HOST_PHOTO_EDIT_TIMEOUT_MS);
-    if (!payload) {
-      console.warn("[generateCoverImage] host photo edit timed out, falling back to generate");
-      return null;
-    }
-    return persistOpenAIImage(event.id, payload);
+    return persistOpenAIImage(event.id, response.data?.[0]);
   } catch (error) {
-    console.error("[generateCoverImage] host photo edit failed", error);
+    console.warn("[generateCoverImage] host photo edit failed, falling back to generate", error);
     return null;
   }
 }
@@ -223,8 +179,10 @@ export async function generateCoverImage(
   const prompt = buildCoverImagePrompt(event, editHint, orientation, includeFields);
 
   try {
-    const fromHostPhoto = await generateFromHostPhoto(openai, event, prompt);
-    if (fromHostPhoto) return fromHostPhoto;
+    if (event.hostPhotoUrl) {
+      const fromHostPhoto = await generateFromHostPhoto(openai, event, prompt);
+      if (fromHostPhoto) return fromHostPhoto;
+    }
 
     return generateFromPrompt(openai, event, prompt);
   } catch (error) {

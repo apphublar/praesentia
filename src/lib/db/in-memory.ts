@@ -444,6 +444,9 @@ export const inMemoryGuestRsvps: GuestRsvpRepository = {
   async listByEvent(eventId: string): Promise<GuestRsvp[]> {
     return guestRsvpStore.filter((r) => r.eventId === eventId);
   },
+  async findById(eventId, rsvpId) {
+    return guestRsvpStore.find((item) => item.id === rsvpId && item.eventId === eventId) ?? null;
+  },
   async checkIn(eventId, rsvpId, _actorUserId) {
     const rsvp = guestRsvpStore.find((item) => item.id === rsvpId && item.eventId === eventId);
     if (!rsvp) throw new Error("RSVP_NOT_FOUND");

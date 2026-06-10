@@ -660,11 +660,20 @@ export const postgresGuestRsvps: GuestRsvpRepository = {
     `;
     return rows.map(rowToGuestRsvp);
   },
+  async findById(eventId, rsvpId) {
+    const sql = getSql();
+    const rows = await sql`
+      select * from guest_rsvps
+      where event_id = ${eventId}::uuid and id = ${rsvpId}::uuid
+      limit 1
+    `;
+    return rows[0] ? rowToGuestRsvp(rows[0]) : null;
+  },
   async checkIn(eventId, rsvpId, _actorUserId) {
     const sql = getSql();
     const rows = await sql`
       update guest_rsvps set checked_in_at = now()
-      where id = ${rsvpId} and event_id = ${eventId}
+      where id = ${rsvpId}::uuid and event_id = ${eventId}::uuid
       returning *
     `;
     if (!rows[0]) throw new Error("RSVP_NOT_FOUND");
@@ -674,7 +683,7 @@ export const postgresGuestRsvps: GuestRsvpRepository = {
     const sql = getSql();
     const rows = await sql`
       update guest_rsvps set checked_in_at = null
-      where id = ${rsvpId} and event_id = ${eventId}
+      where id = ${rsvpId}::uuid and event_id = ${eventId}::uuid
       returning *
     `;
     if (!rows[0]) throw new Error("RSVP_NOT_FOUND");

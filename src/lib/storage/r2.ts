@@ -104,7 +104,8 @@ function getSignatureKey(secretAccessKey: string, dateStamp: string, region: str
 export function getPublicMediaUrl(key: string) {
   const baseUrl = process.env.CLOUDFLARE_R2_PUBLIC_BASE_URL;
   if (!baseUrl) return null;
-  return `${baseUrl.replace(/\/$/, "")}/${key}`;
+  const encodedKey = key.split("/").map(encodeURIComponent).join("/");
+  return `${baseUrl.replace(/\/$/, "")}/${encodedKey}`;
 }
 
 export async function deleteR2Object(key: string) {

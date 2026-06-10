@@ -4,6 +4,7 @@ import { canManageEventById } from "@/lib/auth/event-access";
 import { requireSession } from "@/lib/auth/session";
 import { repositories } from "@/lib/db";
 import { generateCoverImage } from "@/lib/openai/cover-image";
+import { verifyPublicImageUrl } from "@/lib/openai/persist-image";
 import { isOpenAIConfigured } from "@/lib/openai/client";
 import { getAiCoverQuota } from "@/lib/plans/features";
 import { assertTrustedOrigin } from "@/lib/security/origin";
@@ -37,6 +38,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ eve
     }
 
     const quota = getAiCoverQuota(event);
+    const existingCoverOk = event.coverImageUrl ? await verifyPublicImageUrl(event.coverImageUrl) : false;
+    const replacingBrokenCover = Boolean(event.coverImageUrl) && !existingCoverOk;
 
     if (mode === "select") {
       const selectedUrl = sanitizeText(body.coverImageUrl, 4000);
@@ -55,7 +58,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ eve
       if (!event.coverImageUrl) {
         return NextResponse.json({ error: "Gere uma versão antes de pedir ajustes." }, { status: 400 });
       }
-    } else if (!quota.canGenerate) {
+    } else if (!quota.canGenerate && !replacingBrokenCover) {
       return NextResponse.json({ error: "Limite de gerações por IA atingido." }, { status: 403 });
     }
 
@@ -85,19 +88,24 @@ export async function POST(request: Request, { params }: { params: Promise<{ eve
       return NextResponse.json({ error: "Falha ao gerar imagem com a OpenAI. Tente novamente ou envie sua imagem." }, { status: 500 });
     }
 
+    if (!(await verifyPublicImageUrl(imageUrl))) {
+      return NextResponse.json(
+        { error: "A imagem foi gerada, mas não ficou acessível. Tente novamente ou envie sua própria imagem." },
+        { status: 502 }
+      );
+    }
+
     if (mode === "edit") {
-      event = await repositories.events.incrementAiCoverUsage(eventId, session.user.id, "edit");
       event = await repositories.events.setCoverImage(eventId, session.user.id, {
         coverImageUrl: imageUrl,
         coverSource: "ai"
       });
+      event = await repositories.events.incrementAiCoverUsage(eventId, session.user.id, "edit");
       return NextResponse.json({
         coverImageUrl: imageUrl,
         quota: getAiCoverQuota(event)
       });
     }
-
-    event = await repositories.events.incrementAiCoverUsage(eventId, session.user.id, "generation");
 
     const isPaidFlow = quota.maxGenerations > 1;
     if (isPaidFlow) {
@@ -108,6 +116,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ eve
           coverImageUrl: pending[0],
           coverSource: "ai"
         });
+      }
+      if (quota.canGenerate) {
+        event = await repositories.events.incrementAiCoverUsage(eventId, session.user.id, "generation");
       }
       return NextResponse.json({
         coverImageUrl: event.coverImageUrl,
@@ -120,6 +131,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ eve
       coverImageUrl: imageUrl,
       coverSource: "ai"
     });
+
+    if (quota.canGenerate) {
+      event = await repositories.events.incrementAiCoverUsage(eventId, session.user.id, "generation");
+    }
 
     return NextResponse.json({
       coverImageUrl: imageUrl,
