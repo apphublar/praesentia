@@ -45,7 +45,7 @@ const STORY_SLIDES = [
 ] as const;
 
 const TOTAL_WEIGHT = CREATION_STEPS.reduce((sum, step) => sum + step.weight, 0);
-const ESTIMATED_MS = 150_000;
+const ESTIMATED_MS = 240_000;
 
 function stepIndexForProgress(progress: number) {
   let accumulated = 0;
@@ -84,7 +84,7 @@ export function CoverGenerationOverlay({ active, capsuleActive }: { active: bool
 
   if (!active) return null;
 
-  const rawProgress = Math.min(0.92, elapsedMs / ESTIMATED_MS);
+  const rawProgress = Math.min(0.96, elapsedMs / ESTIMATED_MS);
   const progressPercent = Math.round(rawProgress * 100);
   const stepIndex = stepIndexForProgress(rawProgress);
   const slide = STORY_SLIDES[slideIndex];
@@ -124,7 +124,7 @@ export function CoverGenerationOverlay({ active, capsuleActive }: { active: bool
           </p>
         ) : (
           <p className="cover-gen-overlay-tip cover-gen-overlay-tip-muted">
-            Isso pode levar até 3 minutos. Não feche esta página — avisaremos quando a imagem estiver pronta.
+            Isso pode levar até 4 minutos. Não feche esta página — avisaremos quando a imagem estiver pronta.
           </p>
         )}
       </div>
