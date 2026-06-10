@@ -2822,3 +2822,435 @@ p + a.btn,
     grid-template-columns: 1fr;
   }
 }
+
+.public-event-page {
+  --public-accent: var(--coral);
+  --public-accent-soft: rgba(255, 107, 92, 0.14);
+  --public-bg: #edf8f1;
+  --public-bg-deep: #d8efe3;
+  --public-card: rgba(255, 255, 255, 0.92);
+  --public-pattern: radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.55) 0 12px, transparent 13px);
+  min-height: 100vh;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(180deg, var(--public-bg) 0%, #f7f3ea 100%);
+}
+
+.public-event-theme-infantil {
+  --public-accent: #ff8fab;
+  --public-accent-soft: rgba(255, 143, 171, 0.18);
+  --public-bg: #eef9ff;
+  --public-bg-deep: #d9eef8;
+}
+
+.public-event-theme-jardim {
+  --public-accent: #6fbf73;
+  --public-accent-soft: rgba(111, 191, 115, 0.18);
+  --public-bg: #edf8f1;
+  --public-bg-deep: #d8efe3;
+}
+
+.public-event-theme-festa {
+  --public-accent: #ffb23e;
+  --public-accent-soft: rgba(255, 178, 62, 0.2);
+  --public-bg: #fff7ea;
+  --public-bg-deep: #ffe8c2;
+}
+
+.public-event-theme-casamento,
+.public-event-theme-classico {
+  --public-accent: #b69ae8;
+  --public-accent-soft: rgba(182, 154, 232, 0.18);
+  --public-bg: #f7f1fb;
+  --public-bg-deep: #eadff5;
+}
+
+.public-event-theme-debut {
+  --public-accent: #d4af37;
+  --public-accent-soft: rgba(212, 175, 55, 0.18);
+  --public-bg: #fff9ef;
+  --public-bg-deep: #f6e8c8;
+}
+
+.public-event-theme-vaquinha {
+  --public-accent: #6fbf73;
+  --public-accent-soft: rgba(111, 191, 115, 0.18);
+  --public-bg: #eef8f0;
+  --public-bg-deep: #d9eedc;
+}
+
+.public-event-bg {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image: var(--public-pattern);
+  background-size: 120px 120px;
+  opacity: 0.55;
+}
+
+.public-event-orb {
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(12px);
+  opacity: 0.45;
+}
+
+.public-event-orb-a {
+  width: 280px;
+  height: 280px;
+  background: var(--public-accent-soft);
+  top: -80px;
+  left: -40px;
+}
+
+.public-event-orb-b {
+  width: 220px;
+  height: 220px;
+  background: rgba(255, 255, 255, 0.35);
+  top: 18%;
+  right: -60px;
+}
+
+.public-event-orb-c {
+  width: 320px;
+  height: 320px;
+  background: var(--public-bg-deep);
+  bottom: -120px;
+  left: 20%;
+}
+
+.public-event-main {
+  position: relative;
+  z-index: 1;
+  width: min(760px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 28px 0 72px;
+}
+
+.public-event-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.public-event-card {
+  background: var(--public-card);
+  border: 1px solid rgba(27, 18, 9, 0.08);
+  border-radius: 22px;
+  padding: 24px;
+  box-shadow: 0 18px 40px rgba(27, 18, 9, 0.08);
+  backdrop-filter: blur(8px);
+}
+
+.public-event-cover {
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 20px 44px rgba(27, 18, 9, 0.14);
+  border: 4px solid rgba(255, 255, 255, 0.85);
+}
+
+.public-event-cover img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.public-event-cover-fallback {
+  min-height: 220px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, var(--public-accent-soft), rgba(255, 255, 255, 0.8));
+}
+
+.public-event-cover-icon {
+  font-size: 48px;
+  color: var(--public-accent);
+}
+
+.public-event-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: var(--public-accent-soft);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.public-event-title {
+  font-family: "DM Serif Display", Georgia, serif;
+  font-size: clamp(36px, 7vw, 58px);
+  line-height: 0.98;
+  margin: 14px 0 8px;
+}
+
+.public-event-host,
+.public-event-headline,
+.public-event-message {
+  color: var(--ink-soft);
+  line-height: 1.65;
+  margin: 0;
+}
+
+.public-event-headline {
+  font-family: "DM Serif Display", Georgia, serif;
+  font-size: 24px;
+  color: var(--ink);
+  margin-top: 16px;
+}
+
+.public-event-message {
+  margin-top: 12px;
+  white-space: pre-wrap;
+}
+
+.public-event-section-title {
+  font-family: "DM Serif Display", Georgia, serif;
+  font-size: 28px;
+  margin: 0 0 8px;
+}
+
+.public-event-info-list {
+  display: grid;
+  gap: 16px;
+  margin: 0;
+}
+
+.public-event-info-list div {
+  display: grid;
+  gap: 6px;
+}
+
+.public-event-info-list dt {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.public-event-info-list dd {
+  margin: 0;
+  display: grid;
+  gap: 4px;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.public-event-info-list dd a {
+  color: var(--public-accent);
+  font-weight: 700;
+}
+
+.public-event-rsvp {
+  padding: 0;
+  overflow: hidden;
+}
+
+.public-rsvp-form,
+.public-rsvp-state {
+  padding: 24px;
+}
+
+.public-rsvp-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+
+.public-rsvp-action {
+  min-width: 220px;
+}
+
+.public-rsvp-error {
+  color: var(--coral);
+  margin: 0;
+}
+
+.public-rsvp-icon {
+  font-size: 48px;
+  margin-bottom: 8px;
+}
+
+.public-event-pix-card .public-pix-box {
+  margin-top: 12px;
+}
+
+.public-pix-box {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 16px;
+  background: var(--public-accent-soft);
+}
+
+.public-pix-field {
+  display: grid;
+  gap: 4px;
+}
+
+.public-pix-field span {
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.public-pix-field code {
+  word-break: break-all;
+  background: rgba(255, 255, 255, 0.75);
+  padding: 10px 12px;
+  border-radius: 10px;
+}
+
+.public-pix-copy {
+  width: 100%;
+  background: var(--public-accent);
+  color: #fff;
+  box-shadow: none;
+}
+
+.public-event-goal {
+  text-align: center;
+}
+
+.public-event-goal-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.public-event-goal-value {
+  display: block;
+  font-family: "DM Serif Display", Georgia, serif;
+  font-size: 44px;
+  margin: 8px 0;
+  color: var(--public-accent);
+}
+
+.public-event-live-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.public-event-live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: var(--gold);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.public-event-live-screen {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--public-accent);
+}
+
+.public-event-mural-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.public-event-mural-item {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.public-event-mural-item img,
+.public-event-mural-placeholder,
+.public-event-mural-message {
+  min-height: 140px;
+}
+
+.public-event-mural-item img {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+  display: block;
+}
+
+.public-event-mural-placeholder {
+  display: grid;
+  place-items: center;
+  background: var(--bg-soft);
+  color: var(--ink-soft);
+}
+
+.public-event-mural-message {
+  padding: 18px;
+  margin: 0;
+  font-family: "DM Serif Display", Georgia, serif;
+  font-size: 18px;
+  line-height: 1.35;
+  background: var(--public-accent-soft);
+}
+
+.public-event-mural-item footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+  padding: 10px 12px;
+  font-size: 13px;
+}
+
+.public-event-manager-link {
+  text-align: center;
+  margin: 0;
+  font-size: 13px;
+}
+
+.public-event-manager-link a {
+  color: var(--ink-soft);
+  text-decoration: underline;
+}
+
+.public-event-footer {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 16px 28px;
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+
+.public-event-footer strong {
+  color: var(--ink);
+}
+
+@media (max-width: 640px) {
+  .public-event-main {
+    width: min(100%, calc(100% - 24px));
+    padding-top: 16px;
+  }
+
+  .public-event-card {
+    padding: 18px;
+    border-radius: 18px;
+  }
+
+  .public-rsvp-action {
+    width: 100%;
+    min-width: 0;
+  }
+}

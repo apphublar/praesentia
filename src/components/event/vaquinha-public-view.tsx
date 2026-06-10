@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { PixBox } from "@/components/event/pix-box";
 
 export function VaquinhaPublicView({
   title,
@@ -11,7 +11,7 @@ export function VaquinhaPublicView({
   pixReceiverName,
   pixMessage,
   deadlineLabel,
-  eventLink
+  coverUrl
 }: {
   title: string;
   hostName: string;
@@ -21,87 +21,61 @@ export function VaquinhaPublicView({
   pixReceiverName?: string;
   pixMessage?: string;
   deadlineLabel?: string;
-  eventLink: string;
+  coverUrl?: string;
 }) {
-  const [copiedPix, setCopiedPix] = useState(false);
-  const [copiedLink, setCopiedLink] = useState(false);
-
-  async function copyPix() {
-    if (!pixKey) return;
-    await navigator.clipboard.writeText(pixKey);
-    setCopiedPix(true);
-  }
-
-  async function copyLink() {
-    await navigator.clipboard.writeText(eventLink);
-    setCopiedLink(true);
-  }
-
-  const waText = encodeURIComponent(
-    `${title}\n\n${story?.slice(0, 200) ?? ""}\n\nContribua via Pix: ${eventLink}`
-  );
-
   return (
-    <section className="vaquinha-public">
-      <span className="pill" style={{ background: "var(--green)", color: "#fff" }}>vaquinha · Pix</span>
-      <h1 className="display-i" style={{ fontSize: "clamp(36px,6vw,64px)", lineHeight: 0.98, margin: "12px 0 8px" }}>
-        {title}
-      </h1>
-      <p style={{ color: "var(--ink-soft)", marginBottom: 20 }}>
-        Organizado por <strong>{hostName}</strong>
-        {deadlineLabel ? <> · prazo: {deadlineLabel}</> : null}
-      </p>
+    <div className="public-event-stack">
+      {coverUrl ? (
+        <div className="public-event-cover">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={coverUrl} alt={`Vaquinha ${title}`} />
+        </div>
+      ) : null}
+
+      <article className="public-event-card public-event-hero">
+        <span className="public-event-kicker">💚 Vaquinha</span>
+        <h1 className="public-event-title">{title}</h1>
+        <p className="public-event-host">
+          Organizado por <strong>{hostName}</strong>
+          {deadlineLabel ? <> · prazo: {deadlineLabel}</> : null}
+        </p>
+      </article>
 
       {goalAmount ? (
-        <article className="card vaquinha-goal-card">
-          <div className="mono" style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", color: "var(--ink-soft)" }}>
-            meta da arrecadação
-          </div>
-          <div className="display" style={{ fontSize: 42, marginTop: 8 }}>
-            R$ {goalAmount.toLocaleString("pt-BR", { minimumFractionDigits: 0 })}
-          </div>
-          <p style={{ color: "var(--ink-soft)", fontSize: 14, margin: "8px 0 0" }}>
+        <article className="public-event-card public-event-goal">
+          <span className="public-event-goal-label">Meta da arrecadação</span>
+          <strong className="public-event-goal-value">R$ {goalAmount.toLocaleString("pt-BR", { minimumFractionDigits: 0 })}</strong>
+          <p className="public-event-message">
             Contribuições são feitas diretamente via Pix para o organizador. A Praesentia não intermedia valores.
           </p>
         </article>
       ) : null}
 
-      {story && (
-        <article className="card" style={{ padding: 22, marginTop: 18 }}>
-          <h2 className="display" style={{ fontSize: 24, marginTop: 0 }}>História</h2>
-          <p style={{ color: "var(--ink-soft)", lineHeight: 1.7, whiteSpace: "pre-wrap", margin: 0 }}>{story}</p>
+      {story ? (
+        <article className="public-event-card">
+          <h2 className="public-event-section-title">História</h2>
+          <p className="public-event-message">{story}</p>
         </article>
-      )}
+      ) : null}
 
-      {pixKey && (
-        <article className="card" style={{ padding: 22, marginTop: 18, background: "var(--bg-soft)" }}>
-          <h2 className="display" style={{ fontSize: 24, marginTop: 0 }}>Contribuir via Pix</h2>
-          <p style={{ color: "var(--ink-soft)", lineHeight: 1.6 }}>
+      {pixKey ? (
+        <article className="public-event-card public-event-pix-card">
+          <h2 className="public-event-section-title">Contribuir via Pix</h2>
+          <p className="public-event-message">
             Recebedor: <strong>{pixReceiverName ?? hostName}</strong>
           </p>
-          {pixMessage && <p style={{ color: "var(--ink-soft)", lineHeight: 1.6 }}>{pixMessage}</p>}
-          <code style={{ display: "block", background: "#fff", padding: "12px 14px", borderRadius: 12, wordBreak: "break-all", marginTop: 12 }}>
-            {pixKey}
-          </code>
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 16 }}>
-            <button type="button" className="btn" onClick={copyPix}>
-              {copiedPix ? "Chave copiada!" : "Copiar chave Pix"}
-            </button>
-            <button type="button" className="btn secondary" onClick={copyLink}>
-              {copiedLink ? "Link copiado!" : "Copiar link da vaquinha"}
-            </button>
-            <a
-              href={`https://wa.me/?text=${waText}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn"
-              style={{ background: "#25D366", color: "#fff", textDecoration: "none" }}
-            >
-              Compartilhar vaquinha
-            </a>
-          </div>
+          {pixMessage ? <p className="public-event-message">{pixMessage}</p> : null}
+          <PixBox
+            pix={{
+              enabled: true,
+              receiverName: pixReceiverName ?? hostName,
+              key: pixKey,
+              suggestedAmount: goalAmount,
+              message: pixMessage
+            }}
+          />
         </article>
-      )}
-    </section>
+      ) : null}
+    </div>
   );
 }

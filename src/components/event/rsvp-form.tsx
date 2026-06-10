@@ -6,10 +6,12 @@ type Step = "form" | "capsule" | "done";
 
 export function RsvpForm({
   eventId,
+  eventSlug,
   eventTitle,
   capsuleAvailable = false
 }: {
   eventId: string;
+  eventSlug: string;
   eventTitle: string;
   capsuleAvailable?: boolean;
 }) {
@@ -29,7 +31,11 @@ export function RsvpForm({
         body: JSON.stringify({ guestName: name.trim(), phone: phone.trim() || undefined, wantsCapsule })
       });
       const data = await res.json();
-      if (!res.ok) { setError(data.error ?? "Erro ao confirmar."); setPending(false); return; }
+      if (!res.ok) {
+        setError(data.error ?? "Erro ao confirmar.");
+        setPending(false);
+        return;
+      }
       setStep("done");
     } catch {
       setError("Erro de conexão. Tente novamente.");
@@ -39,43 +45,48 @@ export function RsvpForm({
 
   if (step === "done") {
     return (
-      <section className="card" style={{ padding: 28, textAlign: "center" }}>
-        <div style={{ fontSize: 48, marginBottom: 12 }}>🎉</div>
-        <h2 className="display" style={{ fontSize: 28, margin: "0 0 8px" }}>Presença confirmada!</h2>
-        <p style={{ color: "var(--ink-soft)", lineHeight: 1.6 }}>
+      <section className="public-rsvp-state">
+        <div className="public-rsvp-icon" aria-hidden="true">
+          🎉
+        </div>
+        <h2 className="public-event-section-title">Presença confirmada!</h2>
+        <p className="public-event-message">
           Obrigado, <strong>{name}</strong>! Sua presença em <strong>{eventTitle}</strong> está confirmada.
         </p>
+        {capsuleAvailable ? (
+          <a className="btn public-rsvp-action" href={`/login?next=/evento/${eventSlug}`}>
+            Criar conta para participar do mural
+          </a>
+        ) : null}
       </section>
     );
   }
 
   if (step === "capsule" && capsuleAvailable) {
     return (
-      <section className="card" style={{ padding: 28 }}>
-        <h2 className="display" style={{ fontSize: 26, margin: "0 0 12px" }}>Participar da cápsula do tempo?</h2>
-        <p style={{ color: "var(--ink-soft)", lineHeight: 1.6, marginBottom: 20 }}>
-          Durante o evento você pode compartilhar fotos e vídeos que ficam guardados por <strong>36 meses</strong> — a cápsula do tempo do evento.
-          Para isso, você precisa criar uma conta agora (leva 30 segundos).
+      <section className="public-rsvp-state">
+        <h2 className="public-event-section-title">Participar da cápsula do tempo?</h2>
+        <p className="public-event-message">
+          Durante o evento você pode compartilhar fotos e recados que ficam guardados por <strong>36 meses</strong>.
+          Para isso, crie uma conta agora — leva menos de um minuto.
         </p>
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-          <a className="btn" href={`/login?next=/evento/${eventId}`} style={{ flex: 1, textAlign: "center" }}>
+        <div className="public-rsvp-actions">
+          <a className="btn public-rsvp-action" href={`/login?next=/evento/${eventSlug}`}>
             Criar conta e participar
           </a>
-          <button className="btn secondary" type="button" style={{ flex: 1 }} onClick={() => handleConfirm(false)} disabled={pending}>
+          <button className="btn secondary public-rsvp-action" type="button" onClick={() => handleConfirm(false)} disabled={pending}>
             {pending ? "Confirmando..." : "Só confirmar presença"}
           </button>
         </div>
-        {error && <p style={{ color: "var(--coral)", marginTop: 12 }}>{error}</p>}
+        {error ? <p className="public-rsvp-error">{error}</p> : null}
       </section>
     );
   }
 
   return (
-    <section className="card" style={{ padding: 28 }}>
-      <h2 className="display" style={{ fontSize: 26, margin: "0 0 6px" }}>Confirmar presença</h2>
-      <p style={{ color: "var(--ink-soft)", marginBottom: 20, lineHeight: 1.6 }}>
-        Informe seus dados para confirmar que você vai estar lá.
-      </p>
+    <section className="public-rsvp-form">
+      <h2 className="public-event-section-title">Confirmar presença</h2>
+      <p className="public-event-message">Informe seus dados para confirmar que você vai estar lá.</p>
       <div className="praesentia-form praesentia-form-stack">
         <label className="field">
           <span>Seu nome *</span>
@@ -98,9 +109,9 @@ export function RsvpForm({
             maxLength={20}
           />
         </label>
-        {error && <p style={{ color: "var(--coral)" }}>{error}</p>}
+        {error ? <p className="public-rsvp-error">{error}</p> : null}
         <button
-          className="btn"
+          className="btn public-rsvp-action"
           type="button"
           disabled={!name.trim() || pending}
           onClick={() => (capsuleAvailable ? setStep("capsule") : handleConfirm(false))}
