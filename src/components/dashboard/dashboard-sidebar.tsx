@@ -101,7 +101,7 @@ export function DashboardSidebar({
 
   const mainNav: NavItem[] = [
     { href: "/dashboard", label: "Meus eventos", icon: <IconEvents /> },
-    { href: "/criar", label: "Criar novo evento", icon: <IconPlus /> }
+    { href: "/dashboard/criar", label: "Criar novo evento", icon: <IconPlus /> }
   ];
 
   const eventNav: NavItem[] = eventBase
@@ -144,6 +144,9 @@ export function DashboardSidebar({
       return pathname === href && !hash;
     }
     if (href === "/dashboard") return pathname === "/dashboard";
+    if (href === "/dashboard/criar") {
+      return pathname === "/dashboard/criar" || pathname.startsWith("/dashboard/criar/");
+    }
     return pathname === href || pathname.startsWith(`${href}/`);
   }
 

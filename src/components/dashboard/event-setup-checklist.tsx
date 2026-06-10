@@ -108,7 +108,7 @@ export function EventSetupChecklist({
             {doneCount} de {items.length} etapas concluídas. Complete tudo para deixar seu {profile.isFundraising ? "vaquinha" : "convite"} pronto.
           </p>
         </div>
-        <Link className="btn secondary" href={`/criar/continuar/${event.id}`}>
+        <Link className="btn secondary" href={`/dashboard/criar/continuar/${event.id}`}>
           Assistente rápido
         </Link>
       </div>

@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { connection } from "next/server";
 import { redirect } from "next/navigation";
 import { repositories } from "@/lib/db";
 import { isDevelopmentBypassAllowed } from "@/lib/env";
@@ -17,13 +18,18 @@ export type Session = {
 };
 
 export async function getCurrentSession(): Promise<Session | null> {
+  await connection();
   const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
   const payload = token ? verifySessionToken(token) : null;
 
   if (payload) {
-    const user = await repositories.users.findById(payload.sub);
-    if (user) return { user, payload };
+    try {
+      const user = await repositories.users.findById(payload.sub);
+      if (user) return { user, payload };
+    } catch {
+      return null;
+    }
   }
 
   if (isDevelopmentBypassAllowed()) {

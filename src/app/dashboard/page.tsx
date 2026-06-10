@@ -17,7 +17,7 @@ export default async function DashboardPage() {
         <p className="dashboard-page-lead">
           Escolha um evento na lista ou no menu lateral para gerenciar convite, convidados e cápsula.
         </p>
-        <Link className="btn" href="/criar">
+        <Link className="btn" href="/dashboard/criar">
           + Criar novo evento
         </Link>
       </section>
@@ -30,7 +30,7 @@ export default async function DashboardPage() {
           <p style={{ color: "var(--ink-soft)", lineHeight: 1.6 }}>
             Crie seu primeiro convite ou vaquinha. Depois você personaliza tudo no painel do evento.
           </p>
-          <Link className="btn" href="/criar">
+          <Link className="btn" href="/dashboard/criar">
             Criar evento grátis
           </Link>
         </section>

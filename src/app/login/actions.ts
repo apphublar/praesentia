@@ -123,7 +123,7 @@ export async function signUpWithSupabase(_state: AuthActionState, formData: Form
   }
 
   const formNext = formData.get("next");
-  const emailRedirectPath = sanitizeRedirectPath(formNext, "/criar");
+  const emailRedirectPath = sanitizeRedirectPath(formNext, "/dashboard/criar");
 
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.auth.signUp({

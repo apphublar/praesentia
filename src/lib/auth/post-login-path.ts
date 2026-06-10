@@ -1,3 +1,4 @@
+import { CREATE_EVENT_PATH } from "@/lib/auth/routes";
 import { repositories } from "@/lib/db";
 
 export async function resolvePostLoginPath(userId: string, requestedNext?: string | null) {
@@ -7,6 +8,6 @@ export async function resolvePostLoginPath(userId: string, requestedNext?: strin
   }
 
   const events = await repositories.events.listByOwner(userId);
-  if (events.length === 0) return "/criar";
+  if (events.length === 0) return CREATE_EVENT_PATH;
   return "/dashboard";
 }

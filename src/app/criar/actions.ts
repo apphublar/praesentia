@@ -1,7 +1,8 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { getCurrentSession } from "@/lib/auth/session";
+import { requirePageSession } from "@/lib/auth/session";
+import { CREATE_EVENT_PATH, createEventContinuePath } from "@/lib/auth/routes";
 import { repositories } from "@/lib/db";
 import { getEventProfile, resolveEventFormat } from "@/lib/events/event-profile";
 import { normalizeEventType } from "@/lib/events/event-types";
@@ -18,8 +19,7 @@ function optional(value: FormDataEntryValue | null, maxLength: number) {
 }
 
 export async function createEventAction(formData: FormData) {
-  const session = await getCurrentSession();
-  if (!session) redirect("/login?next=/criar");
+  const session = await requirePageSession("/dashboard/criar");
 
   const eventType = normalizeEventType(required(formData.get("eventType"), 30)) as EventType;
   const profile = getEventProfile(eventType);
@@ -43,25 +43,25 @@ export async function createEventAction(formData: FormData) {
   const goalAmount = goalAmountRaw ? Number(goalAmountRaw.replace(",", ".")) : undefined;
 
   if (!title || !hostName) {
-    redirect("/criar?erro=campos-obrigatorios");
+    redirect(`${CREATE_EVENT_PATH}?erro=campos-obrigatorios`);
   }
 
   if (profile.isFundraising) {
     if (!pixKey || !pixReceiverName || !isValidPixKey(pixKey)) {
-      redirect("/criar?erro=pix-obrigatorio");
+      redirect(`${CREATE_EVENT_PATH}?erro=pix-obrigatorio`);
     }
   } else if (!theme || !date || !startsAt || !endsAt) {
-    redirect("/criar?erro=campos-obrigatorios");
+    redirect(`${CREATE_EVENT_PATH}?erro=campos-obrigatorios`);
   }
 
   const safeType = normalizeEventType(eventType);
 
   if (eventFormat === "online" && !onlineMeetingUrl) {
-    redirect("/criar?erro=link-online-obrigatorio");
+    redirect(`${CREATE_EVENT_PATH}?erro=link-online-obrigatorio`);
   }
 
   if (eventFormat === "in_person" && (!venueName || !venueAddress || !city)) {
-    redirect("/criar?erro=local-obrigatorio");
+    redirect(`${CREATE_EVENT_PATH}?erro=local-obrigatorio`);
   }
 
   const today = new Date().toISOString().slice(0, 10);
@@ -123,5 +123,5 @@ export async function createEventAction(formData: FormData) {
     metadata: { source: "create_page", eventType: safeType, eventFormat }
   });
 
-  redirect(`/criar/continuar/${event.id}`);
+  redirect(createEventContinuePath(event.id));
 }
