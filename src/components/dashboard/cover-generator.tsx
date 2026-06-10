@@ -20,6 +20,7 @@ const DEFAULT_INCLUDE = { title: true, date: true, location: true, hostName: tru
 function InvitePreview({
   coverUrl,
   imageError,
+  onImageError,
   eventTitle,
   eventHostName,
   eventDate,
@@ -35,6 +36,7 @@ function InvitePreview({
 }: {
   coverUrl: string;
   imageError: boolean;
+  onImageError: () => void;
   eventTitle: string;
   eventHostName: string;
   eventDate: string;
@@ -99,12 +101,15 @@ function InvitePreview({
             src={coverUrl}
             alt={`Convite de ${eventTitle}`}
             className="cover-phone-image"
+            onError={onImageError}
           />
         ) : (
           <div className="cover-phone-placeholder">
-            <span style={{ fontSize: 36 }}>🎉</span>
+            <span style={{ fontSize: 36 }}>{coverUrl && imageError ? "⚠️" : "🎉"}</span>
             <span style={{ fontSize: 12, color: "var(--ink-soft)", marginTop: 8, textAlign: "center" }}>
-              {coverUrl && imageError ? "Imagem em carregamento…" : "Gere a imagem do convite com IA →"}
+              {coverUrl && imageError
+                ? "Não foi possível exibir a imagem. Clique em Tentar novamente."
+                : "Gere a imagem do convite com IA →"}
             </span>
           </div>
         )}
@@ -372,7 +377,12 @@ export function CoverGenerator({
                 <button type="button" className="btn" onClick={() => generate("generate")} disabled={loading}>
                   {loading ? "Gerando com IA… (até 1 min)" : isPaid
                     ? `✨ Gerar versão (${quota.remainingGenerations} restante${quota.remainingGenerations !== 1 ? "s" : ""})`
-                    : "✨ Gerar convite com IA"}
+                    : coverUrl ? "✨ Gerar nova versão" : "✨ Gerar convite com IA"}
+                </button>
+              )}
+              {imageError && !loading && (
+                <button type="button" className="btn" onClick={() => generate("generate")} style={{ background: "var(--coral)" }}>
+                  ↻ Tentar novamente
                 </button>
               )}
               {!quota.canGenerate && !coverUrl && (
@@ -427,6 +437,7 @@ export function CoverGenerator({
         <InvitePreview
           coverUrl={coverUrl}
           imageError={imageError}
+          onImageError={() => setImageError(true)}
           eventTitle={eventTitle}
           eventHostName={eventHostName}
           eventDate={eventDate}

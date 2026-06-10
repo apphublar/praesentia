@@ -138,7 +138,12 @@ export default async function EventDashboardPage({ params }: { params: Promise<{
 
             {profile.needsRsvp ? (
               <section id="secao-rsvp" className="dashboard-section">
-                <GuestListPanel eventId={event.id} initialRsvps={guestRsvps} />
+                <GuestListPanel
+                  eventId={event.id}
+                  eventSlug={event.slug}
+                  eventFreeCode={event.freeCode}
+                  initialRsvps={guestRsvps}
+                />
               </section>
             ) : null}
 

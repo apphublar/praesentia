@@ -3,10 +3,30 @@
 import { useState } from "react";
 import type { GuestRsvp } from "@/types/domain";
 
-export function GuestListPanel({ eventId, initialRsvps }: { eventId: string; initialRsvps: GuestRsvp[] }) {
+export function GuestListPanel({
+  eventId,
+  eventSlug,
+  eventFreeCode,
+  initialRsvps
+}: {
+  eventId: string;
+  eventSlug: string;
+  eventFreeCode?: string;
+  initialRsvps: GuestRsvp[];
+}) {
   const [rsvps, setRsvps] = useState(initialRsvps);
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [copiedPortaria, setCopiedPortaria] = useState(false);
+
+  async function copyPortariaLink() {
+    if (!eventFreeCode) return;
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    const link = `${origin}/evento/${eventSlug}/portaria?token=${eventFreeCode}`;
+    await navigator.clipboard.writeText(link);
+    setCopiedPortaria(true);
+    setTimeout(() => setCopiedPortaria(false), 2500);
+  }
 
   async function toggleCheckIn(rsvp: GuestRsvp) {
     setLoadingId(rsvp.id);
@@ -46,6 +66,12 @@ export function GuestListPanel({ eventId, initialRsvps }: { eventId: string; ini
           </p>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {eventFreeCode && (
+            <button type="button" className="btn" onClick={copyPortariaLink}
+              style={{ background: "var(--ink)", color: "var(--bg)" }}>
+              {copiedPortaria ? "✓ Link copiado!" : "🚪 Copiar link da portaria"}
+            </button>
+          )}
           <a className="btn secondary" href={`/api/events/${eventId}/guests/export`}>
             Baixar lista (CSV)
           </a>
