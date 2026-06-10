@@ -7,6 +7,8 @@ const SESSION_TTL_SECONDS = 60 * 60 * 24 * 14;
 export type SessionPayload = {
   sub: string;
   role: "platform_admin" | "user";
+  name?: string;
+  email?: string;
   iat: number;
   exp: number;
   authTime: number;
@@ -21,6 +23,22 @@ function getSessionSecret() {
   return secret || "development-session-secret-change-me";
 }
 
+function sessionCookieDomain() {
+  if (!isProductionEnvironment()) return undefined;
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+  if (!appUrl) return ".praesentia.com.br";
+
+  try {
+    const hostname = new URL(appUrl).hostname;
+    if (hostname === "localhost" || hostname.endsWith(".vercel.app")) return undefined;
+    const root = hostname.startsWith("www.") ? hostname.slice(4) : hostname;
+    return `.${root}`;
+  } catch {
+    return ".praesentia.com.br";
+  }
+}
+
 function base64url(input: string) {
   return Buffer.from(input).toString("base64url");
 }
@@ -33,11 +51,19 @@ function sign(value: string) {
   return createHmac("sha256", getSessionSecret()).update(value).digest("base64url");
 }
 
-export function createSessionToken(input: { userId: string; role: SessionPayload["role"]; reauth?: boolean }) {
+export function createSessionToken(input: {
+  userId: string;
+  role: SessionPayload["role"];
+  name?: string;
+  email?: string;
+  reauth?: boolean;
+}) {
   const now = Math.floor(Date.now() / 1000);
   const payload: SessionPayload = {
     sub: input.userId,
     role: input.role,
+    name: input.name,
+    email: input.email,
     iat: now,
     exp: now + SESSION_TTL_SECONDS,
     authTime: now,
@@ -77,5 +103,6 @@ export const sessionCookieOptions = {
   sameSite: "lax" as const,
   secure: isProductionEnvironment(),
   path: "/",
+  domain: sessionCookieDomain(),
   maxAge: SESSION_TTL_SECONDS
 };

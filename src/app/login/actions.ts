@@ -34,7 +34,13 @@ async function issuePraesentiaSession(userId: string, nextPath: string) {
   }
 
   const cookieStore = await cookies();
-  const token = createSessionToken({ userId: user.id, role: user.role, reauth: true });
+  const token = createSessionToken({
+    userId: user.id,
+    role: user.role,
+    name: user.name,
+    email: user.email,
+    reauth: true
+  });
   cookieStore.set(SESSION_COOKIE_NAME, token, sessionCookieOptions);
 
   revalidatePath("/", "layout");

@@ -21,7 +21,13 @@ export async function POST(request: Request) {
 
   if (!user) return NextResponse.json({ error: "Usuário não encontrado." }, { status: 404 });
 
-  const token = createSessionToken({ userId: user.id, role: user.role, reauth });
+  const token = createSessionToken({
+    userId: user.id,
+    role: user.role,
+    name: user.name,
+    email: user.email,
+    reauth
+  });
   const cookieStore = await cookies();
   cookieStore.set(SESSION_COOKIE_NAME, token, sessionCookieOptions);
 

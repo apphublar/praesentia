@@ -27,7 +27,13 @@ export async function GET(request: Request) {
   }
 
   const cookieStore = await cookies();
-  const token = createSessionToken({ userId: user.id, role: user.role, reauth: true });
+  const token = createSessionToken({
+    userId: user.id,
+    role: user.role,
+    name: user.name,
+    email: user.email,
+    reauth: true
+  });
   cookieStore.set(SESSION_COOKIE_NAME, token, sessionCookieOptions);
 
   const nextPath = await resolvePostLoginPath(user.id, requestedNext);

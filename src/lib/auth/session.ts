@@ -18,29 +18,44 @@ export type Session = {
 
 const DB_RETRY_DELAYS_MS = [300, 700, 1500] as const;
 
-export async function getCurrentSession(options?: { throwOnDbError?: boolean }): Promise<Session | null> {
+function userFromPayload(payload: SessionPayload): User {
+  return {
+    id: payload.sub,
+    name: payload.name?.trim() || "Usuário",
+    email: payload.email?.trim() || "",
+    role: payload.role
+  };
+}
+
+async function enrichSessionFromDatabase(payload: SessionPayload): Promise<Session> {
+  const fallback: Session = { user: userFromPayload(payload), payload };
+
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    try {
+      const dbUser = await repositories.users.findById(payload.sub);
+      if (dbUser) return { user: dbUser, payload };
+      return fallback;
+    } catch (error) {
+      console.error(`[auth] user lookup failed (attempt ${attempt + 1}/4)`, error);
+      if (attempt < 3) {
+        await new Promise((resolve) => setTimeout(resolve, DB_RETRY_DELAYS_MS[attempt]));
+        continue;
+      }
+      console.warn("[auth] using token profile after database retries exhausted");
+      return fallback;
+    }
+  }
+
+  return fallback;
+}
+
+export async function getCurrentSession(_options?: { throwOnDbError?: boolean }): Promise<Session | null> {
   const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
   const payload = token ? verifySessionToken(token) : null;
 
   if (payload) {
-    for (let attempt = 0; attempt < 4; attempt += 1) {
-      try {
-        const user = await repositories.users.findById(payload.sub);
-        if (user) return { user, payload };
-        return null;
-      } catch (error) {
-        console.error(`[auth] user lookup failed (attempt ${attempt + 1}/4)`, error);
-        if (attempt < 3) {
-          await new Promise((resolve) => setTimeout(resolve, DB_RETRY_DELAYS_MS[attempt]));
-          continue;
-        }
-        if (options?.throwOnDbError) {
-          throw new AuthError("SERVICE_UNAVAILABLE");
-        }
-        return null;
-      }
-    }
+    return enrichSessionFromDatabase(payload);
   }
 
   if (isDevelopmentBypassAllowed()) {
@@ -51,6 +66,8 @@ export async function getCurrentSession(options?: { throwOnDbError?: boolean }):
       payload: {
         sub: user.id,
         role: user.role,
+        name: user.name,
+        email: user.email,
         iat: Math.floor(Date.now() / 1000),
         exp: Math.floor(Date.now() / 1000) + 60 * 60,
         authTime: Math.floor(Date.now() / 1000),

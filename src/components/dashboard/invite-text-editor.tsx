@@ -57,7 +57,7 @@ export function InviteTextEditor({
         body: JSON.stringify({ mode: "generate" })
       });
       if (!response.ok) {
-        setError(response.status === 401 ? "Sessão expirada. Faça login novamente." : String(data.error ?? "Erro ao gerar texto."));
+        setError(response.status === 401 ? "Não foi possível confirmar sua sessão. Recarregue a página e tente de novo." : String(data.error ?? "Erro ao gerar texto."));
         setLoading(false);
         return;
       }
@@ -79,7 +79,7 @@ export function InviteTextEditor({
         body: JSON.stringify({ inviteCopy: copy })
       });
       if (!response.ok) {
-        setError(response.status === 401 ? "Sessão expirada. Faça login novamente." : String(data.error ?? "Erro ao salvar texto."));
+        setError(response.status === 401 ? "Não foi possível confirmar sua sessão. Recarregue a página e tente de novo." : String(data.error ?? "Erro ao salvar texto."));
         setSaving(false);
         return;
       }
