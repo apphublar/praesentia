@@ -7,7 +7,8 @@ import {
   type CoverIncludeFields,
   type CoverRequestSummary
 } from "@/lib/openai/cover-invitation-spec";
-import { getOpenAIClient, OPENAI_TEXT_MODEL } from "@/lib/openai/client";
+import { getOpenAIClient } from "@/lib/openai/client";
+import { createTextCompletionWithFallback } from "@/lib/openai/text-completion";
 import { persistImageBuffer } from "@/lib/openai/persist-image";
 import type { Event } from "@/types/domain";
 
@@ -56,8 +57,7 @@ async function refineCoverImagePromptWithGpt(
   if (!openai) return null;
 
   try {
-    const response = await openai.chat.completions.create({
-      model: OPENAI_TEXT_MODEL,
+    const response = await createTextCompletionWithFallback(openai, {
       temperature: 0.15,
       messages: [
         {

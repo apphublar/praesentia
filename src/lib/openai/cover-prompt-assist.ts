@@ -1,4 +1,8 @@
-import { getOpenAIClient, OPENAI_TEXT_MODEL } from "@/lib/openai/client";
+import { getOpenAIClient } from "@/lib/openai/client";
+import {
+  createJsonTextCompletionWithFallback,
+  describeOpenAiFailure
+} from "@/lib/openai/text-completion";
 import {
   buildCoverBottomTexts,
   type CoverRequestSummary
@@ -147,6 +151,30 @@ const ASSIST_SYSTEM_PROMPT =
   "5) Não invente dados do evento que não foram fornecidos. " +
   "Responda SOMENTE um JSON válido com as chaves exatas visualDirection (string) e photoInstructions (string ou null).";
 
+function buildLocalPromptFallback(input: CoverPromptAssistInput): CoverPromptAssistResult {
+  const theme = input.summary.theme?.trim();
+  const hostName = input.summary.hostName?.trim();
+  const draft = input.draftOrientation.trim();
+  const photoDraft = input.draftPhotoInstructions.trim();
+
+  const visualParts: string[] = [];
+  if (draft) visualParts.push(draft);
+  if (theme && !draft.toLowerCase().includes(theme.toLowerCase())) {
+    visualParts.unshift(`Tema visual: ${theme}.`);
+  }
+  if (hostName && !draft.toLowerCase().includes(hostName.toLowerCase())) {
+    visualParts.push(`Celebração especial para ${hostName}.`);
+  }
+  if (!visualParts.length && theme) {
+    visualParts.push(`Convite festivo com tema ${theme}, paleta harmoniosa e visual premium.`);
+  }
+
+  return {
+    visualDirection: visualParts.join(" ").slice(0, 1000),
+    photoInstructions: input.withHostPhoto ? photoDraft.slice(0, 400) || null : null
+  };
+}
+
 export async function generateCoverPromptAssist(
   input: CoverPromptAssistInput
 ): Promise<CoverPromptAssistResult | null> {
@@ -168,55 +196,47 @@ export async function generateCoverPromptAssistDetailed(
   const userMessage = buildAssistUserMessage(input);
 
   try {
-    const response = await openai.chat.completions.create({
-      model: OPENAI_TEXT_MODEL,
+    const response = await createJsonTextCompletionWithFallback(openai, {
       temperature: 0.4,
-      response_format: { type: "json_object" },
       messages: [
         { role: "system", content: ASSIST_SYSTEM_PROMPT },
         { role: "user", content: userMessage }
       ]
     });
 
-    let content = response.choices[0]?.message?.content?.trim() ?? "";
+    const content = response.choices[0]?.message?.content?.trim() ?? "";
     if (!content) {
+      const fallback = buildLocalPromptFallback(input);
+      if (fallback.visualDirection.length >= 8) {
+        return { ok: true, result: fallback };
+      }
       return { ok: false, failure: { reason: "empty_response" } };
     }
 
-    let parsed = parseAssistJson(content);
-
-    if (!parsed) {
-      const retry = await openai.chat.completions.create({
-        model: OPENAI_TEXT_MODEL,
-        temperature: 0.2,
-        response_format: { type: "json_object" },
-        messages: [
-          {
-            role: "system",
-            content:
-              "Converta o conteúdo abaixo em JSON válido com chaves exatas visualDirection e photoInstructions. " +
-              "Não altere o sentido. photoInstructions pode ser null se não houver foto."
-          },
-          { role: "user", content }
-        ]
-      });
-      content = retry.choices[0]?.message?.content?.trim() ?? content;
-      parsed = parseAssistJson(content);
+    const parsed = parseAssistJson(content);
+    if (parsed) {
+      if (!input.withHostPhoto) parsed.photoInstructions = null;
+      return { ok: true, result: parsed };
     }
 
-    if (!parsed) {
-      console.warn("[cover-prompt-assist] parse_failed", content.slice(0, 500));
-      return { ok: false, failure: { reason: "parse_failed", detail: content.slice(0, 200) } };
+    console.warn("[cover-prompt-assist] parse_failed", content.slice(0, 500));
+    const fallback = buildLocalPromptFallback(input);
+    if (fallback.visualDirection.length >= 8) {
+      return { ok: true, result: fallback };
     }
 
-    if (!input.withHostPhoto) {
-      parsed.photoInstructions = null;
-    }
-
-    return { ok: true, result: parsed };
+    return { ok: false, failure: { reason: "parse_failed", detail: content.slice(0, 200) } };
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error);
     console.warn("[cover-prompt-assist] openai_error", detail);
+
+    const fallback = buildLocalPromptFallback(input);
+    if (fallback.visualDirection.length >= 8) {
+      return { ok: true, result: fallback };
+    }
+
     return { ok: false, failure: { reason: "openai_error", detail } };
   }
 }
+
+export { describeOpenAiFailure };

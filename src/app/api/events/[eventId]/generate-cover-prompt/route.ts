@@ -4,7 +4,7 @@ import { canManageEventById } from "@/lib/auth/event-access";
 import { requireSession } from "@/lib/auth/session";
 import { repositories } from "@/lib/db";
 import { buildCoverRequestSummary } from "@/lib/openai/ai-cover-image";
-import { generateCoverPromptAssistDetailed } from "@/lib/openai/cover-prompt-assist";
+import { generateCoverPromptAssistDetailed, describeOpenAiFailure } from "@/lib/openai/cover-prompt-assist";
 import { isOpenAIConfigured } from "@/lib/openai/client";
 import { assertTrustedOrigin } from "@/lib/security/origin";
 import { sanitizeText } from "@/lib/security/sanitize";
@@ -79,7 +79,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ eve
         openai_not_configured: "OPENAI_API_KEY não configurada.",
         empty_response: "A IA não retornou conteúdo. Tente novamente.",
         parse_failed: "A IA retornou um formato inesperado. Tente novamente.",
-        openai_error: "Falha ao consultar a OpenAI. Tente novamente em instantes."
+        openai_error: describeOpenAiFailure(new Error(assist.failure.detail ?? "openai_error"))
       };
       console.error("[generate-cover-prompt]", assist.failure.reason, assist.failure.detail ?? "");
       return NextResponse.json({ error: messageByReason[assist.failure.reason] }, { status: 500 });
