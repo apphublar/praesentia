@@ -6,8 +6,14 @@ A Praesentia usa a API da OpenAI para gerar **textos** e **imagens** dos convite
 
 ```env
 OPENAI_API_KEY=sk-...
-OPENAI_TEXT_MODEL=gpt-4o-mini
+OPENAI_TEXT_MODEL=gpt-4.1
 OPENAI_IMAGE_MODEL=gpt-image-2
+OPENAI_IMAGE_QUALITY=high
+
+# Testes de qualidade da capa (opcional)
+AI_COVER_TESTING_GENERATIONS=10
+AI_COVER_TESTING_EDITS=5
+AI_COVER_TESTING_UNLIMITED=true
 ```
 
 Configure `OPENAI_API_KEY` no `.env.local` (desenvolvimento) e nas **Environment Variables** da Vercel (produção).
@@ -16,8 +22,8 @@ Configure `OPENAI_API_KEY` no `.env.local` (desenvolvimento) e nas **Environment
 
 | Recurso | Modelo | Endpoint |
 |---------|--------|----------|
-| Texto do convite (headline, mensagem, WhatsApp, hashtags) | `gpt-4o-mini` | `POST /api/events/:eventId/generate-invite-text` |
-| Imagem vertical do convite | `gpt-image-2` (mais recente) | `POST /api/events/:eventId/generate-cover` (reserva de cota → OpenAI Images → artefato auditável) |
+| Texto do convite (headline, mensagem, WhatsApp, hashtags) | `gpt-4.1` | `POST /api/events/:eventId/generate-invite-text` |
+| Imagem vertical do convite | `gpt-image-2` + prompt refinado por `gpt-4.1` | `POST /api/events/:eventId/generate-cover` |
 
 > **Modelo padrão:** `gpt-image-2` — sucessor do DALL-E 3 e da família `gpt-image-1`, com melhor qualidade e seguimento de instruções. Formato vertical: `1024x1536`, qualidade `high`. Para usar o legado, defina `OPENAI_IMAGE_MODEL=dall-e-3`.
 
@@ -25,7 +31,7 @@ Configure `OPENAI_API_KEY` no `.env.local` (desenvolvimento) e nas **Environment
 
 | Plano | Texto | Imagem |
 |-------|-------|--------|
-| Gratuito | 1 geração, sem ajustes | 1 geração, sem ajustes |
+| Gratuito | 1 geração, sem ajustes | 10 gerações + 5 ajustes (modo teste; configurável via env) |
 | Cápsula / Plus | 1 geração + 3 ajustes | 2 versões + 3 ajustes |
 
 ## Persistência das imagens

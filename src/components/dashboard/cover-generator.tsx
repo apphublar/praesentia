@@ -14,6 +14,7 @@ export type CoverQuota = {
   canGenerate: boolean;
   canEdit: boolean;
   allowsCustomUpload: boolean;
+  testingMode?: boolean;
 };
 
 const DEFAULT_INCLUDE = { title: true, date: true, location: true, hostName: true, theme: true };
@@ -389,9 +390,16 @@ export function CoverGenerator({
             </label>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {(quota.canGenerate || (imageError && coverUrl)) && (
-                <button type="button" className="btn" onClick={() => generate("generate")} disabled={loading}>
-                  {loading ? "Gerando com IA… (até 1 min)" : isPaid
+              {quota.testingMode ? (
+                <p className="settings-status is-ok" style={{ marginBottom: 0 }}>
+                  Modo teste: gerações ilimitadas para avaliar qualidade.
+                </p>
+              ) : null}
+              {(quota.canGenerate || coverUrl || imageError) && (
+                <button type="button" className="btn" onClick={() => generate("generate")} disabled={loading || !quota.canGenerate}>
+                  {loading ? "Gerando convite com IA… (até 3 min)" : quota.testingMode
+                    ? "✨ Gerar nova versão (teste)"
+                    : isPaid || quota.maxGenerations > 1
                     ? `✨ Gerar versão (${quota.remainingGenerations} restante${quota.remainingGenerations !== 1 ? "s" : ""})`
                     : coverUrl ? "✨ Gerar nova versão" : "✨ Gerar convite com IA"}
                 </button>
@@ -404,8 +412,11 @@ export function CoverGenerator({
               {!quota.canGenerate && !coverUrl && !imageError && (
                 <p style={{ color: "var(--ink-soft)", fontSize: 13 }}>Limite de gerações atingido. Envie sua própria imagem abaixo.</p>
               )}
+              {!quota.canGenerate && coverUrl && !imageError && (
+                <p style={{ color: "var(--ink-soft)", fontSize: 13 }}>Limite de gerações atingido neste evento.</p>
+              )}
 
-              {isPaid && quota.canEdit && coverUrl && source === "ai" && (
+              {quota.canEdit && coverUrl && source === "ai" && (
                 <div className="praesentia-form praesentia-form-stack">
                   <label className="field">
                     <span>Ajuste na imagem</span>

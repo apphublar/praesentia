@@ -1,5 +1,5 @@
 import { repositories } from "@/lib/db";
-import { getAiCoverQuota } from "@/lib/plans/features";
+import { getAiCoverQuota, isAiCoverTestingUnlimited } from "@/lib/plans/features";
 import type { Event } from "@/types/domain";
 
 export type AiCoverUsageType = "generation" | "edit";
@@ -23,8 +23,9 @@ export type ReserveAiCoverUsageResult = {
 
 export async function reserveAiCoverUsage(input: ReserveAiCoverUsageInput): Promise<ReserveAiCoverUsageResult> {
   const quota = getAiCoverQuota(input.event);
+  const skipCharge = input.skipCharge || isAiCoverTestingUnlimited();
 
-  if (!input.skipCharge) {
+  if (!skipCharge) {
     if (input.usageType === "generation" && !quota.canGenerate) {
       return {
         allowed: false,
@@ -48,7 +49,7 @@ export async function reserveAiCoverUsage(input: ReserveAiCoverUsageInput): Prom
   });
 
   let charged = false;
-  if (!input.skipCharge) {
+  if (!skipCharge) {
     const reserved = await repositories.events.tryReserveAiCoverUsage(
       input.event.id,
       input.userId,

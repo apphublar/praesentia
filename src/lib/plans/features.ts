@@ -14,13 +14,21 @@ export type PlanFeatures = {
   guestListPrint: boolean;
 };
 
+const TESTING_UNLIMITED_COVER = process.env.AI_COVER_TESTING_UNLIMITED === "true";
+const TESTING_COVER_GENERATIONS = Number(process.env.AI_COVER_TESTING_GENERATIONS ?? "10");
+const TESTING_COVER_EDITS = Number(process.env.AI_COVER_TESTING_EDITS ?? "5");
+
+export function isAiCoverTestingUnlimited() {
+  return TESTING_UNLIMITED_COVER;
+}
+
 export const PLAN_FEATURES: Record<PlanTier, PlanFeatures> = {
   free: {
     mural: false,
     capsule: false,
     liveScreen: false,
-    aiCoverGenerations: 1,
-    aiCoverEdits: 0,
+    aiCoverGenerations: TESTING_UNLIMITED_COVER ? 999 : TESTING_COVER_GENERATIONS,
+    aiCoverEdits: TESTING_UNLIMITED_COVER ? 999 : TESTING_COVER_EDITS,
     aiTextGenerations: 1,
     aiTextEdits: 0,
     customCoverUpload: true,
@@ -81,6 +89,20 @@ export function getAiCoverQuota(event: Event) {
   const features = getEffectiveFeatures(event);
   const usedGenerations = event.aiCoverGenerationsCount;
   const usedEdits = event.aiCoverEditsCount;
+
+  if (isAiCoverTestingUnlimited()) {
+    return {
+      maxGenerations: 999,
+      maxEdits: 999,
+      remainingGenerations: 999,
+      remainingEdits: 999,
+      canGenerate: true,
+      canEdit: true,
+      allowsCustomUpload: features.customCoverUpload,
+      testingMode: true as const
+    };
+  }
+
   return {
     maxGenerations: features.aiCoverGenerations,
     maxEdits: features.aiCoverEdits,

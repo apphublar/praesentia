@@ -1,5 +1,6 @@
 import { EVENT_TYPE_LABELS } from "@/lib/events/event-types";
 import { PublicAiCoverError, toPublicCoverImageErrorMessage } from "@/lib/openai/ai-cover-errors";
+import { getOpenAIClient, OPENAI_TEXT_MODEL } from "@/lib/openai/client";
 import { persistImageBuffer } from "@/lib/openai/persist-image";
 import type { Event } from "@/types/domain";
 
@@ -19,6 +20,7 @@ export type CoverRequestSummary = {
   theme?: string;
   date: string;
   startsAt: string;
+  endsAt: string;
   eventFormat: Event["eventFormat"];
   venueName: string;
   city: string;
@@ -49,7 +51,7 @@ export type GenerateEventCoverImageResult = {
 
 const DEFAULT_IMAGE_MODEL = "gpt-image-2";
 const DEFAULT_IMAGE_SIZE = "1024x1536";
-const DEFAULT_IMAGE_QUALITY = "medium";
+const DEFAULT_IMAGE_QUALITY = "high";
 const OPENAI_TIMEOUT_MS = 270_000;
 
 const COVER_STORAGE_KEY = (eventId: string) => `events/${eventId}/cover/${Date.now()}.png`;
@@ -71,61 +73,128 @@ function buildLocationLine(summary: CoverRequestSummary) {
   return `${summary.venueName}, ${summary.city}`;
 }
 
-function buildDetailsBlock(summary: CoverRequestSummary) {
+function buildCoverTextLines(summary: CoverRequestSummary) {
   const include = summary.includeFields;
   const lines: string[] = [];
-  if (include.title !== false) lines.push(`Evento: "${summary.eventTitle}"`);
-  if (include.hostName !== false) lines.push(`Organizador: ${summary.hostName}`);
-  if (include.theme !== false && summary.theme) lines.push(`Tema: ${summary.theme}`);
-  if (include.date !== false) lines.push(`Data: ${formatEventDate(summary.date)} às ${summary.startsAt}`);
-  if (include.location !== false) lines.push(`Local: ${buildLocationLine(summary)}`);
-  return lines.join("\n");
+  const typeLabel = EVENT_TYPE_LABELS[summary.eventType as keyof typeof EVENT_TYPE_LABELS] ?? "Evento especial";
+
+  if (include.title !== false) lines.push(summary.eventTitle);
+  if (include.hostName !== false) lines.push(`Organizado por ${summary.hostName}`);
+  if (include.theme !== false && summary.theme?.trim()) lines.push(summary.theme.trim());
+  if (include.date !== false) {
+    lines.push(`${formatEventDate(summary.date)} · ${summary.startsAt}–${summary.endsAt}`);
+  }
+  if (include.location !== false) lines.push(buildLocationLine(summary));
+
+  if (lines.length === 0) {
+    lines.push(summary.eventTitle, typeLabel);
+  }
+
+  return lines;
+}
+
+function buildCoverTextBlock(summary: CoverRequestSummary) {
+  return buildCoverTextLines(summary)
+    .map((line) => `- "${line}"`)
+    .join("\n");
+}
+
+function buildVisualBrief(summary: CoverRequestSummary) {
+  return (
+    summary.orientation?.trim() ||
+    summary.editHint?.trim() ||
+    `Convite vertical festivo e elegante para ${summary.eventTitle}`
+  );
 }
 
 export function buildCoverGenerationPrompt(summary: CoverRequestSummary) {
   const typeLabel = EVENT_TYPE_LABELS[summary.eventType as keyof typeof EVENT_TYPE_LABELS] ?? "evento especial";
-  const userBrief =
-    summary.orientation?.trim() ||
-    summary.editHint?.trim() ||
-    `Convite vertical bonito e festivo para ${summary.eventTitle}`;
-  const details = buildDetailsBlock(summary);
+  const userBrief = buildVisualBrief(summary);
+  const textBlock = buildCoverTextBlock(summary);
 
-  return `Crie uma imagem vertical (formato Stories/WhatsApp) para convite de ${typeLabel} no Brasil.
+  return `Crie um convite vertical completo (formato Stories/WhatsApp, proporção 9:16) para ${typeLabel} no Brasil.
 
-Pedido do organizador: ${userBrief}
+ESTILO VISUAL PEDIDO PELO ORGANIZADOR:
+${userBrief}
 
-${details}
+TEXTOS OBRIGATÓRIOS NA IMAGEM (escreva EXATAMENTE estas frases, em português brasileiro, grandes e legíveis):
+${textBlock}
 
 Regras:
-- Retrato vertical 9:16, alta qualidade, estética brasileira contemporânea
-- Visual celebrativo e elegante, pronto para compartilhar no WhatsApp
-- NÃO escreva texto legível na imagem — apenas arte, decoração e composição visual
-- Sem logos, sem interface de pagamento, sem marcas d'água`;
+- Layout de convite profissional pronto para WhatsApp — não uma ilustração genérica sem texto
+- Tipografia bonita e legível; hierarquia clara (título em destaque)
+- Estética brasileira contemporânea, celebrativa e acolhedora
+- Use apenas os textos listados acima — não invente nomes, datas ou locais diferentes
+- Sem marcas d'água, sem logos de apps, sem interface de pagamento`;
 }
 
 export function buildCoverEditWithPhotoPrompt(summary: CoverRequestSummary, size: string) {
   const typeLabel = EVENT_TYPE_LABELS[summary.eventType as keyof typeof EVENT_TYPE_LABELS] ?? "evento especial";
-  const userBrief =
-    summary.orientation?.trim() ||
-    summary.editHint?.trim() ||
-    `Convite vertical festivo para ${summary.eventTitle}`;
-  const details = buildDetailsBlock(summary);
-  const teacherInstruction = userBrief
-    ? `\nINSTRUÇÃO OBRIGATÓRIA DO ORGANIZADOR (seguir à risca):\n${userBrief}`
-    : "";
+  const userBrief = buildVisualBrief(summary);
+  const textBlock = buildCoverTextBlock(summary);
 
-  return `Crie uma arte de convite vertical (${size}) para ${typeLabel} no Brasil usando a foto real do homenageado fornecida.
+  return `Crie um convite vertical completo (${size}, Stories/WhatsApp) para ${typeLabel} no Brasil usando a foto REAL do homenageado fornecida.
 
-${teacherInstruction}
+ESTILO VISUAL PEDIDO PELO ORGANIZADOR:
+${userBrief}
 
-${details}
+TEXTOS OBRIGATÓRIOS NA IMAGEM (escreva EXATAMENTE estas frases, em português brasileiro, grandes e legíveis):
+${textBlock}
 
 REGRAS ABSOLUTAS:
-- A foto do homenageado é REAL — não redesenhe, não substitua, não ilustre outra pessoa
-- Composição festiva e elegante, estética brasileira contemporânea
-- Formato vertical para WhatsApp e Stories
-- NÃO escreva texto legível na imagem — apenas arte, decoração e composição visual
-- Sem logos, marcas d'água ou interface de pagamento`;
+- A foto do homenageado é REAL — preserve o rosto; não substitua por ilustração ou outra pessoa
+- Integre a foto ao layout do convite (moldura, composição festiva)
+- Layout de convite profissional com textos legíveis — não arte genérica sem informações
+- Use apenas os textos listados — não invente dados do evento
+- Sem marcas d'água ou logos de apps`;
+}
+
+async function refineCoverImagePromptWithGpt(
+  summary: CoverRequestSummary,
+  options: { withHostPhoto: boolean; size: string }
+) {
+  const openai = getOpenAIClient();
+  if (!openai) return null;
+
+  const typeLabel = EVENT_TYPE_LABELS[summary.eventType as keyof typeof EVENT_TYPE_LABELS] ?? "evento especial";
+  const textLines = buildCoverTextLines(summary);
+  const userBrief = buildVisualBrief(summary);
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: OPENAI_TEXT_MODEL,
+      temperature: 0.35,
+      messages: [
+        {
+          role: "system",
+          content:
+            "Você escreve prompts detalhados em português do Brasil para o modelo gpt-image-2 gerar convites visuais de eventos. " +
+            "O convite DEVE incluir os textos exatos fornecidos, legíveis na imagem. " +
+            "Responda APENAS com o prompt final para geração de imagem, sem explicações."
+        },
+        {
+          role: "user",
+          content: `Tipo de evento: ${typeLabel}
+Tamanho: ${options.size}
+${options.withHostPhoto ? "Há foto real do homenageado — preservar rosto e integrar ao layout." : "Sem foto de referência."}
+
+Textos OBRIGATÓRIOS na imagem (copiar exatamente):
+${textLines.map((line) => `- ${line}`).join("\n")}
+
+Pedido visual do organizador:
+${userBrief}
+
+Monte um prompt completo para gpt-image-2 criar um convite vertical bonito com esses textos legíveis na arte.`
+        }
+      ]
+    });
+
+    const refined = response.choices[0]?.message?.content?.trim();
+    return refined && refined.length > 80 ? refined : null;
+  } catch (error) {
+    console.warn("[ai-cover-image] falha ao refinar prompt com GPT", error);
+    return null;
+  }
 }
 
 function resolveCoverImageSize() {
@@ -385,11 +454,19 @@ export async function generateEventCoverImage(
   const quality = resolveCoverImageQuality();
   const hostPhotoDataUrl = resolveHostPhotoDataUrl(input);
 
+  const basePrompt = hostPhotoDataUrl
+    ? buildCoverEditWithPhotoPrompt(input.requestSummary, size)
+    : buildCoverGenerationPrompt(input.requestSummary);
+
+  const refinedPrompt = await refineCoverImagePromptWithGpt(input.requestSummary, {
+    withHostPhoto: Boolean(hostPhotoDataUrl),
+    size
+  });
+  const prompt = refinedPrompt ?? basePrompt;
+
   let generated: { image: string; model: string };
-  let prompt: string;
 
   if (hostPhotoDataUrl) {
-    prompt = buildCoverEditWithPhotoPrompt(input.requestSummary, size);
     try {
       generated = await requestOpenAiImageEdit({
         model,
@@ -401,7 +478,6 @@ export async function generateEventCoverImage(
       });
     } catch (error) {
       console.warn("[ai-cover-image] edit com foto falhou, usando generation", error);
-      prompt = buildCoverGenerationPrompt(input.requestSummary);
       generated = await requestOpenAiImage({
         model,
         fallbackModels: resolveFallbackModels(model),
@@ -412,7 +488,6 @@ export async function generateEventCoverImage(
       });
     }
   } else {
-    prompt = buildCoverGenerationPrompt(input.requestSummary);
     generated = await requestOpenAiImage({
       model,
       fallbackModels: resolveFallbackModels(model),
@@ -451,6 +526,7 @@ export function buildCoverRequestSummary(
     theme: event.theme,
     date: event.date,
     startsAt: event.startsAt,
+    endsAt: event.endsAt,
     eventFormat: event.eventFormat,
     venueName: event.venueName,
     city: event.city,
