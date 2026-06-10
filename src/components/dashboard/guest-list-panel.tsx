@@ -6,9 +6,11 @@ import type { GuestRsvp } from "@/types/domain";
 export function GuestListPanel({ eventId, initialRsvps }: { eventId: string; initialRsvps: GuestRsvp[] }) {
   const [rsvps, setRsvps] = useState(initialRsvps);
   const [loadingId, setLoadingId] = useState<string | null>(null);
+  const [error, setError] = useState("");
 
   async function toggleCheckIn(rsvp: GuestRsvp) {
     setLoadingId(rsvp.id);
+    setError("");
     const action = rsvp.checkedInAt ? "undo" : "check_in";
     try {
       const res = await fetch(`/api/events/${eventId}/check-in`, {
@@ -19,7 +21,11 @@ export function GuestListPanel({ eventId, initialRsvps }: { eventId: string; ini
       const data = await res.json();
       if (res.ok) {
         setRsvps((current) => current.map((item) => (item.id === rsvp.id ? data.rsvp : item)));
+      } else {
+        setError(data.error ?? "Não foi possível atualizar o check-in.");
       }
+    } catch {
+      setError("Erro de conexão. Tente novamente.");
     } finally {
       setLoadingId(null);
     }
@@ -48,6 +54,8 @@ export function GuestListPanel({ eventId, initialRsvps }: { eventId: string; ini
           </button>
         </div>
       </div>
+
+      {error ? <p className="settings-status is-error">{error}</p> : null}
 
       {rsvps.length === 0 ? (
         <p style={{ color: "var(--ink-soft)", marginTop: 16 }}>Nenhum convidado confirmou presença ainda. Compartilhe o link do evento!</p>

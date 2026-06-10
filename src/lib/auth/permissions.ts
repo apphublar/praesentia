@@ -16,8 +16,8 @@ export function canManageEvent(user: User, member?: EventMember, ownerId?: strin
   return member?.accessStatus === "active" && ["owner", "manager"].includes(member.role);
 }
 
-export function canUploadVideo(user: User, member?: EventMember) {
-  return canManageEvent(user, member);
+export function canUploadVideo(user: User, member?: EventMember, ownerId?: string | null) {
+  return canManageEvent(user, member, ownerId);
 }
 
 export function canContribute(event: Event, member?: EventMember) {
@@ -45,9 +45,10 @@ export function canDeleteMedia(
   user: User,
   member: EventMember | undefined,
   media: MediaItem,
-  now = new Date()
+  now = new Date(),
+  ownerId?: string | null
 ) {
-  if (canManageEvent(user, member)) return true;
+  if (canManageEvent(user, member, ownerId)) return true;
   if (!hasCapsuleAccess(event)) return false;
   if (media.userId !== user.id) return false;
   if (!member || member.rsvpStatus !== "confirmed" || member.accessStatus !== "active") return false;

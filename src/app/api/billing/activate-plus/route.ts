@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { apiAuthErrorResponse } from "@/lib/auth/api";
 import { requireSession } from "@/lib/auth/session";
 import { repositories } from "@/lib/db";
 import { assertTrustedOrigin } from "@/lib/security/origin";
@@ -26,6 +27,8 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ subscription, message: "Cápsula Plus ativada por 12 meses." });
   } catch (err) {
+    const authError = apiAuthErrorResponse(err);
+    if (authError) return authError;
     console.error("[activate-plus]", err);
     return NextResponse.json({ error: "Erro ao ativar assinatura." }, { status: 500 });
   }

@@ -67,7 +67,9 @@ export async function DELETE(request: Request, context: { params: Promise<{ even
     return NextResponse.json({ error: "Conteúdo não encontrado." }, { status: 404 });
   }
 
-  if (!canDeleteMedia(event, session.user, member ?? undefined, media)) {
+  const isManager = await canManageEventById(session.user, eventId);
+  const ownerId = await repositories.events.findOwnerId(eventId);
+  if (!isManager && !canDeleteMedia(event, session.user, member ?? undefined, media, new Date(), ownerId)) {
     return NextResponse.json(
       { error: "Você só pode excluir seu conteúdo nas primeiras 24h do evento. Depois disso, fale com o responsável." },
       { status: 403 }

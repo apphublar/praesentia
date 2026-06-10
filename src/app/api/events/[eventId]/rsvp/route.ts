@@ -2,9 +2,13 @@ import { NextResponse } from "next/server";
 import { getCurrentSession } from "@/lib/auth/session";
 import { repositories } from "@/lib/db";
 import { canAccessCapsule } from "@/lib/plans/features";
+import { assertTrustedOrigin } from "@/lib/security/origin";
 import { sanitizeText } from "@/lib/security/sanitize";
 
 export async function POST(request: Request, { params }: { params: Promise<{ eventId: string }> }) {
+  const originError = assertTrustedOrigin(request);
+  if (originError) return originError;
+
   try {
     const { eventId } = await params;
     const session = await getCurrentSession();

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { randomUUID } from "node:crypto";
-import { canContribute, canUploadVideo } from "@/lib/auth/permissions";
+import { canContribute } from "@/lib/auth/permissions";
 import { canManageEventById } from "@/lib/auth/event-access";
 import { getCurrentSession } from "@/lib/auth/session";
 import { repositories } from "@/lib/db";
@@ -58,7 +58,7 @@ export async function POST(request: Request, context: { params: Promise<{ eventI
     if (!isEventMediaKey(eventId, key)) return NextResponse.json({ error: "Chave de arquivo inválida." }, { status: 400 });
 
     const mediaType = contentType.startsWith("video/") ? "video" : "photo";
-    if (mediaType === "video" && !canUploadVideo(session.user, member ?? undefined)) {
+    if (mediaType === "video" && !isManager) {
       return NextResponse.json({ error: "Somente o responsável do evento pode enviar vídeos." }, { status: 403 });
     }
 
@@ -125,7 +125,7 @@ export async function POST(request: Request, context: { params: Promise<{ eventI
   const validation = validateUploadRequest(contentType, size);
   if (!validation.ok) return NextResponse.json({ error: validation.error }, { status: 400 });
 
-  if (validation.isVideo && !canUploadVideo(session.user, member ?? undefined)) {
+  if (validation.isVideo && !isManager) {
     return NextResponse.json({ error: "Somente o responsável do evento pode enviar vídeos." }, { status: 403 });
   }
 

@@ -4,7 +4,8 @@ import { PublicEventLayout } from "@/components/event/public-event-layout";
 import { PublicInviteView } from "@/components/event/public-invite-view";
 import { PublicLiveMural } from "@/components/event/public-live-mural";
 import { VaquinhaPublicView } from "@/components/event/vaquinha-public-view";
-import { canContribute, canUploadVideo } from "@/lib/auth/permissions";
+import { canManageEventById } from "@/lib/auth/event-access";
+import { canContribute } from "@/lib/auth/permissions";
 import { getCurrentSession } from "@/lib/auth/session";
 import { getEventProfile } from "@/lib/events/event-profile";
 import { formatEventDateShort } from "@/lib/events/format-event-date";
@@ -28,7 +29,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
         "members.findMembership"
       )
     : null;
-  const canManage = session ? canUploadVideo(session.user, membership ?? undefined) : false;
+  const canManage = session ? await canManageEventById(session.user, event.id) : false;
   const canUseMural = session ? canContribute(event, membership ?? undefined) : false;
   const media = capsuleActive && canUseMural
     ? await safeRepositoryCall(() => repositories.media.listPublishedByEvent(event.id), [], "media.listPublishedByEvent")
