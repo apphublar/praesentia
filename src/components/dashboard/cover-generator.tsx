@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { Event } from "@/types/domain";
+import { apiErrorMessage, dashboardFetchJson } from "@/lib/api/dashboard-fetch";
 
 function CoverPreviewImage({
   src,
@@ -48,6 +49,7 @@ export function CoverGenerator({
   capsuleActive,
   currentCoverUrl,
   coverSource,
+  hostPhotoUrl: initialHostPhotoUrl,
   pendingUrls = [],
   inviteWhatsappText,
   initialQuota,
@@ -60,6 +62,7 @@ export function CoverGenerator({
   capsuleActive: boolean;
   currentCoverUrl?: string;
   coverSource?: Event["coverSource"];
+  hostPhotoUrl?: string;
   pendingUrls?: string[];
   inviteWhatsappText?: string;
   initialQuota: CoverQuota;
@@ -68,6 +71,8 @@ export function CoverGenerator({
 }) {
   const router = useRouter();
   const [coverUrl, setCoverUrl] = useState(currentCoverUrl ?? "");
+  const [hostPhotoUrl, setHostPhotoUrl] = useState(initialHostPhotoUrl ?? "");
+  const [hostPhotoSaved, setHostPhotoSaved] = useState(false);
   const [source, setSource] = useState(coverSource);
   const [pending, setPending] = useState<string[]>(pendingUrls);
   const [quota, setQuota] = useState(initialQuota);
@@ -94,9 +99,8 @@ export function CoverGenerator({
     setLoading(true);
     setError("");
     try {
-      const res = await fetch(`/api/events/${eventId}/generate-cover`, {
+      const { response, data } = await dashboardFetchJson(`/api/events/${eventId}/generate-cover`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           mode,
           editHint: mode === "edit" ? editHint : undefined,
@@ -104,19 +108,18 @@ export function CoverGenerator({
           includeFields
         })
       });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error ?? "Erro ao gerar imagem.");
+      if (!response.ok) {
+        setError(String(data.error ?? "Erro ao gerar imagem."));
         setLoading(false);
         return;
       }
-      if (data.coverImageUrl) applyCover(data.coverImageUrl, "ai");
-      if (data.pendingUrls) setPending(data.pendingUrls);
-      if (data.quota) setQuota(data.quota);
+      if (typeof data.coverImageUrl === "string") applyCover(data.coverImageUrl, "ai");
+      if (Array.isArray(data.pendingUrls)) setPending(data.pendingUrls as string[]);
+      if (data.quota) setQuota(data.quota as CoverQuota);
       if (mode === "edit") setEditHint("");
       router.refresh();
-    } catch {
-      setError("Erro de conexão. Tente novamente.");
+    } catch (error) {
+      setError(apiErrorMessage(error, "Erro de conexão. Tente novamente."));
     }
     setLoading(false);
   }
@@ -125,22 +128,47 @@ export function CoverGenerator({
     setLoading(true);
     setError("");
     try {
-      const res = await fetch(`/api/events/${eventId}/generate-cover`, {
+      const { response, data } = await dashboardFetchJson(`/api/events/${eventId}/generate-cover`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ mode: "select", coverImageUrl: url })
       });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error ?? "Erro ao selecionar versão.");
+      if (!response.ok) {
+        setError(String(data.error ?? "Erro ao selecionar versão."));
         setLoading(false);
         return;
       }
-      applyCover(data.coverImageUrl, "ai");
-      setPending(data.pendingUrls ?? []);
+      if (typeof data.coverImageUrl === "string") applyCover(data.coverImageUrl, "ai");
+      setPending(Array.isArray(data.pendingUrls) ? (data.pendingUrls as string[]) : []);
       router.refresh();
-    } catch {
-      setError("Erro de conexão.");
+    } catch (error) {
+      setError(apiErrorMessage(error, "Erro de conexão."));
+    }
+    setLoading(false);
+  }
+
+  async function uploadHostPhoto(file: File) {
+    setLoading(true);
+    setError("");
+    setHostPhotoSaved(false);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const { response, data } = await dashboardFetchJson(`/api/events/${eventId}/host-photo`, {
+        method: "POST",
+        body: formData
+      });
+      if (!response.ok) {
+        setError(String(data.error ?? "Erro ao enviar foto do homenageado."));
+        setLoading(false);
+        return;
+      }
+      if (typeof data.hostPhotoUrl === "string") {
+        setHostPhotoUrl(data.hostPhotoUrl);
+        setHostPhotoSaved(true);
+      }
+      router.refresh();
+    } catch (error) {
+      setError(apiErrorMessage(error, "Erro de conexão."));
     }
     setLoading(false);
   }
@@ -151,19 +179,21 @@ export function CoverGenerator({
     try {
       const formData = new FormData();
       formData.append("file", file);
-      const res = await fetch(`/api/events/${eventId}/cover`, { method: "POST", body: formData });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error ?? "Erro ao enviar convite.");
+      const { response, data } = await dashboardFetchJson(`/api/events/${eventId}/cover`, {
+        method: "POST",
+        body: formData
+      });
+      if (!response.ok) {
+        setError(String(data.error ?? "Erro ao enviar convite."));
         setLoading(false);
         return;
       }
-      applyCover(data.coverImageUrl, "custom");
+      if (typeof data.coverImageUrl === "string") applyCover(data.coverImageUrl, "custom");
       setPending([]);
-      if (data.quota) setQuota(data.quota);
+      if (data.quota) setQuota(data.quota as CoverQuota);
       router.refresh();
-    } catch {
-      setError("Erro de conexão.");
+    } catch (error) {
+      setError(apiErrorMessage(error, "Erro de conexão."));
     }
     setLoading(false);
   }
@@ -180,6 +210,42 @@ export function CoverGenerator({
       </p>
 
       <div className="praesentia-form praesentia-form-stack cover-generator-form">
+        <div className="cover-host-photo-block">
+          <label className="field">
+            <span>Foto do aniversariante / homenageado (opcional)</span>
+            <p className="cover-field-help">
+              Envie uma foto clara da pessoa. A IA usa essa imagem como referência para montar o convite.
+            </p>
+          </label>
+          <div className="cover-host-photo-row">
+            {hostPhotoUrl ? (
+              <CoverPreviewImage
+                src={hostPhotoUrl}
+                alt="Foto do homenageado"
+                width={88}
+                height={88}
+                style={{ borderRadius: 12, objectFit: "cover", border: "1px solid var(--line)" }}
+              />
+            ) : (
+              <div className="cover-host-photo-placeholder">Sem foto</div>
+            )}
+            <label className="btn secondary cover-host-photo-btn">
+              {hostPhotoUrl ? "Trocar foto" : "Enviar foto do homenageado"}
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                style={{ display: "none" }}
+                disabled={loading}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) uploadHostPhoto(file);
+                }}
+              />
+            </label>
+          </div>
+          {hostPhotoSaved ? <p className="settings-status is-ok">Foto salva. Agora gere a imagem com IA.</p> : null}
+        </div>
+
         <div className="cover-include-grid">
           {(Object.keys(DEFAULT_INCLUDE) as Array<keyof typeof DEFAULT_INCLUDE>).map((key) => (
             <label key={key} className="settings-switch cover-include-option">
@@ -206,7 +272,7 @@ export function CoverGenerator({
             onChange={(e) => setOrientation(e.target.value)}
             maxLength={400}
             rows={3}
-            placeholder="Ex: fundo azul claro, flores delicadas, estilo minimalista, sem rostos..."
+            placeholder="Ex: fundo azul claro, flores delicadas, estilo minimalista, tema jardim encantado..."
           />
         </label>
       </div>
@@ -302,7 +368,7 @@ export function CoverGenerator({
           </label>
         )}
 
-        {error && <p style={{ color: "var(--coral)", fontSize: 13 }}>{error}</p>}
+        {error ? <p className="settings-status is-error">{error}</p> : null}
       </div>
     </article>
   );

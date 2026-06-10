@@ -42,10 +42,11 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ev
     }
 
     const updated = await repositories.events.setInviteCopy(eventId, session.user.id, inviteCopy);
-    return NextResponse.json({ inviteCopy: updated.inviteCopy });
+    return NextResponse.json({ inviteCopy: updated.inviteCopy ?? inviteCopy });
   } catch (error) {
     const authError = apiAuthErrorResponse(error);
     if (authError) return authError;
-    return NextResponse.json({ error: "Erro ao salvar texto." }, { status: 500 });
+    console.error("[invite-copy]", error);
+    return NextResponse.json({ error: "Erro ao salvar texto. Tente novamente." }, { status: 500 });
   }
 }

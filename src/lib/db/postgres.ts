@@ -318,7 +318,7 @@ export const postgresEvents: EventRepository = {
   async setAiCoverPendingUrls(eventId, urls) {
     const sql = getSql();
     await sql`
-      update events set ai_cover_pending_urls = ${JSON.stringify(urls)}::jsonb, updated_at = now()
+      update events set ai_cover_pending_urls = ${sql.json(urls)}, updated_at = now()
       where id = ${eventId}
     `;
     return (await this.findById(eventId)) as Event;
@@ -338,7 +338,15 @@ export const postgresEvents: EventRepository = {
   async setInviteCopy(eventId, _actorUserId, inviteCopy) {
     const sql = getSql();
     await sql`
-      update events set invite_copy = ${JSON.stringify(inviteCopy)}::jsonb, updated_at = now()
+      update events set invite_copy = ${sql.json(inviteCopy)}, updated_at = now()
+      where id = ${eventId}
+    `;
+    return (await this.findById(eventId)) as Event;
+  },
+  async setHostPhoto(eventId, _actorUserId, hostPhotoUrl) {
+    const sql = getSql();
+    await sql`
+      update events set host_photo_url = ${hostPhotoUrl}, updated_at = now()
       where id = ${eventId}
     `;
     return (await this.findById(eventId)) as Event;
@@ -761,12 +769,11 @@ export const postgresSubscriptions: SubscriptionRepository = {
 export const postgresAudit: AuditRepository = {
   async record(input) {
     const sql = getSql();
-    const metadata = JSON.stringify(input.metadata ?? {});
     await sql`
       insert into audit_logs (actor_user_id, event_id, action, target_type, target_id, metadata)
       values (
         ${input.actorUserId}, ${input.eventId}, ${input.action}, ${input.targetType},
-        ${input.targetId ?? null}, ${metadata}::jsonb
+        ${input.targetId ?? null}, ${sql.json(JSON.parse(JSON.stringify(input.metadata ?? {})))}
       )
     `;
   }

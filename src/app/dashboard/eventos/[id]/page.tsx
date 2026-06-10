@@ -107,6 +107,7 @@ export default async function EventDashboardPage({ params }: { params: Promise<{
                 capsuleActive={capsuleActive}
                 currentCoverUrl={event.coverImageUrl}
                 coverSource={event.coverSource}
+                hostPhotoUrl={event.hostPhotoUrl}
                 pendingUrls={event.aiCoverPendingUrls}
                 inviteWhatsappText={event.inviteCopy?.whatsapp}
                 initialQuota={coverQuota}
@@ -131,7 +132,7 @@ export default async function EventDashboardPage({ params }: { params: Promise<{
             ) : null}
 
             <section id="secao-configuracoes" className="dashboard-section">
-              <EventSettingsForms event={event} members={eventMembers} />
+              <EventSettingsForms event={event} members={eventMembers} capsuleActive={capsuleActive} />
             </section>
 
             <section id="secao-capsula" className="dashboard-section">

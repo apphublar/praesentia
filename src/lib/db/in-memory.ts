@@ -185,6 +185,12 @@ export const inMemoryEvents: EventRepository = {
     event.inviteCopy = inviteCopy;
     return event;
   },
+  async setHostPhoto(eventId, _actorUserId, hostPhotoUrl) {
+    const event = events.find((item) => item.id === eventId);
+    if (!event) throw new Error("EVENT_NOT_FOUND");
+    event.hostPhotoUrl = hostPhotoUrl;
+    return event;
+  },
   async incrementAiTextUsage(eventId, _actorUserId, type) {
     const event = events.find((item) => item.id === eventId);
     if (!event) throw new Error("EVENT_NOT_FOUND");

@@ -14,6 +14,7 @@ export function ContinueEventWizard({
   isFundraising,
   initialCopy,
   initialCoverUrl,
+  initialHostPhotoUrl,
   textQuota,
   coverQuota
 }: {
@@ -23,6 +24,7 @@ export function ContinueEventWizard({
   isFundraising: boolean;
   initialCopy?: InviteCopy;
   initialCoverUrl?: string;
+  initialHostPhotoUrl?: string;
   textQuota: TextQuota;
   coverQuota: CoverQuota;
 }) {
@@ -74,6 +76,7 @@ export function ContinueEventWizard({
             planTier="free"
             capsuleActive={false}
             currentCoverUrl={coverUrl}
+            hostPhotoUrl={initialHostPhotoUrl}
             inviteWhatsappText={copy?.whatsapp}
             initialQuota={coverQuota}
             onCoverChange={setCoverUrl}

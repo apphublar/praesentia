@@ -16,17 +16,45 @@ function addOriginVariant(set: Set<string>, value: string | null | undefined) {
   }
 }
 
+function buildAllowedOrigins(request: Request) {
+  const host = request.headers.get("host");
+  const allowedOrigins = new Set<string>();
+  addOriginVariant(allowedOrigins, process.env.NEXT_PUBLIC_APP_URL);
+  addOriginVariant(allowedOrigins, host ? `https://${host}` : null);
+  if (host) {
+    allowedOrigins.add(`https://${host}`);
+    allowedOrigins.add(`http://${host}`);
+  }
+  return allowedOrigins;
+}
+
 export function assertTrustedOrigin(request: Request) {
   if (!isProductionEnvironment()) return null;
 
+  const secFetchSite = request.headers.get("sec-fetch-site");
+  if (!secFetchSite || secFetchSite === "same-origin" || secFetchSite === "same-site") {
+    return null;
+  }
+
   const origin = request.headers.get("origin");
-  const host = request.headers.get("host");
-  const allowedOrigins = new Set<string>();
+  const allowedOrigins = buildAllowedOrigins(request);
 
-  addOriginVariant(allowedOrigins, process.env.NEXT_PUBLIC_APP_URL);
-  addOriginVariant(allowedOrigins, host ? `https://${host}` : null);
+  if (origin && allowedOrigins.has(origin)) {
+    return null;
+  }
 
-  if (!origin || !allowedOrigins.has(origin)) {
+  const referer = request.headers.get("referer");
+  if (referer) {
+    try {
+      if (allowedOrigins.has(new URL(referer).origin)) {
+        return null;
+      }
+    } catch {
+      // ignore invalid referer
+    }
+  }
+
+  if (secFetchSite === "cross-site") {
     return NextResponse.json({ error: "Origem da requisição não autorizada." }, { status: 403 });
   }
 

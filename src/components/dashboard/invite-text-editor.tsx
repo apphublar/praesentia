@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { InviteCopy } from "@/types/domain";
+import { apiErrorMessage, dashboardFetchJson } from "@/lib/api/dashboard-fetch";
 import { previewWhatsappMessage, resolveInviteCopy } from "@/lib/events/invite-copy";
 
 export type TextQuota = {
@@ -53,23 +54,21 @@ export function InviteTextEditor({
     setLoading(true);
     setError("");
     try {
-      const res = await fetch(`/api/events/${eventId}/generate-invite-text`, {
+      const { response, data } = await dashboardFetchJson(`/api/events/${eventId}/generate-invite-text`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ mode: "generate" })
       });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(res.status === 401 ? "Sessão expirada. Faça login novamente." : (data.error ?? "Erro ao gerar texto."));
+      if (!response.ok) {
+        setError(response.status === 401 ? "Sessão expirada. Faça login novamente." : String(data.error ?? "Erro ao gerar texto."));
         setLoading(false);
         return;
       }
-      updateCopy(data.inviteCopy);
-      if (data.quota) setQuota(data.quota);
+      updateCopy(data.inviteCopy as InviteCopy);
+      if (data.quota) setQuota(data.quota as TextQuota);
       setSaved(true);
       router.refresh();
-    } catch {
-      setError("Erro de conexão. Tente novamente.");
+    } catch (error) {
+      setError(apiErrorMessage(error, "Erro de conexão. Tente novamente."));
     }
     setLoading(false);
   }
@@ -78,22 +77,20 @@ export function InviteTextEditor({
     setSaving(true);
     setError("");
     try {
-      const res = await fetch(`/api/events/${eventId}/invite-copy`, {
+      const { response, data } = await dashboardFetchJson(`/api/events/${eventId}/invite-copy`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ inviteCopy: copy })
       });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(res.status === 401 ? "Sessão expirada. Faça login novamente." : (data.error ?? "Erro ao salvar texto."));
+      if (!response.ok) {
+        setError(response.status === 401 ? "Sessão expirada. Faça login novamente." : String(data.error ?? "Erro ao salvar texto."));
         setSaving(false);
         return;
       }
-      updateCopy(data.inviteCopy);
+      updateCopy((data.inviteCopy as InviteCopy) ?? copy);
       setSaved(true);
       router.refresh();
-    } catch {
-      setError("Erro de conexão. Tente novamente.");
+    } catch (error) {
+      setError(apiErrorMessage(error, "Erro de conexão. Tente novamente."));
     }
     setSaving(false);
   }

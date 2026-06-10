@@ -31,6 +31,7 @@ export default async function DashboardContinueCreatePage({ params }: { params: 
           isFundraising={event.eventFormat === "fundraising"}
           initialCopy={event.inviteCopy}
           initialCoverUrl={event.coverImageUrl}
+          initialHostPhotoUrl={event.hostPhotoUrl}
           textQuota={getAiTextQuota(event)}
           coverQuota={getAiCoverQuota(event)}
         />

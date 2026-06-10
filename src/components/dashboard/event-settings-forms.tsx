@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import type { Event, EventMember } from "@/types/domain";
+import { apiErrorMessage, dashboardFetchJson } from "@/lib/api/dashboard-fetch";
 
 type RequestState = {
   loading: boolean;
@@ -35,15 +36,15 @@ function rsvpLabel(status: EventMember["rsvpStatus"]) {
   return labels[status];
 }
 
-async function parseResponse(response: Response) {
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    throw new Error(data.error ?? "Não foi possível salvar agora.");
-  }
-  return data;
-}
-
-export function EventSettingsForms({ event, members }: { event: Event; members: EventMember[] }) {
+export function EventSettingsForms({
+  event,
+  members,
+  capsuleActive
+}: {
+  event: Event;
+  members: EventMember[];
+  capsuleActive: boolean;
+}) {
   const router = useRouter();
   const [pixEnabled, setPixEnabled] = useState(Boolean(event.pix?.enabled));
   const [receiverName, setReceiverName] = useState(event.pix?.receiverName ?? "");
@@ -71,9 +72,8 @@ export function EventSettingsForms({ event, members }: { event: Event; members: 
   async function submitPix() {
     setPixState({ loading: true, message: "", tone: "idle" });
     try {
-      await parseResponse(await fetch(`/api/events/${event.id}`, {
+      const { response, data } = await dashboardFetchJson(`/api/events/${event.id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           pix: {
             enabled: pixEnabled,
@@ -83,20 +83,20 @@ export function EventSettingsForms({ event, members }: { event: Event; members: 
             message: pixMessage
           }
         })
-      }));
+      });
+      if (!response.ok) throw new Error(String(data.error ?? "Não foi possível salvar agora."));
       setPixState({ loading: false, message: "Pix do evento salvo.", tone: "ok" });
       router.refresh();
     } catch (error) {
-      setPixState({ loading: false, message: error instanceof Error ? error.message : "Falha ao salvar Pix.", tone: "error" });
+      setPixState({ loading: false, message: apiErrorMessage(error, "Falha ao salvar Pix."), tone: "error" });
     }
   }
 
   async function submitScreen() {
     setScreenState({ loading: true, message: "", tone: "idle" });
     try {
-      await parseResponse(await fetch(`/api/events/${event.id}/screen`, {
+      const { response, data } = await dashboardFetchJson(`/api/events/${event.id}/screen`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           enabled: screenEnabled,
           paused: screenPaused,
@@ -104,25 +104,26 @@ export function EventSettingsForms({ event, members }: { event: Event; members: 
           showVideos,
           showMessages
         })
-      }));
+      });
+      if (!response.ok) throw new Error(String(data.error ?? "Não foi possível salvar agora."));
       setScreenState({ loading: false, message: "Telão atualizado em tempo real.", tone: "ok" });
       router.refresh();
     } catch (error) {
-      setScreenState({ loading: false, message: error instanceof Error ? error.message : "Falha ao salvar telão.", tone: "error" });
+      setScreenState({ loading: false, message: apiErrorMessage(error, "Falha ao salvar telão."), tone: "error" });
     }
   }
 
   async function submitVisibility(nextVisibility: Event["visibility"]) {
     setVisibilityState({ loading: true, message: "", tone: "idle" });
     try {
-      await parseResponse(await fetch(`/api/events/${event.id}`, {
+      const { response, data } = await dashboardFetchJson(`/api/events/${event.id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           visibility: nextVisibility,
           acceptedPublicTerms: nextVisibility === "public" ? acceptedTerms : true
         })
-      }));
+      });
+      if (!response.ok) throw new Error(String(data.error ?? "Não foi possível salvar agora."));
       setVisibility(nextVisibility);
       setVisibilityState({
         loading: false,
@@ -130,26 +131,26 @@ export function EventSettingsForms({ event, members }: { event: Event; members: 
         tone: "ok"
       });
     } catch (error) {
-      setVisibilityState({ loading: false, message: error instanceof Error ? error.message : "Falha ao alterar privacidade.", tone: "error" });
+      setVisibilityState({ loading: false, message: apiErrorMessage(error, "Falha ao alterar privacidade."), tone: "error" });
     }
   }
 
   async function updateGuest(member: EventMember, action: "block" | "unblock") {
     setGuestState({ loading: true, message: "", tone: "idle" });
     try {
-      const data = await parseResponse(await fetch(`/api/events/${event.id}/members/${member.userId}`, {
+      const { response, data } = await dashboardFetchJson(`/api/events/${event.id}/members/${member.userId}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action })
-      }));
-      setGuestRows((current) => current.map((item) => (item.id === member.id ? data.member : item)));
+      });
+      if (!response.ok) throw new Error(String(data.error ?? "Não foi possível salvar agora."));
+      setGuestRows((current) => current.map((item) => (item.id === member.id ? data.member as EventMember : item)));
       setGuestState({
         loading: false,
         message: action === "block" ? "Convidado bloqueado e conteúdos arquivados." : "Convidado desbloqueado.",
         tone: "ok"
       });
     } catch (error) {
-      setGuestState({ loading: false, message: error instanceof Error ? error.message : "Falha ao alterar convidado.", tone: "error" });
+      setGuestState({ loading: false, message: apiErrorMessage(error, "Falha ao alterar convidado."), tone: "error" });
     }
   }
 
@@ -189,12 +190,17 @@ export function EventSettingsForms({ event, members }: { event: Event; members: 
         </div>
       </article>
 
-      <article className="settings-form-card settings-form-card-dark">
+      <article className={`settings-form-card settings-form-card-dark${capsuleActive ? "" : " is-locked"}`}>
         <div>
-          <span className="pill">telão ao vivo</span>
+          <span className="pill">telão ao vivo · cápsula</span>
           <h2>Mural em tempo real</h2>
-          <p>Controla o que aparece no telão: publicação mais recente no fluxo principal e os três conteúdos mais curtidos ao lado.</p>
+          {capsuleActive ? (
+            <p>Controla o que aparece no telão: publicação mais recente no fluxo principal e os três conteúdos mais curtidos ao lado.</p>
+          ) : (
+            <p>Este recurso faz parte da Cápsula Praesentia (R$59). Ative no painel para liberar telão, mural ao vivo e cápsula do tempo.</p>
+          )}
         </div>
+        {capsuleActive ? (
         <div className="praesentia-form praesentia-form-grid praesentia-form-compact settings-form">
           <label className="settings-switch"><input type="checkbox" checked={screenEnabled} onChange={(currentEvent) => setScreenEnabled(currentEvent.target.checked)} /><span>Telão ativo</span></label>
           <label className="settings-switch"><input type="checkbox" checked={screenPaused} onChange={(currentEvent) => setScreenPaused(currentEvent.target.checked)} /><span>Pausar atualização</span></label>
@@ -206,6 +212,11 @@ export function EventSettingsForms({ event, members }: { event: Event; members: 
           </button>
           <Status state={screenState} />
         </div>
+        ) : (
+          <a className="btn settings-primary-action" href={`#ativar-capsula-${event.id}`}>
+            Ver planos e ativar cápsula
+          </a>
+        )}
       </article>
 
       <article className="settings-form-card">
@@ -231,35 +242,45 @@ export function EventSettingsForms({ event, members }: { event: Event; members: 
         </div>
       </article>
 
-      <article className="settings-form-card">
+      <article className={`settings-form-card${capsuleActive ? "" : " is-locked"}`}>
         <div>
-          <span className="pill">convidados</span>
-          <h2>Bloqueio e acesso</h2>
-          <p>Ao bloquear, o convidado perde acesso e os conteúdos dele ficam arquivados sem visualização até o desbloqueio.</p>
+          <span className="pill">convidados · cápsula</span>
+          <h2>Bloqueio e acesso ao mural</h2>
+          {capsuleActive ? (
+            <p>Ao bloquear, o convidado perde acesso ao mural e os conteúdos dele ficam arquivados até o desbloqueio.</p>
+          ) : (
+            <p>Moderar convidados no mural faz parte da Cápsula Praesentia. Ative a cápsula para liberar bloqueio e moderação.</p>
+          )}
         </div>
-        <div className="guest-list">
-          {guestRows.map((member) => {
-            const isOnlyOwner = member.role === "owner" && ownerCount <= 1;
-            const blocked = member.accessStatus === "blocked";
-            return (
-              <div className="guest-row" key={member.id}>
-                <div>
-                  <strong>{member.userId}</strong>
-                  <span>{roleLabel(member.role)} · {rsvpLabel(member.rsvpStatus)} · {statusLabel(member.accessStatus)}</span>
+        {capsuleActive ? (
+          <div className="guest-list">
+            {guestRows.map((member) => {
+              const isOnlyOwner = member.role === "owner" && ownerCount <= 1;
+              const blocked = member.accessStatus === "blocked";
+              return (
+                <div className="guest-row" key={member.id}>
+                  <div>
+                    <strong>{member.userId}</strong>
+                    <span>{roleLabel(member.role)} · {rsvpLabel(member.rsvpStatus)} · {statusLabel(member.accessStatus)}</span>
+                  </div>
+                  <button
+                    className={blocked ? "btn settings-primary-action" : "btn secondary settings-secondary-action"}
+                    type="button"
+                    disabled={guestState.loading || isOnlyOwner}
+                    onClick={() => updateGuest(member, blocked ? "unblock" : "block")}
+                  >
+                    {blocked ? "Desbloquear" : "Bloquear"}
+                  </button>
                 </div>
-                <button
-                  className={blocked ? "btn settings-primary-action" : "btn secondary settings-secondary-action"}
-                  type="button"
-                  disabled={guestState.loading || isOnlyOwner}
-                  onClick={() => updateGuest(member, blocked ? "unblock" : "block")}
-                >
-                  {blocked ? "Desbloquear" : "Bloquear"}
-                </button>
-              </div>
-            );
-          })}
-          <Status state={guestState} />
-        </div>
+              );
+            })}
+            <Status state={guestState} />
+          </div>
+        ) : (
+          <a className="btn settings-primary-action" href={`#ativar-capsula-${event.id}`}>
+            Ver planos e ativar cápsula
+          </a>
+        )}
       </article>
     </section>
   );

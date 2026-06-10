@@ -3,6 +3,7 @@ import { canManageEventById } from "@/lib/auth/event-access";
 import { getCurrentSession } from "@/lib/auth/session";
 import { repositories } from "@/lib/db";
 import { publishRealtimeEvent } from "@/lib/realtime/events";
+import { canAccessLiveScreen } from "@/lib/plans/features";
 import { assertTrustedOrigin } from "@/lib/security/origin";
 
 export async function PATCH(request: Request, context: { params: Promise<{ eventId: string }> }) {
@@ -17,6 +18,10 @@ export async function PATCH(request: Request, context: { params: Promise<{ event
   if (!event) return NextResponse.json({ error: "Evento não encontrado." }, { status: 404 });
 
   if (!(await canManageEventById(session.user, eventId))) return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
+
+  if (!canAccessLiveScreen(event)) {
+    return NextResponse.json({ error: "Telão disponível apenas com a Cápsula ativa." }, { status: 403 });
+  }
 
   const body = await request.json().catch(() => ({}));
   const nextScreen = {

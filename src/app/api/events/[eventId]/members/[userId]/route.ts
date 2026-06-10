@@ -3,6 +3,7 @@ import { canManageEventById } from "@/lib/auth/event-access";
 import { getCurrentSession } from "@/lib/auth/session";
 import { repositories } from "@/lib/db";
 import { publishRealtimeEvent } from "@/lib/realtime/events";
+import { hasCapsuleAccess } from "@/lib/plans/features";
 import { assertTrustedOrigin } from "@/lib/security/origin";
 import { sanitizeText } from "@/lib/security/sanitize";
 
@@ -22,6 +23,10 @@ export async function PATCH(
 
   if (!(await canManageEventById(session.user, eventId))) {
     return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
+  }
+
+  if (!hasCapsuleAccess(event)) {
+    return NextResponse.json({ error: "Moderar convidados requer Cápsula ativa." }, { status: 403 });
   }
 
   const body = await request.json().catch(() => ({}));
