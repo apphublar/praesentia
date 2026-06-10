@@ -3,6 +3,7 @@ import { apiAuthErrorResponse } from "@/lib/auth/api";
 import { canManageEventById } from "@/lib/auth/event-access";
 import { requireSession } from "@/lib/auth/session";
 import { repositories } from "@/lib/db";
+import { persistImageBuffer } from "@/lib/openai/persist-image";
 import { assertTrustedOrigin } from "@/lib/security/origin";
 
 const MAX_BYTES = 5 * 1024 * 1024;
@@ -38,7 +39,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ eve
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    const hostPhotoUrl = `data:${file.type};base64,${buffer.toString("base64")}`;
+    const key = `events/${eventId}/host-photo/${Date.now()}.png`;
+    const hostPhotoUrl = await persistImageBuffer({ buffer, key, contentType: file.type });
 
     const updated = await repositories.events.setHostPhoto(eventId, session.user.id, hostPhotoUrl);
     return NextResponse.json({ hostPhotoUrl: updated.hostPhotoUrl });

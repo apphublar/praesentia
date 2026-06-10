@@ -181,22 +181,32 @@ async function generateFromHostPhoto(openai: NonNullable<ReturnType<typeof getOp
 }
 
 async function generateFromPrompt(openai: NonNullable<ReturnType<typeof getOpenAIClient>>, event: Event, prompt: string) {
-  const response = isGptImageModel(OPENAI_IMAGE_MODEL)
-    ? await openai.images.generate({
+  if (isGptImageModel(OPENAI_IMAGE_MODEL)) {
+    try {
+      const response = await openai.images.generate({
         model: OPENAI_IMAGE_MODEL,
         prompt,
         n: 1,
         size: "1024x1536",
         quality: "medium"
-      })
-    : await openai.images.generate({
-        model: OPENAI_IMAGE_MODEL,
-        prompt,
-        n: 1,
-        size: "1024x1792",
-        quality: "standard",
-        style: "vivid"
       });
+      return persistOpenAIImage(event.id, response.data?.[0]);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      const isModelError = /model|not found|unsupported|invalid/i.test(message);
+      if (!isModelError) throw error;
+      console.warn(`[generateCoverImage] ${OPENAI_IMAGE_MODEL} unavailable, falling back to dall-e-3`);
+    }
+  }
+
+  const response = await openai.images.generate({
+    model: "dall-e-3",
+    prompt,
+    n: 1,
+    size: "1024x1792",
+    quality: "standard",
+    style: "vivid"
+  });
 
   return persistOpenAIImage(event.id, response.data?.[0]);
 }

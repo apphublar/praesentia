@@ -3,6 +3,7 @@ import { apiAuthErrorResponse } from "@/lib/auth/api";
 import { canManageEventById } from "@/lib/auth/event-access";
 import { requireSession } from "@/lib/auth/session";
 import { repositories } from "@/lib/db";
+import { persistImageBuffer } from "@/lib/openai/persist-image";
 import { getAiCoverQuota } from "@/lib/plans/features";
 import { assertTrustedOrigin } from "@/lib/security/origin";
 
@@ -44,7 +45,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ eve
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    const dataUrl = `data:${file.type};base64,${buffer.toString("base64")}`;
+    const key = `events/${eventId}/cover-custom/${Date.now()}.png`;
+    const dataUrl = await persistImageBuffer({ buffer, key, contentType: file.type });
 
     const updated = await repositories.events.setCoverImage(eventId, session.user.id, {
       coverImageUrl: dataUrl,
