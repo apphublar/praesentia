@@ -16,22 +16,27 @@ export type Session = {
   payload: SessionPayload;
 };
 
-export async function getCurrentSession(): Promise<Session | null> {
+const DB_RETRY_DELAYS_MS = [300, 700, 1500] as const;
+
+export async function getCurrentSession(options?: { throwOnDbError?: boolean }): Promise<Session | null> {
   const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
   const payload = token ? verifySessionToken(token) : null;
 
   if (payload) {
-    for (let attempt = 0; attempt < 3; attempt += 1) {
+    for (let attempt = 0; attempt < 4; attempt += 1) {
       try {
         const user = await repositories.users.findById(payload.sub);
         if (user) return { user, payload };
         return null;
       } catch (error) {
-        console.error(`[auth] user lookup failed (attempt ${attempt + 1}/3)`, error);
-        if (attempt < 2) {
-          await new Promise((resolve) => setTimeout(resolve, 200 * (attempt + 1)));
+        console.error(`[auth] user lookup failed (attempt ${attempt + 1}/4)`, error);
+        if (attempt < 3) {
+          await new Promise((resolve) => setTimeout(resolve, DB_RETRY_DELAYS_MS[attempt]));
           continue;
+        }
+        if (options?.throwOnDbError) {
+          throw new AuthError("SERVICE_UNAVAILABLE");
         }
         return null;
       }
@@ -58,7 +63,7 @@ export async function getCurrentSession(): Promise<Session | null> {
 }
 
 export class AuthError extends Error {
-  code: "UNAUTHENTICATED" | "FORBIDDEN" | "REAUTH_REQUIRED";
+  code: "UNAUTHENTICATED" | "FORBIDDEN" | "REAUTH_REQUIRED" | "SERVICE_UNAVAILABLE";
 
   constructor(code: AuthError["code"], message?: string) {
     super(message ?? code);
@@ -67,7 +72,7 @@ export class AuthError extends Error {
 }
 
 export async function requireSession() {
-  const session = await getCurrentSession();
+  const session = await getCurrentSession({ throwOnDbError: true });
   if (!session) {
     throw new AuthError("UNAUTHENTICATED");
   }
@@ -75,12 +80,19 @@ export async function requireSession() {
 }
 
 export async function requirePageSession(loginNext?: string) {
-  const session = await getCurrentSession();
-  if (!session) {
-    const next = loginNext?.startsWith("/") && !loginNext.startsWith("//") ? loginNext : "/dashboard";
-    redirect(`/login?next=${encodeURIComponent(next)}`);
+  try {
+    const session = await getCurrentSession({ throwOnDbError: true });
+    if (!session) {
+      const next = loginNext?.startsWith("/") && !loginNext.startsWith("//") ? loginNext : "/dashboard";
+      redirect(`/login?next=${encodeURIComponent(next)}`);
+    }
+    return session;
+  } catch (error) {
+    if (error instanceof AuthError && error.code === "SERVICE_UNAVAILABLE") {
+      throw new Error("Instabilidade temporária ao verificar sua sessão. Recarregue a página.");
+    }
+    throw error;
   }
-  return session;
 }
 
 export function isPlatformAdmin(user: User) {

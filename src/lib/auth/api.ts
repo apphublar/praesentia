@@ -12,6 +12,9 @@ export function apiAuthErrorResponse(error: unknown) {
     if (error.code === "REAUTH_REQUIRED") {
       return NextResponse.json({ error: "Confirme sua senha novamente." }, { status: 401 });
     }
+    if (error.code === "SERVICE_UNAVAILABLE") {
+      return NextResponse.json({ error: "Instabilidade temporária. Tente novamente em alguns segundos." }, { status: 503 });
+    }
   }
   return null;
 }

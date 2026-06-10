@@ -1,5 +1,7 @@
 type JsonRecord = Record<string, unknown>;
 
+const SERVICE_UNAVAILABLE_FALLBACK = "Instabilidade temporária. Tente novamente em alguns segundos.";
+
 export class DashboardApiError extends Error {
   status: number;
 
@@ -9,9 +11,16 @@ export class DashboardApiError extends Error {
   }
 }
 
+function serviceUnavailableMessage(data: JsonRecord) {
+  return typeof data.error === "string" && data.error.trim() ? data.error : SERVICE_UNAVAILABLE_FALLBACK;
+}
+
 export async function readJsonResponse(response: Response): Promise<JsonRecord> {
   const text = await response.text();
   if (!text) {
+    if (response.status === 503) {
+      throw new DashboardApiError(503, SERVICE_UNAVAILABLE_FALLBACK);
+    }
     if (response.status === 524 || response.status === 504 || response.status === 522) {
       throw new DashboardApiError(
         response.status,
@@ -22,8 +31,16 @@ export async function readJsonResponse(response: Response): Promise<JsonRecord> 
   }
 
   try {
-    return JSON.parse(text) as JsonRecord;
-  } catch {
+    const data = JSON.parse(text) as JsonRecord;
+    if (response.status === 503) {
+      throw new DashboardApiError(503, serviceUnavailableMessage(data));
+    }
+    return data;
+  } catch (error) {
+    if (error instanceof DashboardApiError) throw error;
+    if (response.status === 503) {
+      throw new DashboardApiError(503, SERVICE_UNAVAILABLE_FALLBACK);
+    }
     if (response.status === 401) {
       throw new DashboardApiError(401, "Sessão expirada. Faça login novamente.");
     }
