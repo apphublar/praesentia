@@ -24,21 +24,20 @@ export async function getCurrentSession(): Promise<Session | null> {
   const payload = token ? verifySessionToken(token) : null;
 
   if (payload) {
-    let lastError: unknown;
     for (let attempt = 0; attempt < 2; attempt += 1) {
       try {
         const user = await repositories.users.findById(payload.sub);
         if (user) return { user, payload };
         return null;
       } catch (error) {
-        lastError = error;
+        console.error("[auth] user lookup failed", error);
         if (attempt === 0) {
           await new Promise((resolve) => setTimeout(resolve, 120));
+          continue;
         }
+        return null;
       }
     }
-    console.error("[auth] user lookup failed", lastError);
-    throw lastError;
   }
 
   if (isDevelopmentBypassAllowed()) {

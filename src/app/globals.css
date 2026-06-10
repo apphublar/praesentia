@@ -1821,36 +1821,72 @@ p + a.btn,
 }
 
 .settings-switch {
-  color: var(--ink);
-  font-size: 13px;
-  font-weight: 850;
-}
-
-.settings-form-card-dark .settings-switch {
-  color: var(--bg);
-}
-
-.settings-switch {
   align-items: center;
-  background: rgba(255, 255, 255, 0.58);
-  border: 1px solid rgba(38, 24, 16, 0.14);
-  border-radius: 8px;
+  background: var(--bg-soft);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  color: var(--ink);
+  cursor: pointer;
   display: flex;
-  gap: 11px;
+  font-size: 13px;
+  font-weight: 700;
+  gap: 12px;
   min-height: 48px;
-  padding: 12px 13px;
+  padding: 12px 14px;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.settings-switch:hover {
+  border-color: rgba(38, 24, 16, 0.28);
 }
 
 .settings-form-card-dark .settings-switch {
   background: rgba(247, 238, 219, 0.07);
   border-color: rgba(247, 238, 219, 0.14);
+  color: var(--bg);
 }
 
 .settings-switch input {
-  accent-color: var(--coral);
+  appearance: none;
+  background: #fff;
+  border: 1.5px solid var(--ink);
+  border-radius: 5px;
   flex: 0 0 auto;
-  height: 18px;
-  width: 18px;
+  height: 20px;
+  margin: 0;
+  position: relative;
+  width: 20px;
+}
+
+.settings-switch input:checked {
+  background: var(--coral);
+  border-color: var(--coral);
+}
+
+.settings-switch input:checked::after {
+  color: #fff;
+  content: "✓";
+  display: grid;
+  font-size: 13px;
+  font-weight: 900;
+  height: 100%;
+  place-items: center;
+  width: 100%;
+}
+
+.settings-form-card-dark .settings-switch input {
+  background: rgba(247, 238, 219, 0.12);
+  border-color: rgba(247, 238, 219, 0.45);
+}
+
+.settings-form-card-dark .settings-switch input:checked {
+  background: var(--gold);
+  border-color: var(--gold);
+  color: var(--ink);
+}
+
+.settings-form-card-dark .settings-switch input:checked::after {
+  color: var(--ink);
 }
 
 .settings-primary-action,
@@ -2751,18 +2787,18 @@ p + a.btn,
   flex-wrap: wrap;
 }
 
+.cover-generator-form {
+  margin-bottom: 4px;
+}
+
 .cover-include-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 10px;
 }
 
 .cover-include-option {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  color: var(--ink-soft);
+  min-height: 44px;
 }
 
 .vaquinha-goal-card {

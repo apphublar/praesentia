@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { InviteCopy } from "@/types/domain";
 import { previewWhatsappMessage, resolveInviteCopy } from "@/lib/events/invite-copy";
@@ -30,6 +31,7 @@ export function InviteTextEditor({
   onCopyChange?: (copy: InviteCopy) => void;
   compactTitle?: string;
 }) {
+  const router = useRouter();
   const [copy, setCopy] = useState<InviteCopy>(() => resolveInviteCopy(initialCopy));
   const [quota, setQuota] = useState(initialQuota);
   const [loading, setLoading] = useState(false);
@@ -58,12 +60,14 @@ export function InviteTextEditor({
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error ?? "Erro ao gerar texto.");
+        setError(res.status === 401 ? "Sessão expirada. Faça login novamente." : (data.error ?? "Erro ao gerar texto."));
         setLoading(false);
         return;
       }
       updateCopy(data.inviteCopy);
       if (data.quota) setQuota(data.quota);
+      setSaved(true);
+      router.refresh();
     } catch {
       setError("Erro de conexão. Tente novamente.");
     }
@@ -81,12 +85,13 @@ export function InviteTextEditor({
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error ?? "Erro ao salvar texto.");
+        setError(res.status === 401 ? "Sessão expirada. Faça login novamente." : (data.error ?? "Erro ao salvar texto."));
         setSaving(false);
         return;
       }
       updateCopy(data.inviteCopy);
       setSaved(true);
+      router.refresh();
     } catch {
       setError("Erro de conexão. Tente novamente.");
     }
@@ -151,7 +156,8 @@ export function InviteTextEditor({
             {loading ? "Gerando..." : "✨ Gerar sugestão com IA (1x)"}
           </button>
         ) : null}
-        {error ? <p style={{ color: "var(--coral)", fontSize: 13 }}>{error}</p> : null}
+        {saved ? <p className="settings-status is-ok">Texto salvo. O checklist foi atualizado.</p> : null}
+        {error ? <p className="settings-status is-error">{error}</p> : null}
       </div>
     </article>
   );

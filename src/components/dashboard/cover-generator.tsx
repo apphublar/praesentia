@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { Event } from "@/types/domain";
 
@@ -65,6 +66,7 @@ export function CoverGenerator({
   onCoverChange?: (url: string) => void;
   showShareActions?: boolean;
 }) {
+  const router = useRouter();
   const [coverUrl, setCoverUrl] = useState(currentCoverUrl ?? "");
   const [source, setSource] = useState(coverSource);
   const [pending, setPending] = useState<string[]>(pendingUrls);
@@ -112,6 +114,7 @@ export function CoverGenerator({
       if (data.pendingUrls) setPending(data.pendingUrls);
       if (data.quota) setQuota(data.quota);
       if (mode === "edit") setEditHint("");
+      router.refresh();
     } catch {
       setError("Erro de conexão. Tente novamente.");
     }
@@ -135,6 +138,7 @@ export function CoverGenerator({
       }
       applyCover(data.coverImageUrl, "ai");
       setPending(data.pendingUrls ?? []);
+      router.refresh();
     } catch {
       setError("Erro de conexão.");
     }
@@ -157,6 +161,7 @@ export function CoverGenerator({
       applyCover(data.coverImageUrl, "custom");
       setPending([]);
       if (data.quota) setQuota(data.quota);
+      router.refresh();
     } catch {
       setError("Erro de conexão.");
     }
@@ -174,35 +179,37 @@ export function CoverGenerator({
           : "Escolha o que entra na arte, oriente a IA e gere uma vez — ou envie sua imagem."}
       </p>
 
-      <div className="cover-include-grid">
-        {(Object.keys(DEFAULT_INCLUDE) as Array<keyof typeof DEFAULT_INCLUDE>).map((key) => (
-          <label key={key} className="cover-include-option">
-            <input
-              type="checkbox"
-              checked={includeFields[key]}
-              onChange={(e) => setIncludeFields((current) => ({ ...current, [key]: e.target.checked }))}
-            />
-            <span>
-              {key === "title" && "Título"}
-              {key === "date" && "Data"}
-              {key === "location" && "Local / link"}
-              {key === "hostName" && "Organizador"}
-              {key === "theme" && "Tema"}
-            </span>
-          </label>
-        ))}
-      </div>
+      <div className="praesentia-form praesentia-form-stack cover-generator-form">
+        <div className="cover-include-grid">
+          {(Object.keys(DEFAULT_INCLUDE) as Array<keyof typeof DEFAULT_INCLUDE>).map((key) => (
+            <label key={key} className="settings-switch cover-include-option">
+              <input
+                type="checkbox"
+                checked={includeFields[key]}
+                onChange={(e) => setIncludeFields((current) => ({ ...current, [key]: e.target.checked }))}
+              />
+              <span>
+                {key === "title" && "Título"}
+                {key === "date" && "Data"}
+                {key === "location" && "Local / link"}
+                {key === "hostName" && "Organizador"}
+                {key === "theme" && "Tema"}
+              </span>
+            </label>
+          ))}
+        </div>
 
-      <label className="field" style={{ marginTop: 16 }}>
-        <span>Orientação para a IA</span>
-        <textarea
-          value={orientation}
-          onChange={(e) => setOrientation(e.target.value)}
-          maxLength={400}
-          rows={3}
-          placeholder="Ex: fundo azul claro, flores delicadas, estilo minimalista, sem rostos..."
-        />
-      </label>
+        <label className="field">
+          <span>Orientação para a IA</span>
+          <textarea
+            value={orientation}
+            onChange={(e) => setOrientation(e.target.value)}
+            maxLength={400}
+            rows={3}
+            placeholder="Ex: fundo azul claro, flores delicadas, estilo minimalista, sem rostos..."
+          />
+        </label>
+      </div>
 
       {coverUrl ? (
         <div style={{ display: "flex", gap: 20, flexWrap: "wrap", alignItems: "flex-start", marginTop: 20 }}>

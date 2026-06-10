@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import type { Event, EventMember } from "@/types/domain";
 
@@ -43,6 +44,7 @@ async function parseResponse(response: Response) {
 }
 
 export function EventSettingsForms({ event, members }: { event: Event; members: EventMember[] }) {
+  const router = useRouter();
   const [pixEnabled, setPixEnabled] = useState(Boolean(event.pix?.enabled));
   const [receiverName, setReceiverName] = useState(event.pix?.receiverName ?? "");
   const [pixKey, setPixKey] = useState(event.pix?.key ?? "");
@@ -83,6 +85,7 @@ export function EventSettingsForms({ event, members }: { event: Event; members: 
         })
       }));
       setPixState({ loading: false, message: "Pix do evento salvo.", tone: "ok" });
+      router.refresh();
     } catch (error) {
       setPixState({ loading: false, message: error instanceof Error ? error.message : "Falha ao salvar Pix.", tone: "error" });
     }
@@ -103,6 +106,7 @@ export function EventSettingsForms({ event, members }: { event: Event; members: 
         })
       }));
       setScreenState({ loading: false, message: "Telão atualizado em tempo real.", tone: "ok" });
+      router.refresh();
     } catch (error) {
       setScreenState({ loading: false, message: error instanceof Error ? error.message : "Falha ao salvar telão.", tone: "error" });
     }

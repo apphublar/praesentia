@@ -28,7 +28,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ event
   if (!(await canManageEventById(session.user, eventId))) return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
 
   const body = await request.json().catch(() => ({}));
-  const hasSensitiveChange = Boolean(body.pix) || body.visibility === "public" || body.subdomain;
+  const hasSensitiveChange = body.visibility === "public" || body.subdomain;
 
   if (hasSensitiveChange) {
     try {

@@ -20,7 +20,7 @@ import { getAiCoverQuota, getAiTextQuota, hasCapsuleAccess } from "@/lib/plans/f
 export default async function EventDashboardPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const session = await requirePageSession(`/dashboard/eventos/${id}`);
-  const event = await repositories.events.findById(id);
+  const event = await safeRepositoryCall(() => repositories.events.findById(id), null, "events.findById");
   if (!event) notFound();
 
   const profile = getEventProfile(event.eventType);
