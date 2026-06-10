@@ -2847,6 +2847,167 @@ p + a.btn,
   min-height: 44px;
 }
 
+/* ── Cover builder 2-column layout ── */
+.cover-builder-layout {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 28px;
+  align-items: start;
+}
+
+.cover-settings-column {
+  min-width: 0;
+}
+
+.cover-preview-column {
+  position: sticky;
+  top: 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Phone mockup */
+.cover-phone-frame {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 6px 24px rgba(27,18,9,.10);
+}
+
+.cover-phone-image {
+  width: 100%;
+  aspect-ratio: 9 / 16;
+  object-fit: cover;
+  display: block;
+}
+
+.cover-phone-placeholder {
+  width: 100%;
+  aspect-ratio: 9 / 16;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(160deg, var(--bg-soft), var(--bg));
+  gap: 4px;
+  padding: 20px;
+}
+
+.cover-phone-details {
+  padding: 16px 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cover-phone-title {
+  font-family: "DM Serif Display", serif;
+  font-size: 20px;
+  line-height: 1.15;
+  color: var(--ink);
+  font-weight: 400;
+}
+
+.cover-phone-host {
+  font-size: 13px;
+  color: var(--ink-soft);
+  font-weight: 600;
+}
+
+.cover-phone-meta {
+  font-size: 12px;
+  color: var(--ink-soft);
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+  line-height: 1.4;
+}
+
+.cover-phone-rsvp-btn {
+  margin-top: 6px;
+  background: var(--ink);
+  color: var(--bg);
+  text-align: center;
+  font-weight: 700;
+  font-size: 14px;
+  padding: 11px;
+  border-radius: 999px;
+}
+
+/* Share section */
+.cover-share-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cover-share-link-row {
+  background: var(--bg-soft);
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cover-share-link-label {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  letter-spacing: 0.04em;
+}
+
+.cover-share-link-code {
+  font-size: 12px;
+  color: var(--ink);
+  word-break: break-all;
+  line-height: 1.4;
+}
+
+.cover-share-copy-btn {
+  align-self: flex-start;
+  padding: 6px 14px !important;
+  font-size: 12px !important;
+}
+
+.cover-share-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cover-share-btn {
+  text-align: center;
+  text-decoration: none;
+}
+
+.cover-share-whatsapp-btn {
+  background: #25D366 !important;
+  color: #fff !important;
+  border-color: #25D366 !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+@media (max-width: 860px) {
+  .cover-builder-layout {
+    grid-template-columns: 1fr;
+  }
+  .cover-preview-column {
+    position: static;
+    order: -1;
+  }
+  .cover-phone-image,
+  .cover-phone-placeholder {
+    aspect-ratio: 3 / 4;
+  }
+}
+
 .vaquinha-goal-card {
   padding: 22px;
   background: linear-gradient(135deg, rgba(255, 107, 92, 0.08), rgba(255, 178, 62, 0.12));

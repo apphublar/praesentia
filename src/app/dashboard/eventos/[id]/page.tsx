@@ -113,6 +113,15 @@ export default async function EventDashboardPage({ params }: { params: Promise<{
                 pendingUrls={event.aiCoverPendingUrls}
                 inviteWhatsappText={event.inviteCopy?.whatsapp}
                 initialQuota={coverQuota}
+                eventTitle={event.title}
+                eventHostName={event.hostName}
+                eventDate={event.date}
+                eventStartsAt={event.startsAt}
+                eventEndsAt={event.endsAt}
+                eventVenueName={event.venueName}
+                eventCity={event.city}
+                eventFormat={event.eventFormat}
+                onlineMeetingUrl={event.onlineMeetingUrl}
               />
             </section>
 

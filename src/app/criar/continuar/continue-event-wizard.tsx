@@ -80,7 +80,7 @@ export function ContinueEventWizard({
             inviteWhatsappText={copy?.whatsapp}
             initialQuota={coverQuota}
             onCoverChange={setCoverUrl}
-            showShareActions={false}
+            eventTitle={eventTitle}
           />
           <div className="continue-wizard-actions">
             <button type="button" className="btn secondary" onClick={() => setStep(1)}>
