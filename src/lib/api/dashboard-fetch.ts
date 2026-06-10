@@ -1,7 +1,7 @@
 type JsonRecord = Record<string, unknown>;
 
 const SERVICE_UNAVAILABLE_FALLBACK = "Instabilidade temporária. Tente novamente em alguns segundos.";
-const TIMEOUT_FALLBACK = "A operação demorou demais. A IA pode levar até 1 minuto — aguarde e tente novamente.";
+const TIMEOUT_FALLBACK = "A operação demorou demais. A geração de imagem pode levar alguns minutos — aguarde e tente novamente.";
 
 export class DashboardApiError extends Error {
   status: number;

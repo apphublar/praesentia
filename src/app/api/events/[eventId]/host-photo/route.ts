@@ -41,7 +41,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ eve
     const ext = file.type === "image/jpeg" ? "jpg" : file.type === "image/webp" ? "webp" : "png";
     const buffer = Buffer.from(await file.arrayBuffer());
     const key = `events/${eventId}/host-photo/${Date.now()}.${ext}`;
-    const hostPhotoUrl = await persistImageBuffer({ buffer, key, contentType: file.type, preferDataUrlBelowBytes: 900_000 });
+    const hostPhotoUrl = await persistImageBuffer({
+      buffer,
+      key,
+      contentType: file.type,
+      forceDataUrl: true,
+      maxDataUrlBytes: MAX_BYTES
+    });
 
     const updated = await repositories.events.setHostPhoto(eventId, session.user.id, hostPhotoUrl);
     return NextResponse.json({ hostPhotoUrl: updated.hostPhotoUrl });

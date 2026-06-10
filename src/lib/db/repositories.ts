@@ -74,6 +74,17 @@ export interface EventRepository {
     actorUserId: string,
     type: "generation" | "edit"
   ): Promise<Event>;
+  tryReserveAiCoverUsage(
+    eventId: string,
+    actorUserId: string,
+    type: "generation" | "edit",
+    maxAllowed: number
+  ): Promise<boolean>;
+  refundAiCoverUsage(
+    eventId: string,
+    actorUserId: string,
+    type: "generation" | "edit"
+  ): Promise<Event>;
   setAiCoverPendingUrls(eventId: string, urls: string[]): Promise<Event>;
   selectAiCoverVersion(eventId: string, actorUserId: string, coverImageUrl: string): Promise<Event>;
   setInviteCopy(eventId: string, actorUserId: string, inviteCopy: InviteCopy): Promise<Event>;
@@ -122,6 +133,30 @@ export interface SubscriptionRepository {
   consumeEventSlot(userId: string): Promise<UserSubscription>;
   addExtraStorage(userId: string, gb: number): Promise<UserSubscription>;
   syncSharedStorageUsed(ownerId: string): Promise<void>;
+}
+
+export type AiCoverArtifactStatus = "reserved" | "completed" | "refunded";
+
+export interface AiCoverArtifactRepository {
+  createReserved(input: {
+    eventId: string;
+    userId: string;
+    usageType: "generation" | "edit";
+    promptVersion: string;
+    requestSummary: Record<string, unknown>;
+  }): Promise<string>;
+  complete(
+    artifactId: string,
+    input: {
+      imageDataUrl: string;
+      prompt: string;
+      model: string;
+      size: string;
+      quality: string;
+      artifact: Record<string, unknown>;
+    }
+  ): Promise<void>;
+  delete(artifactId: string): Promise<void>;
 }
 
 export interface AuditRepository {

@@ -108,6 +108,46 @@ export function getPublicMediaUrl(key: string) {
   return `${baseUrl.replace(/\/$/, "")}/${encodedKey}`;
 }
 
+export async function getR2Object(key: string) {
+  const config = getR2Config();
+  if (!config) return null;
+
+  const { accountId, bucket, accessKeyId, secretAccessKey } = config;
+  const now = new Date();
+  const amzDate = now.toISOString().replace(/[:-]|\.\d{3}/g, "");
+  const dateStamp = amzDate.slice(0, 8);
+  const region = "auto";
+  const service = "s3";
+  const host = `${accountId}.r2.cloudflarestorage.com`;
+  const credentialScope = `${dateStamp}/${region}/${service}/aws4_request`;
+  const credential = `${accessKeyId}/${credentialScope}`;
+  const canonicalUri = `/${bucket}/${encodeR2Key(key)}`;
+  const canonicalHeaders = `host:${host}\nx-amz-content-sha256:UNSIGNED-PAYLOAD\nx-amz-date:${amzDate}\n`;
+  const signedHeaders = "host;x-amz-content-sha256;x-amz-date";
+  const payloadHash = "UNSIGNED-PAYLOAD";
+  const canonicalRequest = ["GET", canonicalUri, "", canonicalHeaders, signedHeaders, payloadHash].join("\n");
+  const stringToSign = ["AWS4-HMAC-SHA256", amzDate, credentialScope, sha256Hex(canonicalRequest)].join("\n");
+  const signingKey = getSignatureKey(secretAccessKey, dateStamp, region, service);
+  const signature = createHmac("sha256", signingKey).update(stringToSign).digest("hex");
+  const url = `https://${host}${canonicalUri}`;
+
+  const response = await fetch(url, {
+    method: "GET",
+    headers: {
+      Host: host,
+      "x-amz-date": amzDate,
+      "x-amz-content-sha256": payloadHash,
+      Authorization: `AWS4-HMAC-SHA256 Credential=${credential}, SignedHeaders=${signedHeaders}, Signature=${signature}`
+    }
+  });
+
+  if (!response.ok) return null;
+
+  const buffer = Buffer.from(await response.arrayBuffer());
+  const contentType = response.headers.get("content-type") || "application/octet-stream";
+  return { buffer, contentType };
+}
+
 export async function deleteR2Object(key: string) {
   const config = getR2Config();
   if (!config) return { deleted: false, reason: "r2_not_configured" as const };

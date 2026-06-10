@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import type { Event } from "@/types/domain";
+import { generateEventCoverImageClient } from "@/lib/api/generate-cover";
 import { apiErrorMessage, dashboardFetchJson } from "@/lib/api/dashboard-fetch";
+import { resizeDataUrlForCover, resizeImageForCover } from "@/lib/images/resize-host-photo";
 
 export type CoverQuota = {
   maxGenerations: number;
@@ -235,23 +237,32 @@ export function CoverGenerator({
     if (nextSource) setSource(nextSource);
   }
 
+  async function resolvePrimaryPhotoDataUrl() {
+    if (!hostPhotoUrl) return null;
+    if (hostPhotoUrl.startsWith("data:image/")) {
+      return resizeDataUrlForCover(hostPhotoUrl);
+    }
+    return null;
+  }
+
   async function generate(mode: "generate" | "edit" = "generate") {
     setLoading(true);
     setError("");
     try {
-      const { response, data } = await dashboardFetchJson(`/api/events/${eventId}/generate-cover`, {
-        method: "POST",
-        body: JSON.stringify({
-          mode,
-          editHint: mode === "edit" ? editHint : undefined,
-          orientation: orientation || undefined,
-          includeFields
-        })
+      const primaryPhotoDataUrl = await resolvePrimaryPhotoDataUrl();
+      const result = await generateEventCoverImageClient({
+        eventId,
+        mode,
+        editHint: mode === "edit" ? editHint : undefined,
+        orientation: orientation || undefined,
+        includeFields,
+        primaryPhotoDataUrl,
+        promptVersion: mode === "edit" ? "cover-image-correction-v1" : "cover-image-v1"
       });
-      if (!response.ok) { setError(String(data.error ?? "Erro ao gerar imagem.")); setLoading(false); return; }
-      if (typeof data.coverImageUrl === "string") applyCover(data.coverImageUrl, "ai");
-      if (Array.isArray(data.pendingUrls)) setPending(data.pendingUrls as string[]);
-      if (data.quota) setQuota(data.quota as CoverQuota);
+      if (result.error) { setError(result.error); setLoading(false); return; }
+      if (typeof result.coverImageUrl === "string") applyCover(result.coverImageUrl, "ai");
+      if (Array.isArray(result.pendingUrls)) setPending(result.pendingUrls);
+      if (result.quota) setQuota(result.quota);
       if (mode === "edit") setEditHint("");
     } catch (err) {
       setError(apiErrorMessage(err, "Erro de conexão. Tente novamente."));
@@ -280,17 +291,16 @@ export function CoverGenerator({
     setLoading(true);
     setError("");
     setHostPhotoSaved(false);
-    const previewUrl = URL.createObjectURL(file);
-    setHostPhotoUrl(previewUrl);
     try {
+      const resizedDataUrl = await resizeImageForCover(file);
+      setHostPhotoUrl(resizedDataUrl);
       const formData = new FormData();
       formData.append("file", file);
       const { response, data } = await dashboardFetchJson(`/api/events/${eventId}/host-photo`, { method: "POST", body: formData });
       if (!response.ok) { setError(String(data.error ?? "Erro ao enviar foto.")); setLoading(false); return; }
       if (typeof data.hostPhotoUrl === "string") {
-        URL.revokeObjectURL(previewUrl);
-        setHostPhotoUrl(data.hostPhotoUrl);
         setHostPhotoSaved(true);
+        setHostPhotoUrl(data.hostPhotoUrl);
       }
     } catch (err) {
       setError(apiErrorMessage(err, "Erro de conexão."));
@@ -338,8 +348,7 @@ export function CoverGenerator({
                 {hostPhotoUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={hostPhotoUrl} alt="Foto do homenageado" width={80} height={80}
-                    style={{ borderRadius: 10, objectFit: "cover", border: "1px solid var(--line)", flexShrink: 0 }}
-                    onError={() => setHostPhotoUrl("")} />
+                    style={{ borderRadius: 10, objectFit: "cover", border: "1px solid var(--line)", flexShrink: 0 }} />
                 ) : (
                   <div className="cover-host-photo-placeholder">Sem foto</div>
                 )}

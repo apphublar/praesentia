@@ -2,6 +2,7 @@ import { getSql } from "@/lib/db/client";
 import type {
   AuditRepository,
   CreateEventInput,
+  AiCoverArtifactRepository,
   CreateGuestRsvpInput,
   CreateMediaInput,
   EventRepository,
@@ -310,6 +311,43 @@ export const postgresEvents: EventRepository = {
     } else {
       await sql`
         update events set ai_cover_edits_count = ai_cover_edits_count + 1, updated_at = now()
+        where id = ${eventId}
+      `;
+    }
+    return (await this.findById(eventId)) as Event;
+  },
+  async tryReserveAiCoverUsage(eventId, _actorUserId, type, maxAllowed) {
+    const sql = getSql();
+    const rows =
+      type === "generation"
+        ? await sql`
+            update events
+            set ai_cover_generations_count = ai_cover_generations_count + 1, updated_at = now()
+            where id = ${eventId}
+              and ai_cover_generations_count < ${maxAllowed}
+            returning id
+          `
+        : await sql`
+            update events
+            set ai_cover_edits_count = ai_cover_edits_count + 1, updated_at = now()
+            where id = ${eventId}
+              and ai_cover_edits_count < ${maxAllowed}
+            returning id
+          `;
+    return Boolean(rows[0]);
+  },
+  async refundAiCoverUsage(eventId, _actorUserId, type) {
+    const sql = getSql();
+    if (type === "generation") {
+      await sql`
+        update events
+        set ai_cover_generations_count = greatest(0, ai_cover_generations_count - 1), updated_at = now()
+        where id = ${eventId}
+      `;
+    } else {
+      await sql`
+        update events
+        set ai_cover_edits_count = greatest(0, ai_cover_edits_count - 1), updated_at = now()
         where id = ${eventId}
       `;
     }
@@ -778,6 +816,47 @@ export const postgresSubscriptions: SubscriptionRepository = {
   }
 };
 
+export const postgresAiCoverArtifacts: AiCoverArtifactRepository = {
+  async createReserved(input) {
+    const sql = getSql();
+    const rows = await sql`
+      insert into ai_cover_artifacts (
+        event_id, user_id, usage_type, prompt_version, request_summary, status
+      ) values (
+        ${input.eventId},
+        ${input.userId},
+        ${input.usageType},
+        ${input.promptVersion},
+        ${sql.json(JSON.parse(JSON.stringify(input.requestSummary)))},
+        'reserved'
+      )
+      returning id
+    `;
+    return String(rows[0].id);
+  },
+  async complete(artifactId, input) {
+    const sql = getSql();
+    await sql`
+      update ai_cover_artifacts set
+        status = 'completed',
+        image_data_url = ${input.imageDataUrl},
+        artifact = ${sql.json({
+          prompt: input.prompt,
+          model: input.model,
+          size: input.size,
+          quality: input.quality,
+          ...input.artifact
+        })},
+        completed_at = now()
+      where id = ${artifactId}
+    `;
+  },
+  async delete(artifactId) {
+    const sql = getSql();
+    await sql`delete from ai_cover_artifacts where id = ${artifactId}`;
+  }
+};
+
 export const postgresAudit: AuditRepository = {
   async record(input) {
     const sql = getSql();
@@ -798,6 +877,7 @@ export const postgresRepositories = {
   media: postgresMedia,
   likes: postgresLikes,
   audit: postgresAudit,
+  aiCoverArtifacts: postgresAiCoverArtifacts,
   guestRsvps: postgresGuestRsvps,
   subscriptions: postgresSubscriptions
 };

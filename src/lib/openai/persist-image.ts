@@ -1,5 +1,21 @@
 import { createUploadUrl, getPublicMediaUrl } from "@/lib/storage/r2";
 
+const DEFAULT_MAX_DATA_URL_BYTES = 4_000_000;
+
+export function buildAppImageUrl(eventId: string, key: string) {
+  return `/api/events/${eventId}/image?key=${encodeURIComponent(key)}`;
+}
+
+function resolveFetchUrl(url: string) {
+  if (!url.startsWith("/")) return url;
+
+  const base =
+    process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ??
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+
+  return `${base}${url}`;
+}
+
 async function uploadBufferToR2(buffer: Buffer, key: string, contentType: string) {
   const hasR2 =
     process.env.CLOUDFLARE_R2_BUCKET &&
@@ -32,8 +48,12 @@ export async function verifyPublicImageUrl(url: string) {
   if (url.startsWith("data:")) return true;
 
   try {
-    const response = await fetch(url, { method: "HEAD", signal: AbortSignal.timeout(8000) });
-    return response.ok;
+    const response = await fetch(resolveFetchUrl(url), {
+      method: "GET",
+      headers: { Range: "bytes=0-255" },
+      signal: AbortSignal.timeout(8000)
+    });
+    return response.ok || response.status === 206;
   } catch {
     return false;
   }
@@ -49,27 +69,50 @@ export async function persistImageBuffer(input: {
   key: string;
   contentType: string;
   preferDataUrlBelowBytes?: number;
+  maxDataUrlBytes?: number;
+  eventId?: string;
+  forceDataUrl?: boolean;
 }) {
   const preferDataUrlBelowBytes = input.preferDataUrlBelowBytes ?? 1_500_000;
+  const maxDataUrlBytes = input.maxDataUrlBytes ?? DEFAULT_MAX_DATA_URL_BYTES;
 
-  const publicUrl = await uploadBufferToR2(input.buffer, input.key, input.contentType);
-  if (publicUrl && (await verifyPublicImageUrl(publicUrl))) {
-    return publicUrl;
-  }
-
-  if (input.buffer.byteLength <= preferDataUrlBelowBytes) {
+  if (input.forceDataUrl && input.buffer.byteLength <= maxDataUrlBytes) {
     return toDataUrl(input.buffer, input.contentType);
   }
 
-  if (publicUrl) return publicUrl;
+  let uploadedToR2 = false;
+  let publicUrl: string | null = null;
 
-  throw new Error("Falha ao publicar imagem. Configure o acesso público do R2 ou envie um arquivo menor.");
+  try {
+    publicUrl = await uploadBufferToR2(input.buffer, input.key, input.contentType);
+    uploadedToR2 = Boolean(publicUrl);
+    if (publicUrl && (await verifyPublicImageUrl(publicUrl))) {
+      return publicUrl;
+    }
+  } catch {
+    uploadedToR2 = false;
+    publicUrl = null;
+  }
+
+  if (input.buffer.byteLength <= preferDataUrlBelowBytes || input.buffer.byteLength <= maxDataUrlBytes) {
+    return toDataUrl(input.buffer, input.contentType);
+  }
+
+  if (uploadedToR2 && input.eventId) {
+    const proxyUrl = buildAppImageUrl(input.eventId, input.key);
+    if (await verifyPublicImageUrl(proxyUrl)) {
+      return proxyUrl;
+    }
+  }
+
+  throw new Error("Falha ao publicar imagem. Tente novamente ou envie um arquivo menor.");
 }
 
 export async function persistRemoteImage(input: {
   sourceUrl: string;
   key: string;
   contentType: string;
+  eventId?: string;
 }) {
   const response = await fetch(input.sourceUrl);
   if (!response.ok) {
@@ -80,6 +123,9 @@ export async function persistRemoteImage(input: {
   return persistImageBuffer({
     buffer,
     key: input.key,
-    contentType: input.contentType
+    contentType: input.contentType,
+    eventId: input.eventId,
+    preferDataUrlBelowBytes: DEFAULT_MAX_DATA_URL_BYTES,
+    maxDataUrlBytes: DEFAULT_MAX_DATA_URL_BYTES
   });
 }

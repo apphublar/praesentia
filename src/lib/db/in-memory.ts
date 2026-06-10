@@ -1,6 +1,7 @@
 import { events, mediaItems, members, users } from "@/lib/mock-data";
 import { randomUUID } from "node:crypto";
 import type {
+  AiCoverArtifactRepository,
   AuditRepository,
   CreateEventInput,
   CreateGuestRsvpInput,
@@ -163,6 +164,25 @@ export const inMemoryEvents: EventRepository = {
     if (!event) throw new Error("EVENT_NOT_FOUND");
     if (type === "generation") event.aiCoverGenerationsCount += 1;
     else event.aiCoverEditsCount += 1;
+    return event;
+  },
+  async tryReserveAiCoverUsage(eventId, _actorUserId, type, maxAllowed) {
+    const event = events.find((item) => item.id === eventId);
+    if (!event) return false;
+    if (type === "generation") {
+      if (event.aiCoverGenerationsCount >= maxAllowed) return false;
+      event.aiCoverGenerationsCount += 1;
+      return true;
+    }
+    if (event.aiCoverEditsCount >= maxAllowed) return false;
+    event.aiCoverEditsCount += 1;
+    return true;
+  },
+  async refundAiCoverUsage(eventId, _actorUserId, type) {
+    const event = events.find((item) => item.id === eventId);
+    if (!event) throw new Error("EVENT_NOT_FOUND");
+    if (type === "generation") event.aiCoverGenerationsCount = Math.max(0, event.aiCoverGenerationsCount - 1);
+    else event.aiCoverEditsCount = Math.max(0, event.aiCoverEditsCount - 1);
     return event;
   },
   async setAiCoverPendingUrls(eventId, urls) {
@@ -517,6 +537,52 @@ export const inMemorySubscriptions: SubscriptionRepository = {
   }
 };
 
+type InMemoryAiCoverArtifact = {
+  id: string;
+  eventId: string;
+  userId: string;
+  usageType: "generation" | "edit";
+  promptVersion: string;
+  requestSummary: Record<string, unknown>;
+  status: "reserved" | "completed" | "refunded";
+  imageDataUrl?: string;
+  artifact?: Record<string, unknown>;
+};
+
+const aiCoverArtifacts = new Map<string, InMemoryAiCoverArtifact>();
+
+const inMemoryAiCoverArtifacts: AiCoverArtifactRepository = {
+  async createReserved(input) {
+    const id = createId("cover_art");
+    aiCoverArtifacts.set(id, {
+      id,
+      eventId: input.eventId,
+      userId: input.userId,
+      usageType: input.usageType,
+      promptVersion: input.promptVersion,
+      requestSummary: input.requestSummary,
+      status: "reserved"
+    });
+    return id;
+  },
+  async complete(artifactId, input) {
+    const artifact = aiCoverArtifacts.get(artifactId);
+    if (!artifact) throw new Error("ARTIFACT_NOT_FOUND");
+    artifact.status = "completed";
+    artifact.imageDataUrl = input.imageDataUrl;
+    artifact.artifact = {
+      prompt: input.prompt,
+      model: input.model,
+      size: input.size,
+      quality: input.quality,
+      ...input.artifact
+    };
+  },
+  async delete(artifactId) {
+    aiCoverArtifacts.delete(artifactId);
+  }
+};
+
 export const repositories = {
   users: inMemoryUsers,
   events: inMemoryEvents,
@@ -524,6 +590,7 @@ export const repositories = {
   media: inMemoryMedia,
   likes: inMemoryLikes,
   audit: inMemoryAudit,
+  aiCoverArtifacts: inMemoryAiCoverArtifacts,
   guestRsvps: inMemoryGuestRsvps,
   subscriptions: inMemorySubscriptions
 };

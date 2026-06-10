@@ -46,7 +46,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ eve
 
     const buffer = Buffer.from(await file.arrayBuffer());
     const key = `events/${eventId}/cover-custom/${Date.now()}.png`;
-    const dataUrl = await persistImageBuffer({ buffer, key, contentType: file.type });
+    const dataUrl = await persistImageBuffer({
+      buffer,
+      key,
+      contentType: file.type,
+      eventId,
+      maxDataUrlBytes: MAX_BYTES
+    });
 
     const updated = await repositories.events.setCoverImage(eventId, session.user.id, {
       coverImageUrl: dataUrl,
