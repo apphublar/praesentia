@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 const faqs = [
-  ["Quanto custa de verdade?", "O plano Gratuito inclui 1 convite com IA, texto do convite e assistente de prompt. Pacote extra de R$4,90 libera até mais 2 imagens e 2 ajustes. Cápsula custa R$59, com 5 GB e no mínimo 36 meses de armazenamento (amplável). Cápsula Plus custa R$197/ano, com até 6 eventos e 20 GB compartilhados."],
+  ["Quanto custa de verdade?", "O plano Gratuito inclui 1 convite com IA, texto do convite e assistente de prompt. Pacote extra de R$4,90 libera até mais 2 imagens e 2 ajustes. Cápsula custa R$59, com 5 GB e no mínimo 36 meses de armazenamento (ampliável depois). Cápsula Plus custa R$197/ano, com até 6 eventos e 20 GB compartilhados."],
   ["O link realmente não expira?", "Cápsulas pagas têm no mínimo 36 meses garantidos — você pode ampliar o tempo e o espaço com pacotes extras. O plano gratuito fica ativo só até o fim do evento."],
   ["E a privacidade das crianças?", "Eventos nascem privados. O responsável controla convidados, conteúdos, bloqueios, telão e acesso à cápsula."],
   ["Como a IA cria o convite?", "O responsável informa tipo de festa, data, local, tema e tom. A Praesentia gera texto, paleta, capa e mensagens editáveis."],
@@ -22,7 +22,7 @@ const storagePlans = [
   {
     label: "Cápsula",
     capacity: "5 GB",
-    note: "inclusos · mín. 36 meses (amplável)",
+    note: "inclusos · mín. 36 meses (ampliável)",
     desc: "Espaço para guardar fotos do evento inteiro, vídeos curtos dos momentos especiais e recados dos convidados.",
     dark: true,
     rows: [["fotos HD", "~ 1.500", 62], ["vídeos curtos", "~ 60", 28], ["recados", "~ 200", 10]]
@@ -68,7 +68,7 @@ const plans = [
     sections: [
       ["Convite & RSVP", ["Tudo do Gratuito", "Subdomínio pago do evento", "IA premium para convite"]],
       ["Memórias permanentes", ["Cápsula do tempo", "Timeline do evento", "Fotos, vídeos e recados", "Exportação das memórias"]],
-      ["Armazenamento", ["5 GB inclusos", "Mínimo de 36 meses (amplável)"]]
+      ["Armazenamento", ["5 GB inclusos", "Mínimo de 36 meses (ampliável)"]]
     ]
   },
   {
@@ -80,7 +80,7 @@ const plans = [
     sections: [
       ["Eventos", ["Tudo do Cápsula", "Até 6 eventos por ano", "Timeline conectada"]],
       ["Memórias permanentes", ["Cápsulas conectadas", "Fotos, vídeos e recados", "Exportação das memórias"]],
-      ["Armazenamento", ["20 GB compartilhados", "Mínimo de 36 meses por evento (amplável)"]]
+      ["Armazenamento", ["20 GB compartilhados", "Mínimo de 36 meses por evento (ampliável)"]]
     ]
   }
 ];

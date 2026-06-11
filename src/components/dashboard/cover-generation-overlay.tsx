@@ -120,7 +120,7 @@ export function CoverGenerationOverlay({ active, capsuleActive }: { active: bool
 
         {!capsuleActive ? (
           <p className="cover-gen-overlay-tip">
-            <strong>Próximo passo:</strong> ative a Cápsula Praesentia para liberar mural ao vivo, telão e memórias (mínimo de 36 meses, amplável).
+            <strong>Próximo passo:</strong> ative a Cápsula Praesentia para liberar mural ao vivo, telão e memórias (mínimo de 36 meses, ampliável depois).
           </p>
         ) : (
           <p className="cover-gen-overlay-tip cover-gen-overlay-tip-muted">

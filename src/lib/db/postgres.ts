@@ -17,6 +17,7 @@ import type {
   UserRepository
 } from "@/lib/db/repositories";
 import { bytesFromGb, PLANS } from "@/lib/plans";
+import { normalizeEventDateString } from "@/lib/events/datetime";
 import { normalizeEventType } from "@/lib/events/event-types";
 import { normalizeInviteCopy } from "@/lib/events/invite-copy";
 import type {
@@ -107,9 +108,9 @@ function rowToEvent(row: Record<string, unknown>): Event {
     capsuleActivatedAt: row.capsule_activated_at
       ? new Date(String(row.capsule_activated_at)).toISOString()
       : undefined,
-    date: String(row.date),
-    startsAt: String(row.starts_at),
-    endsAt: String(row.ends_at),
+    date: normalizeEventDateString(row.date),
+    startsAt: String(row.starts_at).slice(0, 5),
+    endsAt: String(row.ends_at).slice(0, 5),
     organizerName: row.organizer_name ? String(row.organizer_name) : undefined,
     venueName: String(row.venue_name),
     venueAddress: String(row.venue_address),

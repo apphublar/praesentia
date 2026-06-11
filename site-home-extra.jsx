@@ -22,7 +22,7 @@ function CotasSection() {
       tier: 'capsula',
       label: 'Cápsula',
       capacity: '5 GB',
-      capacityNote: 'inclusos · mín. 36 meses (amplável)',
+      capacityNote: 'inclusos · mín. 36 meses (ampliável)',
       desc: 'Espaço para guardar fotos do evento inteiro, vídeos curtos dos momentos especiais e recados dos convidados.',
       bg: p.ink,
       ink: p.bg,
@@ -718,7 +718,7 @@ function PrecosSection({ goto }) {
                   label: 'Armazenamento',
                   items: [
                     { v: <span><b style={{ color: '#fff' }}>5 GB</b> inclusos</span> },
-                    { v: <span><b style={{ color: '#fff' }}>Mín. 36 meses</b> de armazenamento (amplável)</span> },
+                    { v: <span><b style={{ color: '#fff' }}>Mín. 36 meses</b> de armazenamento (ampliável)</span> },
                   ],
                 },
               ]}
@@ -768,7 +768,7 @@ function PrecosSection({ goto }) {
                   label: 'Armazenamento',
                   items: [
                     { v: <span><b style={{ color: p.ink }}>25 GB</b> compartilhados</span> },
-                    { v: <span><b style={{ color: p.ink }}>Mín. 36 meses</b> por evento (amplável)</span> },
+                    { v: <span><b style={{ color: p.ink }}>Mín. 36 meses</b> por evento (ampliável)</span> },
                   ],
                 },
               ]}

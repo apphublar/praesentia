@@ -7,7 +7,6 @@ import { EventSettingsForms } from "@/components/dashboard/event-settings-forms"
 import { EventSharePanel } from "@/components/dashboard/event-share-panel";
 import { GuestListPanel } from "@/components/dashboard/guest-list-panel";
 import { InviteTextEditor } from "@/components/dashboard/invite-text-editor";
-import { LockedCapsulePreview } from "@/components/dashboard/locked-capsule-preview";
 import { PlanUpgradePanel } from "@/components/dashboard/plan-upgrade-panel";
 import { OwnerMediaControls } from "@/components/event/owner-media-controls";
 import { canManageEvent } from "@/lib/auth/permissions";
@@ -164,7 +163,6 @@ export default async function EventDashboardPage({ params }: { params: Promise<{
               <div id={`ativar-capsula-${event.id}`}>
                 <PlanUpgradePanel event={event} subscription={subscription} />
               </div>
-              {!capsuleActive && <LockedCapsulePreview eventId={event.id} />}
               {capsuleActive && (
                 <article className="card dashboard-card" style={{ background: "var(--bg-soft)" }}>
                   <span className="pill">cápsula ativa</span>

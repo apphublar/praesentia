@@ -1,3 +1,4 @@
+import { normalizeEventDateString, parseEventDateTime } from "@/lib/events/datetime";
 import { getEventEndDate, getEventStartDate } from "@/lib/events/phase";
 import { hasCapsuleAccess } from "@/lib/plans/features";
 import type { Event } from "@/types/domain";
@@ -13,7 +14,8 @@ export type PublicInvitePhase = "rsvp_open" | "countdown" | "none";
 
 export function getRsvpDeadlineDate(event: Event) {
   if (!event.rsvpDeadline) return null;
-  return new Date(`${event.rsvpDeadline}T23:59:59`);
+  const date = normalizeEventDateString(event.rsvpDeadline);
+  return parseEventDateTime(date, "23:59");
 }
 
 export function isRsvpOpen(event: Event, now = new Date()) {

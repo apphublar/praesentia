@@ -3,8 +3,15 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { Event, UserSubscription } from "@/types/domain";
-import { RETENTION_CAPSULE_DESCRIPTION, RETENTION_FREE_DESCRIPTION } from "@/lib/copy/retention";
+import { RETENTION_CAPSULE_DESCRIPTION, RETENTION_FREE_DESCRIPTION, RETENTION_MINIMUM_LABEL } from "@/lib/copy/retention";
 import { canActivateCapsuleForEvent } from "@/lib/mural/timeline";
+
+const CAPSULE_FEATURES = [
+  "Fotos e recados em tempo real no mural",
+  "Telão ao vivo na festa",
+  `Cápsula do tempo — ${RETENTION_MINIMUM_LABEL}`,
+  "Moderação e bloqueio de convidados"
+];
 
 export function PlanUpgradePanel({
   event,
@@ -19,12 +26,12 @@ export function PlanUpgradePanel({
 
   if (event.capsuleActivatedAt) {
     return (
-      <article className="card" style={{ padding: 22, marginBottom: 24, background: "var(--bg-soft)" }}>
-        <span className="pill" style={{ background: "var(--green)", color: "#fff" }}>cápsula ativa</span>
-        <h2 className="display" style={{ fontSize: 26, margin: "12px 0 8px" }}>
-          Plano {event.plan.label}
-        </h2>
-        <p style={{ color: "var(--ink-soft)", lineHeight: 1.55 }}>
+      <article className="card dashboard-card plan-upgrade-panel is-active">
+        <span className="pill" style={{ background: "var(--green)", color: "#fff" }}>
+          cápsula ativa
+        </span>
+        <h2 className="display plan-upgrade-title">Plano {event.plan.label}</h2>
+        <p className="plan-upgrade-lead">
           Mural ao vivo, telão e cápsula do tempo liberados neste link desde{" "}
           {new Date(event.capsuleActivatedAt).toLocaleDateString("pt-BR")}.
         </p>
@@ -66,61 +73,70 @@ export function PlanUpgradePanel({
     setLoading(null);
   }
 
-  const plusSlotsLeft = subscription
-    ? Math.max(0, 6 - subscription.eventsUsedThisPeriod)
-    : 6;
+  const plusSlotsLeft = subscription ? Math.max(0, 6 - subscription.eventsUsedThisPeriod) : 6;
   const canActivate = canActivateCapsuleForEvent(event);
 
   if (!canActivate) {
     return (
-      <article className="card" style={{ padding: 22, marginBottom: 24, background: "var(--bg-soft)" }}>
+      <article className="card dashboard-card plan-upgrade-panel">
         <span className="pill">evento encerrado</span>
-        <h2 className="display" style={{ fontSize: 26, margin: "12px 0 8px" }}>
-          Cápsula indisponível para este evento
-        </h2>
-        <p style={{ color: "var(--ink-soft)", lineHeight: 1.55 }}>{RETENTION_FREE_DESCRIPTION}</p>
+        <h2 className="display plan-upgrade-title">Cápsula indisponível para este evento</h2>
+        <p className="plan-upgrade-lead">{RETENTION_FREE_DESCRIPTION}</p>
       </article>
     );
   }
 
   return (
-    <article className="card" style={{ padding: 22, marginBottom: 24, borderColor: "var(--coral)" }}>
-      <span className="pill">ativar cápsula</span>
-      <h2 className="display" style={{ fontSize: 26, margin: "12px 0 8px" }}>
-        Libere mural ao vivo e memória permanente
-      </h2>
-      <p style={{ color: "var(--ink-soft)", lineHeight: 1.55, marginBottom: 12 }}>
-        No plano gratuito você já tem convite, RSVP e lista de presença. Para transformar este link em mural ao vivo
-        e cápsula do tempo, escolha uma opção abaixo.
+    <article className="card dashboard-card plan-upgrade-panel">
+      <span className="pill">cápsula · mural · telão</span>
+      <h2 className="display plan-upgrade-title">Ative a Cápsula Praesentia</h2>
+      <p className="plan-upgrade-lead">
+        No plano gratuito você já tem convite, RSVP e lista de presença. Escolha um plano abaixo para liberar mural ao
+        vivo, telão e cápsula do tempo neste link.
       </p>
-      <p style={{ color: "var(--ink-soft)", lineHeight: 1.55, marginBottom: 18, fontSize: 14 }}>
-        {RETENTION_CAPSULE_DESCRIPTION}
-      </p>
+      <p className="plan-upgrade-note">{RETENTION_CAPSULE_DESCRIPTION}</p>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 12 }}>
-        <div className="card" style={{ padding: 18 }}>
-          <strong className="display" style={{ fontSize: 22 }}>Cápsula</strong>
-          <p style={{ color: "var(--ink-soft)", fontSize: 14, lineHeight: 1.5 }}>R$59 · pagamento único · 1 evento · 5 GB</p>
-          <button type="button" className="btn" style={{ marginTop: 12, width: "100%" }} disabled={loading !== null} onClick={() => activate("capsule")}>
+      <ul className="plan-upgrade-features">
+        {CAPSULE_FEATURES.map((item) => (
+          <li key={item}>{item}</li>
+        ))}
+      </ul>
+
+      <div className="plan-upgrade-grid">
+        <div className="plan-upgrade-option">
+          <strong className="display plan-upgrade-option-title">Cápsula</strong>
+          <p className="plan-upgrade-option-meta">R$59 · pagamento único · 1 evento · 5 GB</p>
+          <button
+            type="button"
+            className="btn plan-upgrade-btn"
+            disabled={loading !== null}
+            onClick={() => activate("capsule")}
+          >
             {loading === "capsule" ? "Ativando..." : "Ativar Cápsula (R$59)"}
           </button>
         </div>
-        <div className="card" style={{ padding: 18, background: "var(--bg-soft)" }}>
-          <strong className="display" style={{ fontSize: 22 }}>Cápsula Plus</strong>
-          <p style={{ color: "var(--ink-soft)", fontSize: 14, lineHeight: 1.5 }}>
+        <div className="plan-upgrade-option plan-upgrade-option-alt">
+          <strong className="display plan-upgrade-option-title">Cápsula Plus</strong>
+          <p className="plan-upgrade-option-meta">
             R$197/ano · até 6 eventos · 20 GB compartilhados
             {subscription && ` · ${plusSlotsLeft} vaga${plusSlotsLeft !== 1 ? "s" : ""} restante${plusSlotsLeft !== 1 ? "s" : ""}`}
           </p>
-          <button type="button" className="btn secondary" style={{ marginTop: 12, width: "100%" }} disabled={loading !== null} onClick={() => activate("family")}>
+          <button
+            type="button"
+            className="btn secondary plan-upgrade-btn"
+            disabled={loading !== null}
+            onClick={() => activate("family")}
+          >
             {loading === "plus" ? "Ativando..." : subscription ? "Usar vaga do Plus" : "Ativar Plus (R$197/ano)"}
           </button>
         </div>
       </div>
 
-      <p style={{ color: "var(--ink-soft)", fontSize: 12, marginTop: 14 }}>
-        Pagamento simulado em desenvolvimento. Em produção, Stripe confirmará o pagamento antes de liberar.
+      <p className="plan-upgrade-footnote">
+        Enquanto o pagamento online não estiver configurado, o botão ativa a cápsula imediatamente para você testar
+        mural, telão e link dos convidados. Com Stripe ativo, a liberação ocorre após confirmação do pagamento.
       </p>
-      {message && <p style={{ color: "var(--green)", fontSize: 13, marginTop: 8 }}>{message}</p>}
+      {message ? <p className="settings-status is-ok">{message}</p> : null}
     </article>
   );
 }

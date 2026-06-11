@@ -214,9 +214,9 @@ export function EventSettingsForms({
           <Status state={screenState} />
         </div>
         ) : (
-          <a className="btn settings-primary-action" href={`#ativar-capsula-${event.id}`}>
-            Ver planos e ativar cápsula
-          </a>
+          <p className="cover-field-help" style={{ margin: 0 }}>
+            Ative a Cápsula na seção <strong>Cápsula · mural · telão</strong> acima para liberar este recurso.
+          </p>
         )}
       </article>
 
@@ -278,9 +278,9 @@ export function EventSettingsForms({
             <Status state={guestState} />
           </div>
         ) : (
-          <a className="btn settings-primary-action" href={`#ativar-capsula-${event.id}`}>
-            Ver planos e ativar cápsula
-          </a>
+          <p className="cover-field-help" style={{ margin: 0 }}>
+            Ative a Cápsula na seção <strong>Cápsula · mural · telão</strong> acima para liberar este recurso.
+          </p>
         )}
       </article>
     </section>

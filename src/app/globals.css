@@ -2,7 +2,7 @@
 
 :root {
   --bg: #f7eedb;
-  --bg-soft: #efe2c6;
+  --bg-soft: #faf6ef;
   --card: #fffaf0;
   --ink: #1b1209;
   --ink-soft: #5a4a36;
@@ -3297,8 +3297,8 @@ p + a.btn,
   gap: 10px;
   padding: 14px 16px;
   border-radius: 14px;
-  border: 1px solid rgba(255, 107, 74, 0.22);
-  background: rgba(255, 107, 74, 0.06);
+  border: 1px solid rgba(255, 107, 74, 0.16);
+  background: rgba(255, 107, 74, 0.04);
 }
 
 .cover-pack-offer-title {
@@ -3389,6 +3389,81 @@ p + a.btn,
 .vaquinha-goal-card {
   padding: 22px;
   background: linear-gradient(135deg, rgba(255, 107, 92, 0.08), rgba(255, 178, 62, 0.12));
+}
+
+.plan-upgrade-panel {
+  padding: 22px;
+  margin-bottom: 24px;
+}
+
+.plan-upgrade-panel.is-active {
+  background: var(--bg-soft);
+}
+
+.plan-upgrade-title {
+  font-size: 28px;
+  margin: 12px 0 8px;
+}
+
+.plan-upgrade-lead {
+  color: var(--ink-soft);
+  line-height: 1.6;
+  margin: 0 0 12px;
+}
+
+.plan-upgrade-note {
+  color: var(--ink-soft);
+  font-size: 14px;
+  line-height: 1.55;
+  margin: 0 0 16px;
+}
+
+.plan-upgrade-features {
+  color: var(--ink-soft);
+  line-height: 1.7;
+  margin: 0 0 18px;
+  padding-left: 18px;
+}
+
+.plan-upgrade-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.plan-upgrade-option {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 18px;
+}
+
+.plan-upgrade-option-alt {
+  background: var(--bg-soft);
+}
+
+.plan-upgrade-option-title {
+  display: block;
+  font-size: 22px;
+}
+
+.plan-upgrade-option-meta {
+  color: var(--ink-soft);
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 8px 0 0;
+}
+
+.plan-upgrade-btn {
+  margin-top: 12px;
+  width: 100%;
+}
+
+.plan-upgrade-footnote {
+  color: var(--ink-soft);
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 14px 0 0;
 }
 
 .locked-capsule-preview {

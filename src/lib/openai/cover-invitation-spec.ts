@@ -1,3 +1,4 @@
+import { normalizeEventDateString } from "@/lib/events/datetime";
 import { formatEventDateLine } from "@/lib/events/format-event-date";
 import type { Event } from "@/types/domain";
 
@@ -223,9 +224,9 @@ export function buildInitialCoverEditableFields(input: CoverFormEventInput): Cov
     eventTitle: isPlaceholderText(input.eventTitle) ? "" : input.eventTitle.trim(),
     hostName: isPlaceholderText(input.hostName) ? "" : input.hostName.trim(),
     theme: isPlaceholderText(input.theme) ? "" : (input.theme ?? "").trim(),
-    date: input.date?.trim() ?? "",
-    startsAt: input.startsAt?.trim() ?? "",
-    endsAt: input.endsAt?.trim() ?? "",
+    date: normalizeEventDateString(input.date),
+    startsAt: input.startsAt?.trim().slice(0, 5) ?? "",
+    endsAt: input.endsAt?.trim().slice(0, 5) ?? "",
     venueName: isPlaceholderText(input.venueName) ? "" : input.venueName.trim(),
     venueAddress: isPlaceholderText(input.venueAddress) ? "" : (input.venueAddress ?? "").trim(),
     venueZip: input.venueZip?.trim() ?? "",
@@ -282,9 +283,9 @@ export function toCoverFormEventInput(input: {
     eventType: input.eventType ?? "outros",
     hostName: input.eventHostName ?? "",
     theme: input.eventTheme,
-    date: input.eventDate ?? "",
-    startsAt: input.eventStartsAt ?? "",
-    endsAt: input.eventEndsAt ?? "",
+    date: normalizeEventDateString(input.eventDate),
+    startsAt: input.eventStartsAt?.slice(0, 5) ?? "",
+    endsAt: input.eventEndsAt?.slice(0, 5) ?? "",
     eventFormat: input.eventFormat ?? "in_person",
     venueName: input.eventVenueName ?? "",
     venueAddress: input.eventVenueAddress,

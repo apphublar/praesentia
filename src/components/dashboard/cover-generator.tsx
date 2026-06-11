@@ -384,19 +384,21 @@ export function CoverGenerator({
                   <input value={coverFields.theme} onChange={(e) => updateCoverField(setCoverFields, "theme", e.target.value)} maxLength={160} />
                 </label>
                 <label className="field">
-                  <span>Data</span>
+                  <span>Data do evento</span>
                   <input type="date" value={coverFields.date} onChange={(e) => updateCoverField(setCoverFields, "date", e.target.value)} />
-                  {coverFields.date ? (
-                    <p className="cover-field-help">{formatEventDateLine(coverFields.date) ?? coverFields.date}</p>
-                  ) : null}
+                  <p className="cover-field-help">
+                    {coverFields.date
+                      ? `Mesma data do cadastro: ${formatEventDateLine(coverFields.date) ?? coverFields.date}. Aparece na parte inferior do convite.`
+                      : "Preenchida automaticamente no cadastro do evento. Informe aqui se quiser outra data na imagem."}
+                  </p>
                 </label>
                 <div className="cover-event-brief-row">
                   <label className="field">
-                    <span>Início</span>
+                    <span>Horário de início</span>
                     <input type="time" value={coverFields.startsAt} onChange={(e) => updateCoverField(setCoverFields, "startsAt", e.target.value)} />
                   </label>
                   <label className="field">
-                    <span>Término</span>
+                    <span>Horário de término</span>
                     <input type="time" value={coverFields.endsAt} onChange={(e) => updateCoverField(setCoverFields, "endsAt", e.target.value)} />
                   </label>
                 </div>
@@ -545,7 +547,7 @@ export function CoverGenerator({
                 <div className="cover-pack-offer">
                   <p className="cover-pack-offer-title">Precisa de mais versões ou ajustes?</p>
                   <p className="cover-pack-offer-text">
-                    Pacote simbólico de <strong>{quota.packPriceLabel ?? "R$ 4,90"}</strong>. {AI_COVER_PACK_DESCRIPTION}
+                    Por <strong>{quota.packPriceLabel ?? "R$ 4,90"}</strong> você libera {AI_COVER_PACK_DESCRIPTION.toLowerCase()}
                   </p>
                   <button
                     type="button"

@@ -10,4 +10,4 @@ export const RETENTION_CAPSULE_DESCRIPTION =
   "Suas memórias ficam guardadas por no mínimo 36 meses. Precisa de mais tempo? Amplie o armazenamento a qualquer momento com nossos pacotes extras.";
 
 export const RETENTION_FREE_DESCRIPTION =
-  "O plano gratuito mantém o link ativo apenas até o fim do evento. Ative a Cápsula antes do término para guardar tudo por no mínimo 36 meses (amplável depois).";
+  "O plano gratuito mantém o link ativo apenas até o fim do evento. Ative a Cápsula antes do término para guardar tudo por no mínimo 36 meses — e ampliar depois, se quiser.";

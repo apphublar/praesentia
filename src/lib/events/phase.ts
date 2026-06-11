@@ -1,12 +1,18 @@
 import type { Event, EventPhase } from "@/types/domain";
 import { hasCapsuleAccess } from "@/lib/plans/features";
+import { normalizeEventDateString, parseEventDateTime } from "@/lib/events/datetime";
 
 export function getEventStartDate(event: Event) {
-  return new Date(`${event.date}T${event.startsAt}:00`);
+  return parseEventDateTime(event.date, event.startsAt);
 }
 
 export function getEventEndDate(event: Event) {
-  return new Date(`${event.date}T${event.endsAt}:00`);
+  const start = getEventStartDate(event);
+  let end = parseEventDateTime(event.date, event.endsAt);
+  if (end <= start) {
+    end = new Date(end.getTime() + 24 * 60 * 60 * 1000);
+  }
+  return end;
 }
 
 export function resolveEventPhase(event: Event, now = new Date()): EventPhase {
@@ -25,3 +31,5 @@ export function isWithinGuestDeleteWindow(event: Event, now = new Date()) {
   const deadline = new Date(start.getTime() + 24 * 60 * 60 * 1000);
   return now >= start && now <= deadline;
 }
+
+export { normalizeEventDateString };
