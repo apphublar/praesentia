@@ -145,13 +145,19 @@ export default async function EventDashboardPage({ params }: { params: Promise<{
                   eventId={event.id}
                   eventSlug={event.slug}
                   eventFreeCode={event.freeCode}
+                  checkInNotes={event.checkInNotes}
                   initialRsvps={guestRsvps}
                 />
               </section>
             ) : null}
 
             <section id="secao-configuracoes" className="dashboard-section">
-              <EventSettingsForms event={event} members={eventMembers} capsuleActive={capsuleActive} />
+              <EventSettingsForms
+                event={event}
+                members={eventMembers}
+                capsuleActive={capsuleActive}
+                needsRsvp={profile.needsRsvp}
+              />
             </section>
 
             <section id="secao-capsula" className="dashboard-section">

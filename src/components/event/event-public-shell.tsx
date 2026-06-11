@@ -1,9 +1,10 @@
 "use client";
 
 import type { Event, GuestMessage, MediaItem } from "@/types/domain";
-import { getEventStartDate } from "@/lib/events/phase";
+import { getInvitePhase } from "@/lib/mural/timeline";
 import type { PublicEventViewMode } from "@/lib/mural/timeline";
 import { EventCountdown } from "@/components/event/event-countdown";
+import { EventExpiredView } from "@/components/event/event-expired-view";
 import { GuestLiveMural } from "@/components/event/guest-live-mural";
 import { MuralAccessPanel } from "@/components/event/mural-access-panel";
 import { PublicInviteView } from "@/components/event/public-invite-view";
@@ -31,54 +32,84 @@ export function EventPublicShell({
   muralGuestRsvpId?: string;
   confirmedGuestCount?: number;
 }) {
-  const eventStarted = new Date() >= getEventStartDate(event);
-  const showInviteContent = viewMode === "rsvp_open" || viewMode === "countdown";
-  const showRsvp = viewMode === "rsvp_open" && needsRsvp;
+  if (viewMode === "expired") {
+    return <EventExpiredView event={event} />;
+  }
 
-  return (
-    <div className="public-event-stack">
-      {showInviteContent ? (
+  const invitePhase = getInvitePhase(event);
+
+  if (viewMode === "invite") {
+    return (
+      <PublicInviteView
+        event={event}
+        needsRsvp={needsRsvp && invitePhase === "rsvp_open"}
+        showCountdown={invitePhase === "countdown"}
+        capsuleActive={capsuleActive}
+        managerHref={managerHref}
+        publicMessages={publicMessages}
+      />
+    );
+  }
+
+  if (viewMode === "live_mural") {
+    return (
+      <div className="public-event-stack">
         <PublicInviteView
           event={event}
-          needsRsvp={showRsvp}
+          needsRsvp={false}
+          showCountdown={false}
+          compactHeader
           capsuleActive={capsuleActive}
-          managerHref={managerHref}
-          publicMessages={publicMessages}
-          hideMuralSection
+          publicMessages={[]}
+          hideMessages
+          hideGifts
         />
-      ) : null}
+        {muralGuestRsvpId ? (
+          <article className="public-event-card">
+            <GuestLiveMural
+              event={event}
+              media={media}
+              guestRsvpId={muralGuestRsvpId}
+              guestName={muralGuestName}
+              confirmedGuestCount={confirmedGuestCount}
+            />
+          </article>
+        ) : (
+          <MuralAccessPanel eventId={event.id} capsuleActive={capsuleActive} mode="live" />
+        )}
+      </div>
+    );
+  }
 
-      {viewMode === "countdown" ? (
-        <EventCountdown event={event} label="Contagem para o evento" />
-      ) : null}
+  if (viewMode === "memory_view") {
+    return (
+      <div className="public-event-stack">
+        {muralGuestRsvpId ? (
+          <>
+            <article className="public-event-card public-event-memory-intro">
+              <span className="public-event-kicker">Cápsula do tempo</span>
+              <h2 className="public-event-section-title">{event.title}</h2>
+              <p className="public-event-message">
+                Reviva as memórias deste evento. O conteúdo só fica visível após entrar com seu e-mail e código de acesso.
+              </p>
+            </article>
+            <article className="public-event-card">
+              <GuestLiveMural
+                event={event}
+                media={media}
+                guestRsvpId={muralGuestRsvpId}
+                guestName={muralGuestName}
+                readOnly
+                confirmedGuestCount={confirmedGuestCount}
+              />
+            </article>
+          </>
+        ) : (
+          <MuralAccessPanel eventId={event.id} capsuleActive={capsuleActive} mode="memory" />
+        )}
+      </div>
+    );
+  }
 
-      {viewMode === "live_mural" && !muralGuestRsvpId ? (
-        <MuralAccessPanel eventId={event.id} capsuleActive={capsuleActive} eventStarted={eventStarted} />
-      ) : null}
-
-      {viewMode === "live_mural" && muralGuestRsvpId ? (
-        <article className="public-event-card">
-          <GuestLiveMural
-            event={event}
-            media={media}
-            guestRsvpId={muralGuestRsvpId}
-            guestName={muralGuestName}
-            confirmedGuestCount={confirmedGuestCount}
-          />
-        </article>
-      ) : null}
-
-      {viewMode === "memory_view" ? (
-        <article className="public-event-card">
-          <GuestLiveMural
-            event={event}
-            media={media}
-            guestName={muralGuestName}
-            readOnly
-            confirmedGuestCount={confirmedGuestCount}
-          />
-        </article>
-      ) : null}
-    </div>
-  );
+  return null;
 }

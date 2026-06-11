@@ -2823,6 +2823,88 @@ p + a.btn,
   flex-wrap: wrap;
 }
 
+.continue-wizard-intro {
+  background: var(--bg-soft);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  margin-bottom: 4px;
+  padding: 18px 20px;
+}
+
+.continue-wizard-intro-title {
+  font-size: 22px;
+  font-weight: 800;
+  margin: 0 0 6px;
+}
+
+.continue-wizard-intro p {
+  color: var(--ink-soft);
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.continue-wizard-cover-step .cover-builder-layout {
+  margin-top: 8px;
+}
+
+.cover-settings-panel {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 0 16px 16px;
+}
+
+.cover-settings-panel summary {
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 800;
+  list-style: none;
+  padding: 14px 0 10px;
+}
+
+.cover-settings-panel summary::-webkit-details-marker {
+  display: none;
+}
+
+.cover-settings-panel-help {
+  margin-bottom: 12px;
+}
+
+.public-event-hero.is-compact .public-event-title {
+  font-size: clamp(24px, 5vw, 32px);
+}
+
+.public-event-expired,
+.public-event-memory-intro {
+  text-align: center;
+}
+
+.public-event-retention-note {
+  font-size: 14px;
+}
+
+.portaria-notes {
+  background: var(--bg-soft);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  margin-top: 16px;
+  padding: 14px 16px;
+  text-align: left;
+}
+
+.portaria-notes p {
+  color: var(--ink-soft);
+  line-height: 1.6;
+  margin: 8px 0 0;
+}
+
+.checkin-notes-card .checkin-notes-text {
+  color: var(--ink);
+  line-height: 1.6;
+  margin: 8px 0 0;
+  white-space: pre-wrap;
+}
+
 .cover-generator-form {
   margin-bottom: 4px;
 }

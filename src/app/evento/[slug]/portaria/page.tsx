@@ -54,6 +54,12 @@ export default async function PortariaPage({
           <p className="portaria-help">
             Busque pelo nome, confirme a entrada e registre convidado + acompanhante juntos quando houver.
           </p>
+          {event.checkInNotes ? (
+            <div className="portaria-notes">
+              <strong>Orientações do organizador</strong>
+              <p>{event.checkInNotes}</p>
+            </div>
+          ) : null}
         </header>
 
         <PortariaPanel eventId={event.id} token={token} initialRsvps={rsvps} />

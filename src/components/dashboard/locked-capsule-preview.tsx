@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { RETENTION_MINIMUM_LABEL } from "@/lib/copy/retention";
 
 export function LockedCapsulePreview({ eventId }: { eventId: string }) {
   return (
@@ -12,7 +13,7 @@ export function LockedCapsulePreview({ eventId }: { eventId: string }) {
       <ul style={{ color: "var(--ink-soft)", lineHeight: 1.7, paddingLeft: 18 }}>
         <li>Fotos e recados em tempo real no mural</li>
         <li>Telão ao vivo na festa</li>
-        <li>Cápsula do tempo por 36 meses</li>
+        <li>Cápsula do tempo — {RETENTION_MINIMUM_LABEL}</li>
       </ul>
       <Link className="btn" href={`#ativar-capsula-${eventId}`}>
         Ver planos e ativar

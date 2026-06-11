@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { GuestCompanionDetail } from "@/types/domain";
+import { RETENTION_UPSELL_SHORT } from "@/lib/copy/retention";
 
 type Step = "form" | "capsule" | "done";
 
@@ -178,9 +179,9 @@ export function RsvpForm({
           )}
         </p>
         {capsuleAvailable && rsvpStatus === "confirmed" ? (
-          <a className="btn public-rsvp-action" href={`/login?next=/evento/${eventSlug}`}>
-            Criar conta para participar do mural
-          </a>
+          <p className="public-event-message public-event-retention-note">
+            No dia do evento, volte a este link e entre no mural ao vivo com o e-mail <strong>{email}</strong> e o código que enviaremos.
+          </p>
         ) : null}
       </section>
     );
@@ -189,16 +190,17 @@ export function RsvpForm({
   if (step === "capsule" && capsuleAvailable) {
     return (
       <section className="public-rsvp-state">
-        <h2 className="public-event-section-title">Participar da cápsula do tempo?</h2>
+        <h2 className="public-event-section-title">Participar do mural e da cápsula?</h2>
+        <p className="public-event-message">{RETENTION_UPSELL_SHORT}</p>
         <p className="public-event-message">
-          Durante o evento você pode compartilhar fotos e recados que ficam guardados por <strong>36 meses</strong>.
+          Durante o evento você poderá publicar fotos e recados neste mesmo link, usando o e-mail informado acima.
         </p>
         <div className="public-rsvp-actions">
-          <a className="btn public-rsvp-action" href={`/login?next=/evento/${eventSlug}`}>
-            Criar conta e participar
-          </a>
+          <button className="btn public-rsvp-action" type="button" onClick={() => handleSubmit("confirmed", true)} disabled={pending}>
+            {pending ? "Confirmando..." : "Sim, quero participar"}
+          </button>
           <button className="btn secondary public-rsvp-action" type="button" onClick={() => handleSubmit("confirmed", false)} disabled={pending}>
-            {pending ? "Confirmando..." : "Só confirmar presença"}
+            Só confirmar presença
           </button>
         </div>
         {error ? <p className="public-rsvp-error">{error}</p> : null}

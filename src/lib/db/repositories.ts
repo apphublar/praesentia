@@ -56,6 +56,7 @@ export type UpdateEventInput = {
   title?: string;
   theme?: string;
   hostName?: string;
+  organizerName?: string;
   eventFormat?: Event["eventFormat"];
   onlineMeetingUrl?: string;
   date?: string;
@@ -63,7 +64,13 @@ export type UpdateEventInput = {
   endsAt?: string;
   venueName?: string;
   venueAddress?: string;
+  venueZip?: string;
+  venueComplement?: string;
   city?: string;
+  rsvpEnabled?: boolean;
+  rsvpDeadline?: string | null;
+  checkInNotes?: string | null;
+  giftSuggestions?: GiftSuggestion[];
 };
 
 export interface UserRepository {

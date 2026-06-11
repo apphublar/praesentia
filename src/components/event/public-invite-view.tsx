@@ -6,6 +6,7 @@ import { formatEventSchedule } from "@/lib/events/format-event-date";
 import { resolvePublicEventTheme } from "@/lib/events/event-theme-style";
 import { GiftSuggestionsDisplay } from "@/components/event/gift-suggestions-display";
 import { GuestMessageSection } from "@/components/event/guest-message-section";
+import { EventCountdown } from "@/components/event/event-countdown";
 import { PixBox } from "@/components/event/pix-box";
 import { RsvpForm } from "@/components/event/rsvp-form";
 
@@ -31,17 +32,25 @@ function CoverBanner({ coverUrl, title }: { coverUrl?: string; title: string }) 
 export function PublicInviteView({
   event,
   needsRsvp,
+  showCountdown = false,
   capsuleActive,
   managerHref,
   publicMessages = [],
-  hideMuralSection = false
+  hideMuralSection = false,
+  hideMessages = false,
+  hideGifts = false,
+  compactHeader = false
 }: {
   event: Event;
   needsRsvp: boolean;
+  showCountdown?: boolean;
   capsuleActive: boolean;
   managerHref?: string;
   publicMessages?: GuestMessage[];
   hideMuralSection?: boolean;
+  hideMessages?: boolean;
+  hideGifts?: boolean;
+  compactHeader?: boolean;
 }) {
   const palette = resolvePublicEventTheme(event.theme, event.eventType);
   const typeLabel = EVENT_TYPE_LABELS[event.eventType] ?? palette.label;
@@ -53,29 +62,33 @@ export function PublicInviteView({
     <div className="public-event-stack">
       <CoverBanner coverUrl={event.coverImageUrl} title={event.title} />
 
-      <article className="public-event-card public-event-hero">
+      <article className={`public-event-card public-event-hero${compactHeader ? " is-compact" : ""}`}>
         <span className="public-event-kicker">
           {palette.emoji} {typeLabel}
         </span>
         <h1 className="public-event-title">{event.title}</h1>
-        <p className="public-event-host">
-          {organizer && organizer !== honoree ? (
-            <>
-              Homenageado(a): <strong>{honoree}</strong> · Organização: <strong>{organizer}</strong>
-            </>
-          ) : (
-            <>
-              Com carinho, <strong>{honoree}</strong>
-            </>
-          )}
-        </p>
-        {event.inviteCopy?.headline ? (
-          <p className="public-event-headline">{event.inviteCopy.headline}</p>
-        ) : null}
-        {event.inviteCopy?.message ? (
-          <p className="public-event-message">{event.inviteCopy.message}</p>
-        ) : event.theme ? (
-          <p className="public-event-message">Tema: {event.theme}</p>
+        {!compactHeader ? (
+          <>
+            <p className="public-event-host">
+              {organizer && organizer !== honoree ? (
+                <>
+                  Homenageado(a): <strong>{honoree}</strong> · Organização: <strong>{organizer}</strong>
+                </>
+              ) : (
+                <>
+                  Com carinho, <strong>{honoree}</strong>
+                </>
+              )}
+            </p>
+            {event.inviteCopy?.headline ? (
+              <p className="public-event-headline">{event.inviteCopy.headline}</p>
+            ) : null}
+            {event.inviteCopy?.message ? (
+              <p className="public-event-message">{event.inviteCopy.message}</p>
+            ) : event.theme ? (
+              <p className="public-event-message">Tema: {event.theme}</p>
+            ) : null}
+          </>
         ) : null}
       </article>
 
@@ -108,13 +121,13 @@ export function PublicInviteView({
               )}
             </dd>
           </div>
-          {organizer ? (
+          {!compactHeader && organizer ? (
             <div>
               <dt>Organização</dt>
               <dd>{organizer}</dd>
             </div>
           ) : null}
-          {organizer && organizer !== honoree ? (
+          {!compactHeader && organizer && organizer !== honoree ? (
             <div>
               <dt>Homenageado(a)</dt>
               <dd>{honoree}</dd>
@@ -134,7 +147,11 @@ export function PublicInviteView({
         </div>
       ) : null}
 
-      <GiftSuggestionsDisplay suggestions={event.giftSuggestions} />
+      {showCountdown ? (
+        <EventCountdown event={event} label="Faltam para o grande dia" />
+      ) : null}
+
+      {!hideGifts ? <GiftSuggestionsDisplay suggestions={event.giftSuggestions} /> : null}
 
       {event.pix?.enabled ? (
         <article className="public-event-card public-event-pix-card">
@@ -146,7 +163,9 @@ export function PublicInviteView({
         </article>
       ) : null}
 
-      {!hideMuralSection ? <GuestMessageSection eventId={event.id} initialPublicMessages={publicMessages} /> : null}
+      {!hideMuralSection && !hideMessages ? (
+        <GuestMessageSection eventId={event.id} initialPublicMessages={publicMessages} />
+      ) : null}
 
       {managerHref ? (
         <p className="public-event-manager-link">

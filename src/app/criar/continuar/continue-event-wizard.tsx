@@ -89,6 +89,10 @@ export function ContinueEventWizard({
 
       {step === 1 && (
         <section className="dashboard-stack">
+          <div className="continue-wizard-intro">
+            <h2 className="continue-wizard-intro-title">1. Texto do convite</h2>
+            <p>Escreva ou gere com IA a mensagem de boas-vindas. Data, horário e local aparecem em outro bloco — não precisa repetir aqui.</p>
+          </div>
           <InviteTextEditor
             eventId={eventId}
             eventSlug={eventSlug}
@@ -108,10 +112,14 @@ export function ContinueEventWizard({
       )}
 
       {step === 2 && (
-        <section className="dashboard-stack">
+        <section className="dashboard-stack continue-wizard-cover-step">
           <button type="button" className="create-back-btn" onClick={() => setStep(1)}>
             ← Voltar ao texto
           </button>
+          <div className="continue-wizard-intro">
+            <h2 className="continue-wizard-intro-title">2. Imagem do convite</h2>
+            <p>À esquerda, ajuste o visual. À direita, veja a prévia. Os dados do evento já vêm preenchidos — edite só o que quiser na imagem.</p>
+          </div>
           <CoverGenerator
             eventId={eventId}
             eventSlug={eventSlug}
@@ -154,6 +162,10 @@ export function ContinueEventWizard({
           <button type="button" className="create-back-btn" onClick={() => setStep(2)}>
             ← Voltar à imagem
           </button>
+          <div className="continue-wizard-intro">
+            <h2 className="continue-wizard-intro-title">3. Compartilhar</h2>
+            <p>Copie o link ou baixe a imagem e envie para seus convidados.</p>
+          </div>
           <EventSharePanel
             eventSlug={eventSlug}
             eventTitle={eventTitle}

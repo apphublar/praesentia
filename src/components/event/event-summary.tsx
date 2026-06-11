@@ -1,4 +1,5 @@
 import type { Event } from "@/types/domain";
+import { RETENTION_MINIMUM_LABEL } from "@/lib/copy/retention";
 
 export function EventSummary({ event }: { event: Event }) {
   return (
@@ -8,7 +9,7 @@ export function EventSummary({ event }: { event: Event }) {
         {event.title}
       </h1>
       <p style={{ color: "var(--ink-soft)", fontSize: 18, lineHeight: 1.55, maxWidth: 680 }}>
-        Convite, mural ao vivo e cápsula digital por {event.plan.retentionMonths} meses. Tema:{" "}
+        Convite, mural ao vivo e cápsula digital — {RETENTION_MINIMUM_LABEL}. Tema:{" "}
         <strong>{event.theme}</strong>.
       </p>
       <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", marginTop: 24 }}>

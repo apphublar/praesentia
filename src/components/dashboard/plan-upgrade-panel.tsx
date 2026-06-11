@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { Event, UserSubscription } from "@/types/domain";
+import { RETENTION_CAPSULE_DESCRIPTION, RETENTION_FREE_DESCRIPTION } from "@/lib/copy/retention";
+import { canActivateCapsuleForEvent } from "@/lib/mural/timeline";
 
 export function PlanUpgradePanel({
   event,
@@ -67,6 +69,19 @@ export function PlanUpgradePanel({
   const plusSlotsLeft = subscription
     ? Math.max(0, 6 - subscription.eventsUsedThisPeriod)
     : 6;
+  const canActivate = canActivateCapsuleForEvent(event);
+
+  if (!canActivate) {
+    return (
+      <article className="card" style={{ padding: 22, marginBottom: 24, background: "var(--bg-soft)" }}>
+        <span className="pill">evento encerrado</span>
+        <h2 className="display" style={{ fontSize: 26, margin: "12px 0 8px" }}>
+          Cápsula indisponível para este evento
+        </h2>
+        <p style={{ color: "var(--ink-soft)", lineHeight: 1.55 }}>{RETENTION_FREE_DESCRIPTION}</p>
+      </article>
+    );
+  }
 
   return (
     <article className="card" style={{ padding: 22, marginBottom: 24, borderColor: "var(--coral)" }}>
@@ -74,9 +89,12 @@ export function PlanUpgradePanel({
       <h2 className="display" style={{ fontSize: 26, margin: "12px 0 8px" }}>
         Libere mural ao vivo e memória permanente
       </h2>
-      <p style={{ color: "var(--ink-soft)", lineHeight: 1.55, marginBottom: 18 }}>
+      <p style={{ color: "var(--ink-soft)", lineHeight: 1.55, marginBottom: 12 }}>
         No plano gratuito você já tem convite, RSVP e lista de presença. Para transformar este link em mural ao vivo
         e cápsula do tempo, escolha uma opção abaixo.
+      </p>
+      <p style={{ color: "var(--ink-soft)", lineHeight: 1.55, marginBottom: 18, fontSize: 14 }}>
+        {RETENTION_CAPSULE_DESCRIPTION}
       </p>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 12 }}>

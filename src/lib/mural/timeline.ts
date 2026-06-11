@@ -1,13 +1,15 @@
-import { getEventEndDate, getEventStartDate, resolveEventPhase } from "@/lib/events/phase";
+import { getEventEndDate, getEventStartDate } from "@/lib/events/phase";
 import { hasCapsuleAccess } from "@/lib/plans/features";
 import type { Event } from "@/types/domain";
 
 export type PublicEventViewMode =
-  | "rsvp_open"
+  | "invite"
   | "countdown"
-  | "mural_access"
   | "live_mural"
-  | "memory_view";
+  | "memory_view"
+  | "expired";
+
+export type PublicInvitePhase = "rsvp_open" | "countdown" | "none";
 
 export function getRsvpDeadlineDate(event: Event) {
   if (!event.rsvpDeadline) return null;
@@ -21,21 +23,39 @@ export function isRsvpOpen(event: Event, now = new Date()) {
   return now < getEventStartDate(event);
 }
 
-export function getPublicEventViewMode(event: Event, now = new Date()): PublicEventViewMode {
-  const phase = resolveEventPhase(event, now);
-  const capsule = hasCapsuleAccess(event);
+export function getSchedulePhase(event: Event, now = new Date()) {
+  const start = getEventStartDate(event);
+  const end = getEventEndDate(event);
+  if (now < start) return "before" as const;
+  if (now <= end) return "live" as const;
+  return "after" as const;
+}
 
-  if (phase === "memory" && capsule) return "memory_view";
-  if (phase === "live" && capsule) return "live_mural";
-  if (!isRsvpOpen(event, now) && now < getEventStartDate(event)) return "countdown";
+export function getInvitePhase(event: Event, now = new Date()): PublicInvitePhase {
+  const schedule = getSchedulePhase(event, now);
+  if (schedule !== "before") return "none";
   if (isRsvpOpen(event, now)) return "rsvp_open";
   return "countdown";
 }
 
+export function getPublicEventViewMode(event: Event, now = new Date()): PublicEventViewMode {
+  const capsule = hasCapsuleAccess(event);
+  const schedule = getSchedulePhase(event, now);
+
+  if (!capsule && schedule === "after") return "expired";
+  if (capsule && schedule === "after") return "memory_view";
+  if (capsule && schedule === "live") return "live_mural";
+  return "invite";
+}
+
 export function isEventInteractionLocked(event: Event, now = new Date()) {
-  return resolveEventPhase(event, now) === "memory" || now > getEventEndDate(event);
+  return getSchedulePhase(event, now) === "after";
 }
 
 export function canGuestUploadNow(event: Event, now = new Date()) {
-  return resolveEventPhase(event, now) === "live" && now <= getEventEndDate(event);
+  return getSchedulePhase(event, now) === "live";
+}
+
+export function canActivateCapsuleForEvent(event: Event, now = new Date()) {
+  return getSchedulePhase(event, now) !== "after";
 }

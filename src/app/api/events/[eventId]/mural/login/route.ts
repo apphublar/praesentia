@@ -1,9 +1,10 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { repositories } from "@/lib/db";
-import { getEventEndDate, getEventStartDate } from "@/lib/events/phase";
+import { getEventEndDate } from "@/lib/events/phase";
 import { hasCapsuleAccess } from "@/lib/plans/features";
 import { verifyAccessCode } from "@/lib/mural/access-code";
+import { getSchedulePhase } from "@/lib/mural/timeline";
 import { createMuralSessionToken, muralSessionCookieOptions, MURAL_SESSION_COOKIE } from "@/lib/mural/session-cookie";
 import { assertTrustedOrigin } from "@/lib/security/origin";
 import { sanitizeText } from "@/lib/security/sanitize";
@@ -27,11 +28,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ eve
   }
 
   const now = new Date();
-  if (now < getEventStartDate(event)) {
-    return NextResponse.json({ error: "O mural abre quando o evento começar." }, { status: 403 });
-  }
-  if (now > getEventEndDate(event)) {
-    return NextResponse.json({ error: "O período interativo do evento já terminou." }, { status: 403 });
+  const schedule = getSchedulePhase(event, now);
+  if (schedule === "before") {
+    return NextResponse.json({ error: "O acesso abre quando o evento começar." }, { status: 403 });
   }
 
   const rsvp = await repositories.guestRsvps.findConfirmedByEmail(eventId, email);
@@ -61,7 +60,16 @@ export async function POST(request: Request, { params }: { params: Promise<{ eve
   });
 
   const cookieStore = await cookies();
-  cookieStore.set(MURAL_SESSION_COOKIE, token, muralSessionCookieOptions);
+  const eventEnd = getEventEndDate(event);
+  const maxAgeSeconds =
+    schedule === "live"
+      ? Math.max(60, Math.floor((eventEnd.getTime() - now.getTime()) / 1000))
+      : 60 * 60 * 24 * 7;
+
+  cookieStore.set(MURAL_SESSION_COOKIE, token, {
+    ...muralSessionCookieOptions,
+    maxAge: maxAgeSeconds
+  });
 
   return NextResponse.json({
     ok: true,

@@ -31,7 +31,7 @@ const phases = [
   {
     phase: "depois",
     title: "Cápsula do tempo",
-    text: "O mesmo link vira memória permanente por 36 meses, com exportação e controle do responsável.",
+    text: "O mesmo link vira cápsula do tempo com no mínimo 36 meses garantidos — amplie o armazenamento quando quiser.",
     color: "var(--violet)"
   }
 ];
@@ -75,7 +75,7 @@ export default function HomePage() {
             </h1>
             <p style={{ color: "var(--ink-soft)", fontSize: "clamp(16px, 1.4vw, 19px)", lineHeight: 1.6, maxWidth: 580 }}>
               Praesentia transforma festas particulares em cápsulas do tempo digitais. Crie o convite, confirme
-              presenças, receba contribuições Pix opcionais, mostre memórias no telão e guarde tudo por 36 meses.
+              presenças, receba contribuições Pix opcionais, mostre memórias no telão e guarde tudo por no mínimo 36 meses (amplável).
             </p>
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 26 }}>
               <Link className="btn" href="/criar">

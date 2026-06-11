@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { repositories } from "@/lib/db";
-import { getEventStartDate } from "@/lib/events/phase";
+import { getEventEndDate } from "@/lib/events/phase";
 import { hasCapsuleAccess } from "@/lib/plans/features";
 import { generateAccessCode, hashAccessCode } from "@/lib/mural/access-code";
 import { sendMuralAccessCodeEmail } from "@/lib/mural/email";
+import { getSchedulePhase } from "@/lib/mural/timeline";
 import { assertTrustedOrigin } from "@/lib/security/origin";
 import { sanitizeText } from "@/lib/security/sanitize";
 
@@ -25,21 +26,26 @@ export async function POST(request: Request, { params }: { params: Promise<{ eve
   const rsvp = await repositories.guestRsvps.findConfirmedByEmail(eventId, email);
   if (!rsvp) {
     return NextResponse.json(
-      { error: "Este e-mail não está cadastrado como convidado confirmado. Confirme sua presença ou solicite acesso ao organizador." },
+      {
+        error:
+          "Este e-mail não está cadastrado como convidado confirmado. Confirme sua presença ou solicite acesso ao organizador."
+      },
       { status: 403 }
     );
   }
 
   const now = new Date();
-  if (now < getEventStartDate(event)) {
-    return NextResponse.json(
-      { error: "O código de acesso será liberado quando o evento começar." },
-      { status: 403 }
-    );
+  const schedule = getSchedulePhase(event, now);
+  if (schedule === "before") {
+    return NextResponse.json({ error: "O código de acesso será liberado quando o evento começar." }, { status: 403 });
   }
 
   const code = generateAccessCode();
-  const expiresAt = new Date(now.getTime() + 1000 * 60 * 60 * 6).toISOString();
+  const eventEnd = getEventEndDate(event);
+  const expiresAt =
+    schedule === "live"
+      ? new Date(Math.min(eventEnd.getTime(), now.getTime() + 1000 * 60 * 60 * 6)).toISOString()
+      : new Date(now.getTime() + 1000 * 60 * 60 * 24).toISOString();
 
   await repositories.muralAccess.createCode({
     eventId,
@@ -53,7 +59,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ eve
     to: email,
     guestName: rsvp.guestName,
     eventTitle: event.title,
-    code
+    code,
+    isMemory: schedule === "after"
   });
 
   return NextResponse.json({

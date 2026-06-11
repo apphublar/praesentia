@@ -115,6 +115,7 @@ export type Event = {
   city: string;
   rsvpEnabled: boolean;
   rsvpDeadline?: string;
+  checkInNotes?: string;
   giftSuggestions: GiftSuggestion[];
   visibility: EventVisibility;
   phase: EventPhase;

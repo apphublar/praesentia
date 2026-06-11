@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import type { Event, EventMember } from "@/types/domain";
 import { apiErrorMessage, dashboardFetchJson } from "@/lib/api/dashboard-fetch";
+import { EventDetailsForm } from "@/components/dashboard/event-details-form";
 
 type RequestState = {
   loading: boolean;
@@ -38,11 +39,13 @@ function rsvpLabel(status: EventMember["rsvpStatus"]) {
 export function EventSettingsForms({
   event,
   members,
-  capsuleActive
+  capsuleActive,
+  needsRsvp = true
 }: {
   event: Event;
   members: EventMember[];
   capsuleActive: boolean;
+  needsRsvp?: boolean;
 }) {
   const [pixEnabled, setPixEnabled] = useState(Boolean(event.pix?.enabled));
   const [receiverName, setReceiverName] = useState(event.pix?.receiverName ?? "");
@@ -152,6 +155,8 @@ export function EventSettingsForms({
 
   return (
     <section className="dashboard-settings-grid" aria-label="Configurações do evento">
+      <EventDetailsForm event={event} needsRsvp={needsRsvp} />
+
       <article className="settings-form-card">
         <div>
           <span className="pill">Pix do evento</span>

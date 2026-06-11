@@ -8,11 +8,13 @@ export function GuestListPanel({
   eventId,
   eventSlug,
   eventFreeCode,
+  checkInNotes,
   initialRsvps
 }: {
   eventId: string;
   eventSlug: string;
   eventFreeCode?: string;
+  checkInNotes?: string;
   initialRsvps: GuestRsvp[];
 }) {
   const [rsvps, setRsvps] = useState(initialRsvps);
@@ -114,6 +116,14 @@ export function GuestListPanel({
           </button>
         </div>
       </div>
+
+      {checkInNotes ? (
+        <section className="checkin-link-card checkin-notes-card">
+          <span className="checkin-link-kicker">Orientações para check-in</span>
+          <p className="checkin-notes-text">{checkInNotes}</p>
+          <p className="cover-field-help">Edite em Configurações → Informações gerais.</p>
+        </section>
+      ) : null}
 
       {eventFreeCode ? (
         <section className="checkin-link-card">

@@ -1,19 +1,21 @@
 "use client";
 
 import { useState } from "react";
+import { RETENTION_CAPSULE_DESCRIPTION } from "@/lib/copy/retention";
 
-type Mode = "code" | "login" | "request";
+type PanelMode = "live" | "memory";
+type FormMode = "code" | "login" | "request";
 
 export function MuralAccessPanel({
   eventId,
   capsuleActive,
-  eventStarted
+  mode
 }: {
   eventId: string;
   capsuleActive: boolean;
-  eventStarted: boolean;
+  mode: PanelMode;
 }) {
-  const [mode, setMode] = useState<Mode>(eventStarted ? "login" : "code");
+  const [formMode, setFormMode] = useState<FormMode>("login");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -24,6 +26,12 @@ export function MuralAccessPanel({
   const [error, setError] = useState("");
 
   if (!capsuleActive) return null;
+
+  const isMemory = mode === "memory";
+  const title = isMemory ? "Cápsula do tempo" : "Mural ao vivo";
+  const intro = isMemory
+    ? "Este evento virou uma cápsula do tempo. Informe o e-mail usado na confirmação de presença e o código enviado para ver fotos, vídeos e recados."
+    : "Entre no mural ao vivo com o e-mail da confirmação de presença. Se ainda não confirmou, solicite acesso ao organizador.";
 
   async function requestCode() {
     setPending(true);
@@ -41,7 +49,7 @@ export function MuralAccessPanel({
         return;
       }
       setMessage(data.message ?? "Código enviado para seu e-mail.");
-      setMode("login");
+      setFormMode("login");
     } catch {
       setError("Erro de conexão.");
     } finally {
@@ -91,7 +99,7 @@ export function MuralAccessPanel({
         setError(data.error ?? "Não foi possível enviar a solicitação.");
         return;
       }
-      setMessage("Solicitação enviada. Aguarde a aprovação do organizador.");
+      setMessage("Solicitação enviada. Aguarde a aprovação do organizador — você receberá o código por e-mail.");
     } catch {
       setError("Erro de conexão.");
     } finally {
@@ -101,32 +109,51 @@ export function MuralAccessPanel({
 
   return (
     <article className="public-event-card public-mural-access">
-      <h2 className="public-event-section-title">Mural ao vivo</h2>
-      <p className="public-event-message">
-        {eventStarted
-          ? "Use o e-mail da confirmação de presença e o código enviado para entrar no mural."
-          : "Quando o evento começar, você poderá solicitar o código de acesso com o e-mail usado na confirmação de presença."}
-      </p>
+      <h2 className="public-event-section-title">{title}</h2>
+      <p className="public-event-message">{intro}</p>
+      {isMemory ? (
+        <p className="public-event-message public-event-retention-note">{RETENTION_CAPSULE_DESCRIPTION}</p>
+      ) : null}
 
       <div className="public-mural-access-tabs">
-        <button type="button" className={mode === "code" ? "is-active" : ""} onClick={() => setMode("code")}>
-          Receber código
-        </button>
-        <button type="button" className={mode === "login" ? "is-active" : ""} onClick={() => setMode("login")}>
+        <button type="button" className={formMode === "login" ? "is-active" : ""} onClick={() => setFormMode("login")}>
           Entrar
         </button>
-        <button type="button" className={mode === "request" ? "is-active" : ""} onClick={() => setMode("request")}>
-          Solicitar acesso
+        <button type="button" className={formMode === "code" ? "is-active" : ""} onClick={() => setFormMode("code")}>
+          Receber código
         </button>
+        {!isMemory ? (
+          <button type="button" className={formMode === "request" ? "is-active" : ""} onClick={() => setFormMode("request")}>
+            Solicitar acesso
+          </button>
+        ) : (
+          <button type="button" className={formMode === "request" ? "is-active" : ""} onClick={() => setFormMode("request")}>
+            Perdi o acesso
+          </button>
+        )}
       </div>
 
-      {mode === "request" ? (
+      {formMode === "request" ? (
         <div className="praesentia-form praesentia-form-stack">
-          <label className="field"><span>Nome *</span><input value={firstName} onChange={(e) => setFirstName(e.target.value)} /></label>
-          <label className="field"><span>Sobrenome *</span><input value={lastName} onChange={(e) => setLastName(e.target.value)} /></label>
-          <label className="field"><span>E-mail *</span><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} /></label>
-          <label className="field"><span>WhatsApp</span><input value={phone} onChange={(e) => setPhone(e.target.value)} /></label>
-          <button type="button" className="btn" disabled={pending} onClick={requestAccess}>Enviar solicitação</button>
+          <label className="field">
+            <span>Nome completo *</span>
+            <input value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="Nome" />
+          </label>
+          <label className="field">
+            <span>Sobrenome *</span>
+            <input value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Sobrenome" />
+          </label>
+          <label className="field">
+            <span>E-mail *</span>
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+          </label>
+          <label className="field">
+            <span>WhatsApp *</span>
+            <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(00) 00000-0000" />
+          </label>
+          <button type="button" className="btn" disabled={pending} onClick={requestAccess}>
+            {isMemory ? "Solicitar novo acesso" : "Enviar solicitação ao organizador"}
+          </button>
         </div>
       ) : (
         <div className="praesentia-form praesentia-form-stack">
@@ -134,7 +161,7 @@ export function MuralAccessPanel({
             <span>E-mail usado na confirmação *</span>
             <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
           </label>
-          {mode === "login" ? (
+          {formMode === "login" ? (
             <label className="field">
               <span>Código de acesso *</span>
               <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="6 dígitos" maxLength={6} />
@@ -143,10 +170,10 @@ export function MuralAccessPanel({
           <button
             type="button"
             className="btn"
-            disabled={pending || !email.trim() || (mode === "login" && !code.trim())}
-            onClick={mode === "login" ? login : requestCode}
+            disabled={pending || !email.trim() || (formMode === "login" && !code.trim())}
+            onClick={formMode === "login" ? login : requestCode}
           >
-            {pending ? "Aguarde..." : mode === "login" ? "Entrar no mural" : "Enviar código por e-mail"}
+            {pending ? "Aguarde..." : formMode === "login" ? `Entrar na ${isMemory ? "cápsula" : "mural"}` : "Enviar código por e-mail"}
           </button>
         </div>
       )}

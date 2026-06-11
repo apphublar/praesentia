@@ -21,8 +21,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ eve
   const guestEmail = sanitizeText(body?.guestEmail, 160).toLowerCase();
   const phone = body?.phone ? sanitizeText(body.phone, 20) : undefined;
 
-  if (!guestFirstName || !guestLastName || !guestEmail) {
-    return NextResponse.json({ error: "Informe nome, sobrenome e e-mail." }, { status: 400 });
+  if (!guestFirstName || !guestLastName || !guestEmail || !phone) {
+    return NextResponse.json({ error: "Informe nome completo, e-mail e WhatsApp." }, { status: 400 });
   }
 
   const existing = await repositories.guestRsvps.findConfirmedByEmail(eventId, guestEmail);

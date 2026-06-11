@@ -32,10 +32,13 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
     [],
     "guestMessages.listPublicByEvent"
   );
-  const media =
-    capsuleActive && (viewMode === "live_mural" || viewMode === "memory_view")
-      ? await safeRepositoryCall(() => repositories.media.listPublishedByEvent(event.id), [], "media.listPublishedByEvent")
-      : [];
+  const needsMuralContent =
+    capsuleActive &&
+    muralSession &&
+    (viewMode === "live_mural" || viewMode === "memory_view");
+  const media = needsMuralContent
+    ? await safeRepositoryCall(() => repositories.media.listPublishedByEvent(event.id), [], "media.listPublishedByEvent")
+    : [];
   const confirmedGuestCount = await safeRepositoryCall(
     () => repositories.guestRsvps.listByEvent(event.id).then((rows) => rows.filter((row) => row.rsvpStatus === "confirmed").length),
     0,

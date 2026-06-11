@@ -3,6 +3,7 @@ import { apiAuthErrorResponse } from "@/lib/auth/api";
 import { canManageEventById } from "@/lib/auth/event-access";
 import { requireSession } from "@/lib/auth/session";
 import { repositories } from "@/lib/db";
+import { getEventEndDate } from "@/lib/events/phase";
 import { PLANS } from "@/lib/plans";
 import { assertTrustedOrigin } from "@/lib/security/origin";
 import { sanitizeText } from "@/lib/security/sanitize";
@@ -30,6 +31,16 @@ export async function POST(request: Request) {
 
     if (event.capsuleActivatedAt) {
       return NextResponse.json({ error: "Este evento já possui cápsula ativa." }, { status: 409 });
+    }
+
+    if (new Date() > getEventEndDate(event)) {
+      return NextResponse.json(
+        {
+          error:
+            "Este evento já terminou. A cápsula precisa ser ativada antes do fim do evento para guardar as memórias."
+        },
+        { status: 403 }
+      );
     }
 
     if (plan === "family") {

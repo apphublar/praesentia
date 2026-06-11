@@ -25,7 +25,7 @@ const STORY_SLIDES = [
   {
     emoji: "⏳",
     title: "Cápsula do tempo — vale a pena ativar",
-    text: "Depois da festa, o mesmo link vira memória permanente por 36 meses. Fotos, recados e momentos ficam guardados com acesso controlado por você."
+    text: "Depois da festa, o mesmo link vira cápsula do tempo com no mínimo 36 meses garantidos — amplie o armazenamento quando quiser."
   },
   {
     emoji: "🎉",
@@ -120,7 +120,7 @@ export function CoverGenerationOverlay({ active, capsuleActive }: { active: bool
 
         {!capsuleActive ? (
           <p className="cover-gen-overlay-tip">
-            <strong>Próximo passo:</strong> ative a Cápsula Praesentia para liberar mural ao vivo, telão e memórias por 36 meses.
+            <strong>Próximo passo:</strong> ative a Cápsula Praesentia para liberar mural ao vivo, telão e memórias (mínimo de 36 meses, amplável).
           </p>
         ) : (
           <p className="cover-gen-overlay-tip cover-gen-overlay-tip-muted">

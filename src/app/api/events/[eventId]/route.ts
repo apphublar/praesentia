@@ -63,5 +63,33 @@ export async function PATCH(request: Request, context: { params: Promise<{ event
     });
   }
 
+  if (body.details && typeof body.details === "object") {
+    const d = body.details as Record<string, unknown>;
+    await repositories.events.update(eventId, session.user.id, {
+      title: sanitizeText(d.title, 160),
+      theme: sanitizeText(d.theme, 160),
+      hostName: sanitizeText(d.hostName, 120),
+      organizerName: d.organizerName ? sanitizeText(d.organizerName, 120) : undefined,
+      date: typeof d.date === "string" ? d.date.slice(0, 10) : undefined,
+      startsAt: typeof d.startsAt === "string" ? d.startsAt.slice(0, 5) : undefined,
+      endsAt: typeof d.endsAt === "string" ? d.endsAt.slice(0, 5) : undefined,
+      venueName: sanitizeText(d.venueName, 160),
+      venueAddress: sanitizeText(d.venueAddress, 220),
+      venueZip: d.venueZip ? sanitizeText(d.venueZip, 12) : undefined,
+      venueComplement: d.venueComplement ? sanitizeText(d.venueComplement, 120) : undefined,
+      city: sanitizeText(d.city, 120),
+      onlineMeetingUrl: d.onlineMeetingUrl ? sanitizeText(d.onlineMeetingUrl, 400) : undefined,
+      rsvpEnabled: typeof d.rsvpEnabled === "boolean" ? d.rsvpEnabled : undefined,
+      rsvpDeadline:
+        d.rsvpDeadline === null
+          ? null
+          : typeof d.rsvpDeadline === "string"
+            ? d.rsvpDeadline.slice(0, 10)
+            : undefined,
+      checkInNotes:
+        d.checkInNotes === null ? null : d.checkInNotes ? sanitizeText(d.checkInNotes, 2000) : undefined
+    });
+  }
+
   return NextResponse.json({ ok: true, message: "Evento atualizado." });
 }

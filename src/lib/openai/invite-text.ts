@@ -59,17 +59,17 @@ Crie textos para este ${typeLabel}:
 - Título: ${event.title}
 - Homenageado/responsável: ${event.hostName}
 - Tema/estilo: ${event.theme}
-- Data EXATA: ${exactDate}
-- Horário: ${event.startsAt} às ${event.endsAt}
-- Local: ${buildLocationLine(event)}${editLine}
+- Data (referência interna, NÃO repetir no texto): ${exactDate}
+- Horário (referência interna, NÃO repetir no texto): ${event.startsAt} às ${event.endsAt}
+- Local (referência interna, NÃO repetir no texto): ${buildLocationLine(event)}${editLine}
 
 Retorne JSON com:
 - headline: frase curta e calorosa (máx. 70 caracteres)
-- message: texto do convite (2 parágrafos curtos, tom acolhedor, sem markdown)
-- whatsapp: mensagem curta (máx. 280 caracteres), termine com "Confirme aqui: {{link}}"
+- message: texto do convite (2 parágrafos curtos, tom acolhedor, sem markdown). NÃO inclua data, horário, endereço ou local — essas informações já aparecem em outro bloco da página e na imagem do convite.
+- whatsapp: mensagem curta (máx. 280 caracteres) convidando para o evento, termine com "Confirme aqui: {{link}}". Pode mencionar data de forma breve se couber.
 - hashtags: array com 3 a 5 hashtags em português
 
-Use EXATAMENTE a data ${exactDate} e o horário informado se mencionar quando será. Não invente dress code, presentes ou regras extras.`;
+Não invente dress code, presentes ou regras extras.`;
 }
 
 function parseInviteCopyJson(raw: string): InviteCopy | null {

@@ -353,15 +353,16 @@ export function CoverGenerator({
       </div>
 
       <div className="cover-builder-layout">
-        {/* ── Coluna esquerda: configurações ── */}
         <div className="cover-settings-column">
           <div className="praesentia-form praesentia-form-stack">
-            <section className="cover-event-brief">
+            <details className="cover-settings-panel" open>
+              <summary>Dados na imagem (opcional)</summary>
+              <p className="cover-field-help cover-settings-panel-help">
+                Pré-preenchidos do cadastro. Campos vazios não entram no convite. Textos aparecem na parte inferior da arte.
+              </p>
+              <section className="cover-event-brief">
               <div className="cover-event-brief-head">
-                <span className="field"><span>Dados do convite</span></span>
-                <p className="cover-field-help">
-                  Pré-preenchidos com o cadastro do evento. Edite ou apague o que não quiser — campos vazios não entram no convite. Os textos preenchidos aparecem na parte inferior da imagem.
-                </p>
+                <span className="field"><span>Informações do convite</span></span>
               </div>
               <div className="cover-event-brief-grid cover-event-brief-form">
                 <label className="field">
@@ -432,7 +433,10 @@ export function CoverGenerator({
                 ) : null}
               </div>
             </section>
+            </details>
 
+            <details className="cover-settings-panel">
+              <summary>Foto de referência (opcional)</summary>
             <div className="cover-host-photo-block">
               <label className="field">
                 <span>{photoFieldLabel}</span>
@@ -469,7 +473,10 @@ export function CoverGenerator({
                 </p>
               </label>
             </div>
+            </details>
 
+            <details className="cover-settings-panel" open>
+              <summary>Estilo visual e geração</summary>
             <label className="field">
               <span>Orientação visual da imagem</span>
               <textarea value={orientation} onChange={(e) => { setOrientation(e.target.value); setPromptAssistOk(false); }}
@@ -606,6 +613,7 @@ export function CoverGenerator({
 
               {error ? <p className="settings-status is-error">{error}</p> : null}
             </div>
+            </details>
           </div>
         </div>
 

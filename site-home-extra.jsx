@@ -22,7 +22,7 @@ function CotasSection() {
       tier: 'capsula',
       label: 'Cápsula',
       capacity: '5 GB',
-      capacityNote: 'inclusos · 36 meses',
+      capacityNote: 'inclusos · mín. 36 meses (amplável)',
       desc: 'Espaço para guardar fotos do evento inteiro, vídeos curtos dos momentos especiais e recados dos convidados.',
       bg: p.ink,
       ink: p.bg,
@@ -39,7 +39,7 @@ function CotasSection() {
       tier: 'familia',
       label: 'Família',
       capacity: '25 GB',
-      capacityNote: 'compartilhados · 36 meses por evento',
+      capacityNote: 'compartilhados · mín. 36 meses por evento',
       desc: 'Capacidade pensada para até 12 eventos por ano, com tudo conectado na mesma timeline familiar.',
       bg: p.card,
       ink: p.ink,
@@ -718,7 +718,7 @@ function PrecosSection({ goto }) {
                   label: 'Armazenamento',
                   items: [
                     { v: <span><b style={{ color: '#fff' }}>5 GB</b> inclusos</span> },
-                    { v: <span><b style={{ color: '#fff' }}>36 meses</b> de armazenamento</span> },
+                    { v: <span><b style={{ color: '#fff' }}>Mín. 36 meses</b> de armazenamento (amplável)</span> },
                   ],
                 },
               ]}
@@ -768,7 +768,7 @@ function PrecosSection({ goto }) {
                   label: 'Armazenamento',
                   items: [
                     { v: <span><b style={{ color: p.ink }}>25 GB</b> compartilhados</span> },
-                    { v: <span><b style={{ color: p.ink }}>36 meses</b> para cada evento</span> },
+                    { v: <span><b style={{ color: p.ink }}>Mín. 36 meses</b> por evento (amplável)</span> },
                   ],
                 },
               ]}
