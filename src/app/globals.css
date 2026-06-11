@@ -3761,72 +3761,68 @@ p + a.btn,
 
 .public-event-info-card {
   display: grid;
-  gap: 18px;
+  gap: 16px;
 }
 
 .public-event-info-head {
   display: grid;
-  gap: 8px;
+  gap: 6px;
 }
 
-.public-event-info-grid {
-  display: grid;
-  gap: 14px;
+.public-event-info-list-rich {
+  border-top: 1px solid var(--line);
+  padding-top: 4px;
 }
 
-.public-event-info-item {
-  background: var(--bg-soft);
-  border: 1px solid rgba(27, 18, 9, 0.06);
-  border-radius: 16px;
-  display: grid;
-  gap: 12px;
-  grid-template-columns: auto 1fr;
-  padding: 16px 18px;
+.public-event-info-row {
+  border-bottom: 1px solid var(--line);
+  padding: 16px 0;
 }
 
-.public-event-info-item-note {
-  border-color: rgba(255, 107, 92, 0.16);
+.public-event-info-row:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
 }
 
-.public-event-info-icon {
-  align-items: center;
-  background: #fff;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  display: inline-flex;
-  font-size: 20px;
-  height: 42px;
-  justify-content: center;
-  width: 42px;
+.public-event-info-row-highlight {
+  background: rgba(255, 107, 92, 0.04);
+  border-radius: 14px;
+  border: 1px solid rgba(255, 107, 92, 0.12);
+  margin-top: 4px;
+  padding: 16px;
 }
 
-.public-event-info-item h3 {
-  font-size: 13px;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  margin: 0 0 6px;
-  text-transform: uppercase;
-  color: var(--ink-soft);
-}
-
-.public-event-info-value {
+.public-event-info-row dd strong {
+  color: var(--ink);
+  display: block;
   font-size: 17px;
   font-weight: 700;
   line-height: 1.45;
-  margin: 0;
+  margin-bottom: 4px;
 }
 
-.public-event-info-detail,
-.public-event-info-hint {
+.public-event-info-row dd span {
   color: var(--ink-soft);
+  display: block;
   font-size: 14px;
   line-height: 1.55;
-  margin: 4px 0 0;
 }
 
-.public-event-info-link-btn {
-  margin-top: 12px;
-  width: fit-content;
+.public-event-info-note {
+  font-size: 13px !important;
+  margin-top: 4px;
+}
+
+.public-event-info-link {
+  color: var(--public-accent, var(--coral));
+  display: inline-block;
+  font-weight: 700;
+  margin-top: 8px;
+  text-decoration: none;
+}
+
+.public-event-info-link:hover {
+  text-decoration: underline;
 }
 
 .public-rsvp-form,

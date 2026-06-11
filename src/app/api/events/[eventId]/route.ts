@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { canManageEventById } from "@/lib/auth/event-access";
+import { normalizeEventDateString, normalizeEventTimeString } from "@/lib/events/datetime";
 import { getCurrentSession, requireRecentAuthentication } from "@/lib/auth/session";
 import { repositories } from "@/lib/db";
 import { assertTrustedOrigin } from "@/lib/security/origin";
@@ -70,9 +71,9 @@ export async function PATCH(request: Request, context: { params: Promise<{ event
       theme: sanitizeText(d.theme, 160),
       hostName: sanitizeText(d.hostName, 120),
       organizerName: d.organizerName ? sanitizeText(d.organizerName, 120) : undefined,
-      date: typeof d.date === "string" ? d.date.slice(0, 10) : undefined,
-      startsAt: typeof d.startsAt === "string" ? d.startsAt.slice(0, 5) : undefined,
-      endsAt: typeof d.endsAt === "string" ? d.endsAt.slice(0, 5) : undefined,
+      date: typeof d.date === "string" ? normalizeEventDateString(d.date) : undefined,
+      startsAt: typeof d.startsAt === "string" ? normalizeEventTimeString(d.startsAt) : undefined,
+      endsAt: typeof d.endsAt === "string" ? normalizeEventTimeString(d.endsAt) : undefined,
       venueName: sanitizeText(d.venueName, 160),
       venueAddress: sanitizeText(d.venueAddress, 220),
       venueZip: d.venueZip ? sanitizeText(d.venueZip, 12) : undefined,
@@ -84,7 +85,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ event
         d.rsvpDeadline === null
           ? null
           : typeof d.rsvpDeadline === "string"
-            ? d.rsvpDeadline.slice(0, 10)
+            ? normalizeEventDateString(d.rsvpDeadline)
             : undefined,
       checkInNotes:
         d.checkInNotes === null ? null : d.checkInNotes ? sanitizeText(d.checkInNotes, 2000) : undefined

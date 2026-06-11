@@ -1,4 +1,4 @@
-import { normalizeEventDateString, parseEventDateTime } from "@/lib/events/datetime";
+import { isValidEventInstant, normalizeEventDateString, parseEventDateTime } from "@/lib/events/datetime";
 import { getEventEndDate, getEventStartDate } from "@/lib/events/phase";
 import { hasCapsuleAccess } from "@/lib/plans/features";
 import type { Event } from "@/types/domain";
@@ -32,6 +32,11 @@ export function eventRequiresRsvp(event: Event, profileNeedsRsvp: boolean) {
 export function getSchedulePhase(event: Event, now = new Date()) {
   const start = getEventStartDate(event);
   const end = getEventEndDate(event);
+
+  if (!isValidEventInstant(start) || !isValidEventInstant(end)) {
+    return "before" as const;
+  }
+
   if (now < start) return "before" as const;
   if (now <= end) return "live" as const;
   return "after" as const;

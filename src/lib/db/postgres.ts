@@ -17,7 +17,7 @@ import type {
   UserRepository
 } from "@/lib/db/repositories";
 import { bytesFromGb, PLANS } from "@/lib/plans";
-import { normalizeEventDateString } from "@/lib/events/datetime";
+import { normalizeEventDateString, normalizeEventTimeString } from "@/lib/events/datetime";
 import { normalizeEventType } from "@/lib/events/event-types";
 import { normalizeInviteCopy } from "@/lib/events/invite-copy";
 import type {
@@ -109,8 +109,8 @@ function rowToEvent(row: Record<string, unknown>): Event {
       ? new Date(String(row.capsule_activated_at)).toISOString()
       : undefined,
     date: normalizeEventDateString(row.date),
-    startsAt: String(row.starts_at).slice(0, 5),
-    endsAt: String(row.ends_at).slice(0, 5),
+    startsAt: normalizeEventTimeString(row.starts_at),
+    endsAt: normalizeEventTimeString(row.ends_at),
     organizerName: row.organizer_name ? String(row.organizer_name) : undefined,
     venueName: String(row.venue_name),
     venueAddress: String(row.venue_address),
@@ -118,7 +118,7 @@ function rowToEvent(row: Record<string, unknown>): Event {
     venueComplement: row.venue_complement ? String(row.venue_complement) : undefined,
     city: String(row.city),
     rsvpEnabled: row.rsvp_enabled !== false,
-    rsvpDeadline: row.rsvp_deadline ? String(row.rsvp_deadline).slice(0, 10) : undefined,
+    rsvpDeadline: row.rsvp_deadline ? normalizeEventDateString(row.rsvp_deadline) : undefined,
     checkInNotes: row.check_in_notes ? String(row.check_in_notes) : undefined,
     giftSuggestions: parseGiftSuggestions(row.gift_suggestions),
     visibility: row.visibility as Event["visibility"],

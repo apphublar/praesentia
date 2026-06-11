@@ -23,104 +23,90 @@ export function PublicEventInfoCard({
       <header className="public-event-info-head">
         <h2 className="public-event-section-title">Informações do evento</h2>
         <p className="public-event-message">
-          Confira data, horário e local para se organizar. Os detalhes abaixo são os mesmos do convite.
+          Tudo o que você precisa saber para comparecer com tranquilidade.
         </p>
       </header>
 
-      <div className="public-event-info-grid">
-        <section className="public-event-info-item">
-          <span className="public-event-info-icon" aria-hidden="true">
-            📅
-          </span>
-          <div>
-            <h3>Quando</h3>
-            <p className="public-event-info-value">{schedule}</p>
-            {dateLabel ? <p className="public-event-info-hint">Marque na sua agenda: {dateLabel}.</p> : null}
+      <dl className="public-event-info-list public-event-info-list-rich">
+        <div className="public-event-info-row">
+          <dt>Quando</dt>
+          <dd>
+            <strong>{schedule}</strong>
+            {dateLabel ? <span>Reserve na agenda: {dateLabel}.</span> : null}
             {event.startsAt ? (
-              <p className="public-event-info-hint">
-                Horário informado pelo organizador: início às {event.startsAt}
-                {event.endsAt ? ` · previsão de término às ${event.endsAt}` : ""}.
-              </p>
+              <span>
+                Chegada sugerida: a partir das {event.startsAt}
+                {event.endsAt ? ` · previsão de encerramento às ${event.endsAt}` : ""}.
+              </span>
             ) : null}
-          </div>
-        </section>
+          </dd>
+        </div>
 
-        <section className="public-event-info-item">
-          <span className="public-event-info-icon" aria-hidden="true">
-            {event.eventFormat === "online" ? "💻" : "📍"}
-          </span>
-          <div>
-            <h3>{event.eventFormat === "online" ? "Como participar" : "Onde"}</h3>
+        <div className="public-event-info-row">
+          <dt>{event.eventFormat === "online" ? "Como participar" : "Onde"}</dt>
+          <dd>
             {event.eventFormat === "online" ? (
               <>
-                <p className="public-event-info-value">Evento online</p>
+                <strong>Evento online</strong>
                 {event.onlineMeetingUrl ? (
-                  <p className="public-event-info-hint">
-                    No horário marcado, acesse o link abaixo pelo computador ou celular.
-                  </p>
+                  <>
+                    <span>Acesse o link no horário marcado pelo computador ou celular.</span>
+                    <a
+                      className="public-event-info-link"
+                      href={event.onlineMeetingUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Abrir link do evento
+                    </a>
+                  </>
                 ) : (
-                  <p className="public-event-info-hint">
-                    O organizador enviará o link de acesso mais perto da data, se ainda não estiver aqui.
-                  </p>
+                  <span>O organizador publicará o link de acesso aqui quando estiver disponível.</span>
                 )}
-                {event.onlineMeetingUrl ? (
-                  <a
-                    className="btn secondary public-event-info-link-btn"
-                    href={event.onlineMeetingUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Abrir link do evento
-                  </a>
-                ) : null}
               </>
             ) : (
               <>
-                <p className="public-event-info-value">{event.venueName}</p>
-                <p className="public-event-info-detail">{event.venueAddress}</p>
-                {event.venueComplement ? <p className="public-event-info-detail">{event.venueComplement}</p> : null}
-                {event.venueZip ? <p className="public-event-info-detail">CEP {event.venueZip}</p> : null}
-                <p className="public-event-info-detail">{event.city}</p>
-                <p className="public-event-info-hint">Use o endereço acima em mapas e aplicativos de transporte.</p>
+                <strong>{event.venueName}</strong>
+                <span>{event.venueAddress}</span>
+                {event.venueComplement ? <span>{event.venueComplement}</span> : null}
+                {event.venueZip ? <span>CEP {event.venueZip}</span> : null}
+                <span>{event.city}</span>
+                <span className="public-event-info-note">Copie o endereço para usar em mapas ou transporte por aplicativo.</span>
               </>
             )}
-          </div>
-        </section>
+          </dd>
+        </div>
 
         {organizer || honoree ? (
-          <section className="public-event-info-item">
-            <span className="public-event-info-icon" aria-hidden="true">
-              ✦
-            </span>
-            <div>
-              <h3>Quem convida</h3>
+          <div className="public-event-info-row">
+            <dt>Quem convida</dt>
+            <dd>
               {organizer && organizer !== honoree ? (
                 <>
-                  <p className="public-event-info-value">Organização: {organizer}</p>
-                  <p className="public-event-info-detail">Homenageado(a): {honoree}</p>
+                  <span>
+                    Organização: <strong>{organizer}</strong>
+                  </span>
+                  <span>
+                    Homenageado(a): <strong>{honoree}</strong>
+                  </span>
                 </>
               ) : (
-                <p className="public-event-info-value">{honoree}</p>
+                <strong>{honoree}</strong>
               )}
-            </div>
-          </section>
+            </dd>
+          </div>
         ) : null}
 
         {rsvpDeadlineLabel ? (
-          <section className="public-event-info-item public-event-info-item-note">
-            <span className="public-event-info-icon" aria-hidden="true">
-              ⏳
-            </span>
-            <div>
-              <h3>Confirmação de presença</h3>
-              <p className="public-event-info-value">Responda até {rsvpDeadlineLabel}</p>
-              <p className="public-event-info-hint">
-                Depois dessa data, a confirmação online é encerrada — mas você ainda verá a contagem para o grande dia.
-              </p>
-            </div>
-          </section>
+          <div className="public-event-info-row public-event-info-row-highlight">
+            <dt>Confirmação de presença</dt>
+            <dd>
+              <strong>Responda até {rsvpDeadlineLabel}</strong>
+              <span>Depois dessa data, a confirmação online é encerrada e o link mostra a contagem para o evento.</span>
+            </dd>
+          </div>
         ) : null}
-      </div>
+      </dl>
     </article>
   );
 }
