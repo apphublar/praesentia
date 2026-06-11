@@ -13,7 +13,15 @@ function formatRemaining(ms: number) {
   return { days, hours, minutes };
 }
 
-export function EventCountdown({ event, label }: { event: Event; label: string }) {
+export function EventCountdown({
+  event,
+  label,
+  subtitle
+}: {
+  event: Event;
+  label: string;
+  subtitle?: string;
+}) {
   const target = useMemo(() => getEventStartDate(event), [event]);
   const [remaining, setRemaining] = useState(() => formatRemaining(target.getTime() - Date.now()));
 
@@ -25,12 +33,23 @@ export function EventCountdown({ event, label }: { event: Event; label: string }
   }, [target]);
 
   return (
-    <article className="public-event-card public-event-countdown">
+    <article className="public-event-card public-event-countdown public-event-primary-action">
+      <div className="public-event-primary-kicker">Próximo passo</div>
       <h2 className="public-event-section-title">{label}</h2>
+      {subtitle ? <p className="public-event-message">{subtitle}</p> : null}
       <div className="public-countdown-grid">
-        <div><strong>{remaining.days}</strong><span>dias</span></div>
-        <div><strong>{remaining.hours}</strong><span>horas</span></div>
-        <div><strong>{remaining.minutes}</strong><span>min</span></div>
+        <div>
+          <strong>{remaining.days}</strong>
+          <span>dias</span>
+        </div>
+        <div>
+          <strong>{remaining.hours}</strong>
+          <span>horas</span>
+        </div>
+        <div>
+          <strong>{remaining.minutes}</strong>
+          <span>min</span>
+        </div>
       </div>
     </article>
   );

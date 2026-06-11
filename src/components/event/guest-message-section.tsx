@@ -52,31 +52,30 @@ export function GuestMessageSection({
     <article className="public-event-card public-guest-messages">
       <h2 className="public-event-section-title">Enviar um recado</h2>
       <p className="public-event-message">
-        Deixe uma mensagem de carinho ou explique por que não poderá ir. Escolha se o recado fica visível para todos ou
-        somente para o organizador.
+        Deixe uma mensagem de carinho para o organizador ou para todos os convidados que visitarem este link.
       </p>
 
-      <div className="public-message-visibility">
-        <label className={`public-message-visibility-option${visibility === "public" ? " is-selected" : ""}`}>
-          <input
-            type="radio"
-            name="messageVisibility"
-            checked={visibility === "public"}
-            onChange={() => setVisibility("public")}
-          />
-          <strong>Público</strong>
-          <span>Todos que abrirem o link poderão ler.</span>
-        </label>
-        <label className={`public-message-visibility-option${visibility === "private" ? " is-selected" : ""}`}>
-          <input
-            type="radio"
-            name="messageVisibility"
-            checked={visibility === "private"}
-            onChange={() => setVisibility("private")}
-          />
-          <strong>Privado</strong>
-          <span>Somente o organizador do evento verá.</span>
-        </label>
+      <div className="public-message-visibility" role="tablist" aria-label="Visibilidade do recado">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={visibility === "public"}
+          className={visibility === "public" ? "is-active" : ""}
+          onClick={() => setVisibility("public")}
+        >
+          <span className="public-message-visibility-label">Público</span>
+          <span className="public-message-visibility-desc">Visível para quem abrir o link</span>
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={visibility === "private"}
+          className={visibility === "private" ? "is-active" : ""}
+          onClick={() => setVisibility("private")}
+        >
+          <span className="public-message-visibility-label">Privado</span>
+          <span className="public-message-visibility-desc">Somente o organizador lê</span>
+        </button>
       </div>
 
       <div className="praesentia-form praesentia-form-stack">
@@ -109,7 +108,7 @@ export function GuestMessageSection({
 
       {publicMessages.length ? (
         <div className="public-message-feed">
-          <h3 className="public-event-section-title" style={{ fontSize: 18 }}>Recados públicos</h3>
+          <h3 className="public-event-section-title public-message-feed-title">Recados públicos</h3>
           <ul>
             {publicMessages.map((message) => (
               <li key={message.id} className="public-message-item">

@@ -3,7 +3,6 @@
 import type { Event, GuestMessage, MediaItem } from "@/types/domain";
 import { getInvitePhase } from "@/lib/mural/timeline";
 import type { PublicEventViewMode } from "@/lib/mural/timeline";
-import { EventCountdown } from "@/components/event/event-countdown";
 import { EventExpiredView } from "@/components/event/event-expired-view";
 import { GuestLiveMural } from "@/components/event/guest-live-mural";
 import { MuralAccessPanel } from "@/components/event/mural-access-panel";
@@ -36,14 +35,13 @@ export function EventPublicShell({
     return <EventExpiredView event={event} />;
   }
 
-  const invitePhase = getInvitePhase(event);
+  const invitePhase = getInvitePhase(event, needsRsvp);
 
   if (viewMode === "invite") {
     return (
       <PublicInviteView
         event={event}
-        needsRsvp={needsRsvp && invitePhase === "rsvp_open"}
-        showCountdown={invitePhase === "countdown"}
+        invitePhase={invitePhase}
         capsuleActive={capsuleActive}
         managerHref={managerHref}
         publicMessages={publicMessages}
@@ -56,8 +54,7 @@ export function EventPublicShell({
       <div className="public-event-stack">
         <PublicInviteView
           event={event}
-          needsRsvp={false}
-          showCountdown={false}
+          invitePhase="none"
           compactHeader
           capsuleActive={capsuleActive}
           publicMessages={[]}

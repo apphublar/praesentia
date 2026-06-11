@@ -25,6 +25,10 @@ export function isRsvpOpen(event: Event, now = new Date()) {
   return now < getEventStartDate(event);
 }
 
+export function eventRequiresRsvp(event: Event, profileNeedsRsvp: boolean) {
+  return profileNeedsRsvp && event.rsvpEnabled !== false;
+}
+
 export function getSchedulePhase(event: Event, now = new Date()) {
   const start = getEventStartDate(event);
   const end = getEventEndDate(event);
@@ -33,11 +37,14 @@ export function getSchedulePhase(event: Event, now = new Date()) {
   return "after" as const;
 }
 
-export function getInvitePhase(event: Event, now = new Date()): PublicInvitePhase {
-  const schedule = getSchedulePhase(event, now);
-  if (schedule !== "before") return "none";
-  if (isRsvpOpen(event, now)) return "rsvp_open";
-  return "countdown";
+/** Fase do convite antes do evento: RSVP aberto, contagem regressiva ou nenhuma ação primária. */
+export function getInvitePhase(event: Event, profileNeedsRsvp: boolean, now = new Date()): PublicInvitePhase {
+  if (getSchedulePhase(event, now) !== "before") return "none";
+
+  const rsvpRequired = eventRequiresRsvp(event, profileNeedsRsvp);
+  if (rsvpRequired && isRsvpOpen(event, now)) return "rsvp_open";
+  if (rsvpRequired && !isRsvpOpen(event, now)) return "countdown";
+  return "none";
 }
 
 export function getPublicEventViewMode(event: Event, now = new Date()): PublicEventViewMode {

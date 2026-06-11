@@ -2,11 +2,12 @@
 
 import type { Event, GuestMessage } from "@/types/domain";
 import { EVENT_TYPE_LABELS } from "@/lib/events/event-types";
-import { formatEventSchedule } from "@/lib/events/format-event-date";
 import { resolvePublicEventTheme } from "@/lib/events/event-theme-style";
+import type { PublicInvitePhase } from "@/lib/mural/timeline";
 import { GiftSuggestionsDisplay } from "@/components/event/gift-suggestions-display";
 import { GuestMessageSection } from "@/components/event/guest-message-section";
 import { EventCountdown } from "@/components/event/event-countdown";
+import { PublicEventInfoCard } from "@/components/event/public-event-info-card";
 import { PixBox } from "@/components/event/pix-box";
 import { RsvpForm } from "@/components/event/rsvp-form";
 
@@ -31,8 +32,7 @@ function CoverBanner({ coverUrl, title }: { coverUrl?: string; title: string }) 
 
 export function PublicInviteView({
   event,
-  needsRsvp,
-  showCountdown = false,
+  invitePhase,
   capsuleActive,
   managerHref,
   publicMessages = [],
@@ -42,8 +42,7 @@ export function PublicInviteView({
   compactHeader = false
 }: {
   event: Event;
-  needsRsvp: boolean;
-  showCountdown?: boolean;
+  invitePhase: PublicInvitePhase;
   capsuleActive: boolean;
   managerHref?: string;
   publicMessages?: GuestMessage[];
@@ -54,9 +53,10 @@ export function PublicInviteView({
 }) {
   const palette = resolvePublicEventTheme(event.theme, event.eventType);
   const typeLabel = EVENT_TYPE_LABELS[event.eventType] ?? palette.label;
-  const schedule = formatEventSchedule(event.date, event.startsAt, event.endsAt);
   const organizer = event.organizerName;
   const honoree = event.hostName;
+  const showRsvp = invitePhase === "rsvp_open";
+  const showCountdown = invitePhase === "countdown";
 
   return (
     <div className="public-event-stack">
@@ -92,63 +92,29 @@ export function PublicInviteView({
         ) : null}
       </article>
 
-      <article className="public-event-card">
-        <h2 className="public-event-section-title">Informações do evento</h2>
-        <dl className="public-event-info-list">
-          <div>
-            <dt>Quando</dt>
-            <dd>{schedule}</dd>
-          </div>
-          <div>
-            <dt>Onde</dt>
-            <dd>
-              {event.eventFormat === "online" ? (
-                event.onlineMeetingUrl ? (
-                  <a href={event.onlineMeetingUrl} target="_blank" rel="noopener noreferrer">
-                    Acessar evento online
-                  </a>
-                ) : (
-                  "Evento online"
-                )
-              ) : (
-                <>
-                  <strong>{event.venueName}</strong>
-                  <span>{event.venueAddress}</span>
-                  {event.venueComplement ? <span>{event.venueComplement}</span> : null}
-                  {event.venueZip ? <span>CEP {event.venueZip}</span> : null}
-                  <span>{event.city}</span>
-                </>
-              )}
-            </dd>
-          </div>
-          {!compactHeader && organizer ? (
-            <div>
-              <dt>Organização</dt>
-              <dd>{organizer}</dd>
-            </div>
-          ) : null}
-          {!compactHeader && organizer && organizer !== honoree ? (
-            <div>
-              <dt>Homenageado(a)</dt>
-              <dd>{honoree}</dd>
-            </div>
-          ) : null}
-        </dl>
-      </article>
-
-      {needsRsvp && event.rsvpEnabled !== false ? (
-        <div className="public-event-card public-event-rsvp">
+      {showRsvp ? (
+        <div className="public-event-card public-event-rsvp public-event-primary-action">
+          <div className="public-event-primary-kicker">Sua vez agora</div>
           <RsvpForm
             eventId={event.id}
             eventSlug={event.slug}
             eventTitle={event.title}
+            rsvpDeadline={event.rsvpDeadline}
             capsuleAvailable={capsuleActive}
           />
         </div>
       ) : null}
 
       {showCountdown ? (
-        <EventCountdown event={event} label="Faltam para o grande dia" />
+        <EventCountdown
+          event={event}
+          label="Confirmações encerradas"
+          subtitle="O prazo para confirmar presença terminou. Falta pouco para o grande dia!"
+        />
+      ) : null}
+
+      {!compactHeader ? (
+        <PublicEventInfoCard event={event} showRsvpDeadlineNote={showRsvp} />
       ) : null}
 
       {!hideGifts ? <GiftSuggestionsDisplay suggestions={event.giftSuggestions} /> : null}

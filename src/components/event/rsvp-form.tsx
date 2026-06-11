@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { GuestCompanionDetail } from "@/types/domain";
 import { RETENTION_UPSELL_SHORT } from "@/lib/copy/retention";
+import { formatEventDateLong } from "@/lib/events/format-event-date";
 
 type Step = "form" | "capsule" | "done";
 
@@ -25,6 +26,7 @@ export function RsvpForm({
   eventId,
   eventSlug,
   eventTitle,
+  rsvpDeadline,
   capsuleAvailable = false,
   collectPixAmount = false,
   minPerPerson
@@ -32,10 +34,12 @@ export function RsvpForm({
   eventId: string;
   eventSlug: string;
   eventTitle: string;
+  rsvpDeadline?: string;
   capsuleAvailable?: boolean;
   collectPixAmount?: boolean;
   minPerPerson?: number;
 }) {
+  const rsvpDeadlineLabel = rsvpDeadline ? formatEventDateLong(rsvpDeadline) : null;
   const [step, setStep] = useState<Step>("form");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -212,7 +216,8 @@ export function RsvpForm({
     <section className="public-rsvp-form">
       <h2 className="public-event-section-title">Confirmar presença</h2>
       <p className="public-event-message">
-        Confirme sua presença e participe de um evento inesquecível!
+        Este é o primeiro passo: informe seus dados para o organizador saber se você vai comparecer.
+        {rsvpDeadlineLabel ? ` Responda até ${rsvpDeadlineLabel}.` : ""}
       </p>
 
       <div className="praesentia-form praesentia-form-stack public-rsvp-fields">
