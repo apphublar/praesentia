@@ -1,4 +1,5 @@
-import { getOpenAIClient, OPENAI_TEXT_MODEL } from "@/lib/openai/client";
+import { getOpenAIClient } from "@/lib/openai/client";
+import { createJsonTextCompletionWithFallback } from "@/lib/openai/text-completion";
 import { EVENT_TYPE_LABELS } from "@/lib/events/event-types";
 import type { Event } from "@/types/domain";
 
@@ -71,40 +72,47 @@ Retorne JSON com:
 Use EXATAMENTE a data ${exactDate} e o horário informado se mencionar quando será. Não invente dress code, presentes ou regras extras.`;
 }
 
-export async function generateInviteCopy(event: Event, editHint?: string): Promise<InviteCopy | null> {
-  const openai = getOpenAIClient();
-  if (!openai) return null;
-
-  const response = await openai.chat.completions.create({
-    model: OPENAI_TEXT_MODEL,
-    temperature: 0.7,
-    response_format: { type: "json_object" },
-    messages: [
-      {
-        role: "system",
-        content:
-          "Você é redator de convites para eventos particulares no Brasil. Responda somente JSON válido com as chaves headline, message, whatsapp e hashtags. Seja conciso."
-      },
-      { role: "user", content: buildInviteTextPrompt(event, editHint) }
-    ]
-  });
-
-  const raw = response.choices[0]?.message?.content;
-  if (!raw) return null;
-
+function parseInviteCopyJson(raw: string): InviteCopy | null {
+  const fenced = raw.match(/\{[\s\S]*\}/);
+  const json = fenced?.[0] ?? raw;
   try {
-    const parsed = JSON.parse(raw) as Partial<InviteCopy>;
+    const parsed = JSON.parse(json) as Partial<InviteCopy>;
     if (!parsed.headline || !parsed.message || !parsed.whatsapp) return null;
-
     return {
       headline: String(parsed.headline).slice(0, 120),
-      message: String(parsed.message).slice(0, 2000),
+      message: String(parsed.message).slice(0, 4000),
       whatsapp: String(parsed.whatsapp).slice(0, 500),
       hashtags: Array.isArray(parsed.hashtags)
         ? parsed.hashtags.map((tag) => String(tag).slice(0, 40)).slice(0, 8)
         : []
     };
   } catch {
+    return null;
+  }
+}
+
+export async function generateInviteCopy(event: Event, editHint?: string): Promise<InviteCopy | null> {
+  const openai = getOpenAIClient();
+  if (!openai) return null;
+
+  try {
+    const response = await createJsonTextCompletionWithFallback(openai, {
+      temperature: 0.7,
+      messages: [
+        {
+          role: "system",
+          content:
+            "Você é redator de convites para eventos particulares no Brasil. Responda somente JSON válido com as chaves headline, message, whatsapp e hashtags. Seja conciso."
+        },
+        { role: "user", content: buildInviteTextPrompt(event, editHint) }
+      ]
+    });
+
+    const raw = response.choices[0]?.message?.content;
+    if (!raw) return null;
+    return parseInviteCopyJson(raw);
+  } catch (error) {
+    console.warn("[invite-text] falha ao gerar com OpenAI", error);
     return null;
   }
 }

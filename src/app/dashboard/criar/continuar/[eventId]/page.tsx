@@ -23,12 +23,13 @@ export default async function DashboardContinueCreatePage({ params }: { params: 
         </p>
       </section>
 
-      <section className="card dashboard-card" style={{ padding: 24, maxWidth: 720 }}>
+      <section className="card dashboard-card continue-wizard-shell">
         <ContinueEventWizard
           eventId={event.id}
           eventSlug={event.slug}
           eventTitle={event.title}
           eventHostName={event.hostName}
+          eventOrganizerName={event.organizerName}
           eventTheme={event.theme}
           eventType={event.eventType}
           eventDate={event.date}
@@ -36,6 +37,8 @@ export default async function DashboardContinueCreatePage({ params }: { params: 
           eventEndsAt={event.endsAt}
           eventVenueName={event.venueName}
           eventVenueAddress={event.venueAddress}
+          eventVenueZip={event.venueZip}
+          eventVenueComplement={event.venueComplement}
           eventCity={event.city}
           eventFormat={event.eventFormat}
           onlineMeetingUrl={event.onlineMeetingUrl}

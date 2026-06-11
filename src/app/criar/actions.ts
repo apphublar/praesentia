@@ -7,7 +7,7 @@ import { repositories } from "@/lib/db";
 import { getEventProfile, resolveEventFormat } from "@/lib/events/event-profile";
 import { normalizeEventType } from "@/lib/events/event-types";
 import { isValidPixKey, sanitizeText } from "@/lib/security/sanitize";
-import type { EventType } from "@/types/domain";
+import type { EventType, GiftSuggestion } from "@/types/domain";
 
 function required(value: FormDataEntryValue | null, maxLength: number) {
   return sanitizeText(value, maxLength);
@@ -16,6 +16,39 @@ function required(value: FormDataEntryValue | null, maxLength: number) {
 function optional(value: FormDataEntryValue | null, maxLength: number) {
   const text = sanitizeText(value, maxLength);
   return text || undefined;
+}
+
+function parseAmount(value: FormDataEntryValue | null) {
+  const raw = required(value, 20);
+  if (!raw) return undefined;
+  const amount = Number(raw.replace(",", "."));
+  return Number.isFinite(amount) && amount > 0 ? amount : undefined;
+}
+
+function parseGiftSuggestions(formData: FormData): GiftSuggestion[] {
+  const raw = required(formData.get("giftSuggestionsJson"), 20000);
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    const items: GiftSuggestion[] = [];
+    parsed.forEach((item, index) => {
+      if (!item || typeof item !== "object") return;
+      const row = item as Record<string, unknown>;
+      const title = String(row.title ?? "").trim();
+      if (!title) return;
+      items.push({
+        id: String(row.id ?? `gift_${index}`),
+        title,
+        note: row.note ? String(row.note) : undefined,
+        imageUrl: row.imageUrl ? String(row.imageUrl) : undefined,
+        linkUrl: row.linkUrl ? String(row.linkUrl) : undefined
+      });
+    });
+    return items;
+  } catch {
+    return [];
+  }
 }
 
 function validationError(fieldError: string): CreateEventState {
@@ -34,6 +67,7 @@ export async function createEventAction(_prev: CreateEventState, formData: FormD
 
   const title = required(formData.get("title"), 120);
   const hostName = required(formData.get("hostName"), 120);
+  const organizerName = optional(formData.get("organizerName"), 120);
   const theme = required(formData.get("theme"), 120);
   const story = optional(formData.get("story"), 4000);
   const date = required(formData.get("date"), 20);
@@ -42,12 +76,17 @@ export async function createEventAction(_prev: CreateEventState, formData: FormD
   const onlineMeetingUrl = required(formData.get("onlineMeetingUrl"), 300);
   const venueName = required(formData.get("venueName"), 160);
   const venueAddress = required(formData.get("venueAddress"), 220);
+  const venueZip = optional(formData.get("venueZip"), 12);
+  const venueComplement = optional(formData.get("venueComplement"), 120);
   const city = required(formData.get("city"), 120);
+  const giftSuggestions = parseGiftSuggestions(formData);
+  const rsvpDeadline = optional(formData.get("rsvpDeadline"), 20);
+  const rsvpEnabled = profile.isFundraising ? formData.get("rsvpEnabled") === "1" : true;
 
   const pixKey = required(formData.get("pixKey"), 120);
   const pixReceiverName = required(formData.get("pixReceiverName"), 120);
-  const goalAmountRaw = required(formData.get("goalAmount"), 20);
-  const goalAmount = goalAmountRaw ? Number(goalAmountRaw.replace(",", ".")) : undefined;
+  const goalAmount = parseAmount(formData.get("goalAmount"));
+  const minPerPerson = parseAmount(formData.get("minPerPerson"));
 
   if (!title || !hostName) {
     return validationError("campos-obrigatorios");
@@ -57,7 +96,7 @@ export async function createEventAction(_prev: CreateEventState, formData: FormD
     if (!pixKey || !pixReceiverName || !isValidPixKey(pixKey)) {
       return validationError("pix-obrigatorio");
     }
-  } else if (!theme || !date || !startsAt || !endsAt) {
+  } else if (!theme || !date || !startsAt || !endsAt || !organizerName) {
     return validationError("campos-obrigatorios");
   }
 
@@ -81,6 +120,7 @@ export async function createEventAction(_prev: CreateEventState, formData: FormD
       theme: profile.isFundraising ? (theme || "Arrecadação") : theme,
       eventType: safeType,
       hostName,
+      organizerName: profile.isFundraising ? hostName : organizerName,
       eventFormat,
       onlineMeetingUrl: eventFormat === "online" ? onlineMeetingUrl : undefined,
       date: resolvedDate,
@@ -98,7 +138,12 @@ export async function createEventAction(_prev: CreateEventState, formData: FormD
           : eventFormat === "online"
             ? onlineMeetingUrl
             : venueAddress,
-      city: eventFormat === "fundraising" ? "Online" : eventFormat === "online" ? "Online" : city
+      venueZip: eventFormat === "in_person" ? venueZip : undefined,
+      venueComplement: eventFormat === "in_person" ? venueComplement : undefined,
+      city: eventFormat === "fundraising" ? "Online" : eventFormat === "online" ? "Online" : city,
+      rsvpEnabled,
+      rsvpDeadline,
+      giftSuggestions
     });
 
     if (profile.isFundraising || pixKey) {
@@ -106,7 +151,9 @@ export async function createEventAction(_prev: CreateEventState, formData: FormD
         enabled: true,
         receiverName: pixReceiverName || hostName,
         key: pixKey,
-        suggestedAmount: goalAmount && goalAmount > 0 ? goalAmount : undefined,
+        goalAmount,
+        suggestedAmount: goalAmount,
+        minPerPerson,
         message: story || theme
       });
     }

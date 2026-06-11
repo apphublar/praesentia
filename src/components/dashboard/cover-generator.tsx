@@ -89,6 +89,7 @@ export function CoverGenerator({
   onCoverChange,
   eventTitle = "",
   eventHostName = "",
+  eventOrganizerName = "",
   eventTheme = "",
   eventType = "outros",
   eventDate = "",
@@ -96,6 +97,8 @@ export function CoverGenerator({
   eventEndsAt = "",
   eventVenueName = "",
   eventVenueAddress = "",
+  eventVenueZip = "",
+  eventVenueComplement = "",
   eventCity = "",
   eventFormat = "in_person",
   onlineMeetingUrl
@@ -113,6 +116,7 @@ export function CoverGenerator({
   onCoverChange?: (url: string) => void;
   eventTitle?: string;
   eventHostName?: string;
+  eventOrganizerName?: string;
   eventTheme?: string;
   eventType?: Event["eventType"];
   eventDate?: string;
@@ -120,6 +124,8 @@ export function CoverGenerator({
   eventEndsAt?: string;
   eventVenueName?: string;
   eventVenueAddress?: string;
+  eventVenueZip?: string;
+  eventVenueComplement?: string;
   eventCity?: string;
   eventFormat?: Event["eventFormat"];
   onlineMeetingUrl?: string;
@@ -135,9 +141,20 @@ export function CoverGenerator({
     eventFormat,
     eventVenueName,
     eventVenueAddress,
+    eventVenueZip,
+    eventVenueComplement,
     eventCity,
     onlineMeetingUrl
   });
+
+  const isFundraisingCover = eventFormat === "fundraising" || eventType === "vaquinha";
+  const hostFieldLabel = isFundraisingCover ? "Organizador" : "Homenageado(a)";
+  const photoFieldLabel = isFundraisingCover
+    ? "Foto de referência (opcional)"
+    : "Foto do homenageado (opcional)";
+  const photoHelp = isFundraisingCover
+    ? "Envie uma foto de pessoa, logo ou imagem que a IA deve usar no convite."
+    : "A IA usa a foto para montar o convite com a imagem da pessoa.";
 
   const [coverUrl, setCoverUrl] = useState(currentCoverUrl ?? "");
   const [imageError, setImageError] = useState(false);
@@ -352,9 +369,15 @@ export function CoverGenerator({
                   <input value={coverFields.eventTitle} onChange={(e) => updateCoverField(setCoverFields, "eventTitle", e.target.value)} maxLength={160} />
                 </label>
                 <label className="field">
-                  <span>Homenageado(a)</span>
+                  <span>{hostFieldLabel}</span>
                   <input value={coverFields.hostName} onChange={(e) => updateCoverField(setCoverFields, "hostName", e.target.value)} maxLength={120} />
                 </label>
+                {!isFundraisingCover && eventOrganizerName ? (
+                  <label className="field">
+                    <span>Organizador(a)</span>
+                    <input value={eventOrganizerName} readOnly maxLength={120} />
+                  </label>
+                ) : null}
                 <label className="field">
                   <span>Tema do convite</span>
                   <input value={coverFields.theme} onChange={(e) => updateCoverField(setCoverFields, "theme", e.target.value)} maxLength={160} />
@@ -412,13 +435,13 @@ export function CoverGenerator({
 
             <div className="cover-host-photo-block">
               <label className="field">
-                <span>Foto do homenageado (opcional)</span>
-                <p className="cover-field-help">A IA usa a foto para montar o convite com a imagem da pessoa.</p>
+                <span>{photoFieldLabel}</span>
+                <p className="cover-field-help">{photoHelp}</p>
               </label>
               <div className="cover-host-photo-row">
                 {hostPhotoUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={hostPhotoUrl} alt="Foto do homenageado" width={80} height={80}
+                  <img src={hostPhotoUrl} alt="Foto de referência" width={80} height={80}
                     style={{ borderRadius: 10, objectFit: "cover", border: "1px solid var(--line)", flexShrink: 0 }} />
                 ) : (
                   <div className="cover-host-photo-placeholder">Sem foto</div>

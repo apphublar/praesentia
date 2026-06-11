@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { Event, InviteCopy } from "@/types/domain";
 import { InviteTextEditor, type TextQuota } from "@/components/dashboard/invite-text-editor";
+import { validateInviteCopyForContinue } from "@/lib/events/invite-text-validation";
 import { CoverGenerator, type CoverQuota } from "@/components/dashboard/cover-generator";
 import { EventSharePanel } from "@/components/dashboard/event-share-panel";
 
@@ -12,6 +13,7 @@ export function ContinueEventWizard({
   eventSlug,
   eventTitle,
   eventHostName,
+  eventOrganizerName,
   eventTheme,
   eventType,
   eventDate,
@@ -19,6 +21,8 @@ export function ContinueEventWizard({
   eventEndsAt,
   eventVenueName,
   eventVenueAddress,
+  eventVenueZip,
+  eventVenueComplement,
   eventCity,
   eventFormat,
   onlineMeetingUrl,
@@ -33,6 +37,7 @@ export function ContinueEventWizard({
   eventSlug: string;
   eventTitle: string;
   eventHostName: string;
+  eventOrganizerName?: string;
   eventTheme?: string;
   eventType: Event["eventType"];
   eventDate: string;
@@ -40,6 +45,8 @@ export function ContinueEventWizard({
   eventEndsAt: string;
   eventVenueName: string;
   eventVenueAddress?: string;
+  eventVenueZip?: string;
+  eventVenueComplement?: string;
   eventCity: string;
   eventFormat: Event["eventFormat"];
   onlineMeetingUrl?: string;
@@ -54,6 +61,17 @@ export function ContinueEventWizard({
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [copy, setCopy] = useState<InviteCopy | undefined>(initialCopy);
   const [coverUrl, setCoverUrl] = useState(initialCoverUrl ?? "");
+  const [continueError, setContinueError] = useState("");
+
+  function tryContinueToImage() {
+    const validation = validateInviteCopyForContinue(copy);
+    if (!validation.ok) {
+      setContinueError(`Preencha: ${validation.missing.join(", ")}.`);
+      return;
+    }
+    setContinueError("");
+    setStep(2);
+  }
 
   return (
     <div className="continue-wizard">
@@ -78,9 +96,11 @@ export function ContinueEventWizard({
             initialCopy={copy}
             initialQuota={textQuota}
             onCopyChange={setCopy}
+            showContinueHints
           />
           <div className="continue-wizard-actions">
-            <button type="button" className="btn" disabled={!copy?.message?.trim()} onClick={() => setStep(2)}>
+            {continueError ? <p className="settings-status is-error">{continueError}</p> : null}
+            <button type="button" className="btn" onClick={tryContinueToImage}>
               Continuar para imagem →
             </button>
           </div>
@@ -104,6 +124,7 @@ export function ContinueEventWizard({
             onCoverChange={setCoverUrl}
             eventTitle={eventTitle}
             eventHostName={eventHostName}
+            eventOrganizerName={eventOrganizerName}
             eventTheme={eventTheme}
             eventType={eventType}
             eventDate={eventDate}
@@ -111,6 +132,8 @@ export function ContinueEventWizard({
             eventEndsAt={eventEndsAt}
             eventVenueName={eventVenueName}
             eventVenueAddress={eventVenueAddress}
+            eventVenueZip={eventVenueZip}
+            eventVenueComplement={eventVenueComplement}
             eventCity={eventCity}
             eventFormat={eventFormat}
             onlineMeetingUrl={onlineMeetingUrl}

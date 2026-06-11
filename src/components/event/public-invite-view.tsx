@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import type { Event } from "@/types/domain";
+import type { Event, GuestMessage } from "@/types/domain";
 import { EVENT_TYPE_LABELS } from "@/lib/events/event-types";
 import { formatEventSchedule } from "@/lib/events/format-event-date";
 import { resolvePublicEventTheme } from "@/lib/events/event-theme-style";
+import { GiftSuggestionsDisplay } from "@/components/event/gift-suggestions-display";
+import { GuestMessageSection } from "@/components/event/guest-message-section";
 import { PixBox } from "@/components/event/pix-box";
 import { RsvpForm } from "@/components/event/rsvp-form";
 
@@ -31,16 +32,22 @@ export function PublicInviteView({
   event,
   needsRsvp,
   capsuleActive,
-  managerHref
+  managerHref,
+  publicMessages = [],
+  hideMuralSection = false
 }: {
   event: Event;
   needsRsvp: boolean;
   capsuleActive: boolean;
   managerHref?: string;
+  publicMessages?: GuestMessage[];
+  hideMuralSection?: boolean;
 }) {
   const palette = resolvePublicEventTheme(event.theme, event.eventType);
   const typeLabel = EVENT_TYPE_LABELS[event.eventType] ?? palette.label;
   const schedule = formatEventSchedule(event.date, event.startsAt, event.endsAt);
+  const organizer = event.organizerName;
+  const honoree = event.hostName;
 
   return (
     <div className="public-event-stack">
@@ -52,7 +59,15 @@ export function PublicInviteView({
         </span>
         <h1 className="public-event-title">{event.title}</h1>
         <p className="public-event-host">
-          Com carinho, <strong>{event.hostName}</strong>
+          {organizer && organizer !== honoree ? (
+            <>
+              Homenageado(a): <strong>{honoree}</strong> · Organização: <strong>{organizer}</strong>
+            </>
+          ) : (
+            <>
+              Com carinho, <strong>{honoree}</strong>
+            </>
+          )}
         </p>
         {event.inviteCopy?.headline ? (
           <p className="public-event-headline">{event.inviteCopy.headline}</p>
@@ -86,21 +101,29 @@ export function PublicInviteView({
                 <>
                   <strong>{event.venueName}</strong>
                   <span>{event.venueAddress}</span>
+                  {event.venueComplement ? <span>{event.venueComplement}</span> : null}
+                  {event.venueZip ? <span>CEP {event.venueZip}</span> : null}
                   <span>{event.city}</span>
                 </>
               )}
             </dd>
           </div>
-          {event.hostName ? (
+          {organizer ? (
             <div>
               <dt>Organização</dt>
-              <dd>{event.hostName}</dd>
+              <dd>{organizer}</dd>
+            </div>
+          ) : null}
+          {organizer && organizer !== honoree ? (
+            <div>
+              <dt>Homenageado(a)</dt>
+              <dd>{honoree}</dd>
             </div>
           ) : null}
         </dl>
       </article>
 
-      {needsRsvp ? (
+      {needsRsvp && event.rsvpEnabled !== false ? (
         <div className="public-event-card public-event-rsvp">
           <RsvpForm
             eventId={event.id}
@@ -111,6 +134,8 @@ export function PublicInviteView({
         </div>
       ) : null}
 
+      <GiftSuggestionsDisplay suggestions={event.giftSuggestions} />
+
       {event.pix?.enabled ? (
         <article className="public-event-card public-event-pix-card">
           <h2 className="public-event-section-title">Presentear</h2>
@@ -120,6 +145,8 @@ export function PublicInviteView({
           <PixBox pix={event.pix} />
         </article>
       ) : null}
+
+      {!hideMuralSection ? <GuestMessageSection eventId={event.id} initialPublicMessages={publicMessages} /> : null}
 
       {managerHref ? (
         <p className="public-event-manager-link">

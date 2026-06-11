@@ -1,4 +1,4 @@
-import type { Event, EventType, GuestRsvp, InviteCopy, PlanTier, UserSubscription } from "@/types/domain";
+import type { Event, EventType, GiftSuggestion, GuestRsvp, InviteCopy, PlanTier, UserSubscription } from "@/types/domain";
 
 export type CreateEventInput = {
   ownerId: string;
@@ -13,23 +13,39 @@ export type CreateEventInput = {
   endsAt: string;
   venueName: string;
   venueAddress: string;
+  venueZip?: string;
+  venueComplement?: string;
   city: string;
+  organizerName?: string;
+  rsvpEnabled?: boolean;
+  rsvpDeadline?: string;
+  giftSuggestions?: GiftSuggestion[];
 };
 
 export type CreateGuestRsvpInput = {
   eventId: string;
   guestName: string;
+  guestFirstName?: string;
+  guestLastName?: string;
+  guestEmail?: string;
   phone?: string;
   companionName?: string;
   companionNames?: string[];
+  companionsDetail?: import("@/types/domain").GuestCompanionDetail[];
+  rsvpStatus?: import("@/types/domain").GuestRsvpStatus;
+  pixContributedAmount?: number;
+  termsAcceptedAt?: string;
   wantsCapsule: boolean;
 };
 
 export type CreateMediaInput = {
   eventId: string;
   userId: string;
+  guestRsvpId?: string;
+  authorDisplayName?: string;
   type: import("@/types/domain").MediaItem["type"];
   text?: string;
+  caption?: string;
   r2Key?: string;
   url?: string;
   thumbnailUrl?: string;
@@ -64,6 +80,18 @@ export interface EventRepository {
   countCapsuleEventsByOwner(userId: string, since: Date): Promise<number>;
   addExtraStorage(eventId: string, gb: number): Promise<Event>;
   create(input: CreateEventInput): Promise<Event>;
+  patchCreationFields(
+    eventId: string,
+    actorUserId: string,
+    input: {
+      organizerName?: string;
+      venueZip?: string;
+      venueComplement?: string;
+      rsvpEnabled?: boolean;
+      giftSuggestions?: GiftSuggestion[];
+      hostName?: string;
+    }
+  ): Promise<Event>;
   update(eventId: string, actorUserId: string, input: UpdateEventInput): Promise<Event>;
   activateCapsule(eventId: string, actorUserId: string, tier: Exclude<PlanTier, "free">): Promise<Event>;
   setCoverImage(
@@ -120,11 +148,52 @@ export interface MediaRepository {
 
 export interface LikeRepository {
   toggleLike(eventId: string, mediaId: string, userId: string): Promise<{ liked: boolean; likesCount: number }>;
+  toggleGuestLike(
+    eventId: string,
+    mediaId: string,
+    guestRsvpId: string
+  ): Promise<{ liked: boolean; likesCount: number }>;
+}
+
+export interface MuralAccessRepository {
+  createCode(input: {
+    eventId: string;
+    guestRsvpId: string;
+    email: string;
+    codeHash: string;
+    expiresAt: string;
+  }): Promise<void>;
+  findLatestCode(eventId: string, email: string): Promise<{ codeHash: string; expiresAt: string; guestRsvpId: string } | null>;
+  createAccessRequest(input: {
+    eventId: string;
+    guestFirstName: string;
+    guestLastName: string;
+    guestEmail: string;
+    phone?: string;
+  }): Promise<import("@/types/domain").MuralAccessRequest>;
+  listAccessRequests(eventId: string): Promise<import("@/types/domain").MuralAccessRequest[]>;
+  updateAccessRequestStatus(
+    eventId: string,
+    requestId: string,
+    status: "approved" | "denied"
+  ): Promise<import("@/types/domain").MuralAccessRequest>;
+}
+
+export interface GuestMessageRepository {
+  create(input: {
+    eventId: string;
+    authorName: string;
+    body: string;
+    visibility: "public" | "private";
+  }): Promise<import("@/types/domain").GuestMessage>;
+  listPublicByEvent(eventId: string): Promise<import("@/types/domain").GuestMessage[]>;
 }
 
 export interface GuestRsvpRepository {
   create(input: CreateGuestRsvpInput): Promise<GuestRsvp>;
   listByEvent(eventId: string): Promise<GuestRsvp[]>;
+  sumPixContributions(eventId: string): Promise<number>;
+  findConfirmedByEmail(eventId: string, email: string): Promise<GuestRsvp | null>;
   findById(eventId: string, rsvpId: string): Promise<GuestRsvp | null>;
   updateCompanions(eventId: string, rsvpId: string, companionNames: string[]): Promise<GuestRsvp>;
   checkIn(eventId: string, rsvpId: string, actorUserId: string): Promise<GuestRsvp>;

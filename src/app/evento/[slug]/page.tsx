@@ -1,16 +1,14 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PublicEventLayout } from "@/components/event/public-event-layout";
-import { PublicInviteView } from "@/components/event/public-invite-view";
-import { PublicLiveMural } from "@/components/event/public-live-mural";
+import { EventPublicShell } from "@/components/event/event-public-shell";
 import { VaquinhaPublicView } from "@/components/event/vaquinha-public-view";
 import { canManageEventById } from "@/lib/auth/event-access";
-import { canContribute } from "@/lib/auth/permissions";
 import { getCurrentSession } from "@/lib/auth/session";
 import { getEventProfile } from "@/lib/events/event-profile";
-import { formatEventDateShort } from "@/lib/events/format-event-date";
 import { repositories } from "@/lib/db";
 import { safeRepositoryCall } from "@/lib/db/safe";
+import { getMuralSession } from "@/lib/mural/session";
+import { getPublicEventViewMode } from "@/lib/mural/timeline";
 import { hasCapsuleAccess } from "@/lib/plans/features";
 
 export default async function EventPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -22,68 +20,45 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
   const isFundraising = profile.isFundraising || event.eventFormat === "fundraising";
   const capsuleActive = hasCapsuleAccess(event);
   const session = await getCurrentSession();
-  const membership = session
-    ? await safeRepositoryCall(
-        () => repositories.members.findMembership(event.id, session.user.id),
-        null,
-        "members.findMembership"
-      )
-    : null;
   const canManage = session ? await canManageEventById(session.user, event.id) : false;
-  const canUseMural = session ? canContribute(event, membership ?? undefined) : false;
-  const media = capsuleActive && canUseMural
-    ? await safeRepositoryCall(() => repositories.media.listPublishedByEvent(event.id), [], "media.listPublishedByEvent")
-    : [];
+  const viewMode = getPublicEventViewMode(event);
+  const muralSession = await getMuralSession(event.id);
 
-  const deadlineLabel = formatEventDateShort(event.date) ?? undefined;
+  const collectedAmount = isFundraising && event.rsvpEnabled
+    ? await safeRepositoryCall(() => repositories.guestRsvps.sumPixContributions(event.id), 0, "guestRsvps.sumPixContributions")
+    : 0;
+  const publicMessages = await safeRepositoryCall(
+    () => repositories.guestMessages.listPublicByEvent(event.id),
+    [],
+    "guestMessages.listPublicByEvent"
+  );
+  const media =
+    capsuleActive && (viewMode === "live_mural" || viewMode === "memory_view")
+      ? await safeRepositoryCall(() => repositories.media.listPublishedByEvent(event.id), [], "media.listPublishedByEvent")
+      : [];
+  const confirmedGuestCount = await safeRepositoryCall(
+    () => repositories.guestRsvps.listByEvent(event.id).then((rows) => rows.filter((row) => row.rsvpStatus === "confirmed").length),
+    0,
+    "guestRsvps.listByEvent"
+  );
 
   return (
     <PublicEventLayout theme={event.theme} eventType={event.eventType}>
       {isFundraising ? (
-        <VaquinhaPublicView
-          title={event.title}
-          hostName={event.hostName}
-          story={event.inviteCopy?.message ?? event.pix?.message}
-          goalAmount={event.pix?.suggestedAmount}
-          pixKey={event.pix?.key}
-          pixReceiverName={event.pix?.receiverName}
-          pixMessage={event.pix?.message}
-          deadlineLabel={deadlineLabel}
-          coverUrl={event.coverImageUrl}
-        />
+        <VaquinhaPublicView event={event} collectedAmount={collectedAmount} publicMessages={publicMessages} />
       ) : (
-        <div className="public-event-stack">
-          <PublicInviteView
-            event={event}
-            needsRsvp={profile.needsRsvp}
-            capsuleActive={capsuleActive}
-            managerHref={canManage ? `/dashboard/eventos/${event.id}` : undefined}
-          />
-
-          {capsuleActive && session && canUseMural ? (
-            <PublicLiveMural
-              event={event}
-              media={media}
-              currentUserId={session.user.id}
-              canUploadVideo={canManage}
-            />
-          ) : capsuleActive && session && membership && membership.rsvpStatus !== "confirmed" ? (
-            <article className="public-event-card">
-              <h2 className="public-event-section-title">Mural ao vivo</h2>
-              <p className="public-event-message">Confirme sua presença acima para participar do mural durante o evento.</p>
-            </article>
-          ) : capsuleActive && !session ? (
-            <article className="public-event-card">
-              <h2 className="public-event-section-title">Mural ao vivo</h2>
-              <p className="public-event-message">
-                Durante o evento, convidados confirmados podem publicar fotos e recados em tempo real.
-              </p>
-              <Link className="btn public-rsvp-action" href={`/login?next=/evento/${event.slug}`}>
-                Entrar ou criar conta
-              </Link>
-            </article>
-          ) : null}
-        </div>
+        <EventPublicShell
+          event={event}
+          viewMode={viewMode}
+          needsRsvp={profile.needsRsvp}
+          capsuleActive={capsuleActive}
+          managerHref={canManage ? `/dashboard/eventos/${event.id}` : undefined}
+          publicMessages={publicMessages}
+          media={media}
+          muralGuestName={muralSession?.guestName}
+          muralGuestRsvpId={muralSession?.guestRsvpId}
+          confirmedGuestCount={confirmedGuestCount}
+        />
       )}
     </PublicEventLayout>
   );

@@ -32,6 +32,40 @@ export type InviteCopy = {
   hashtags: string[];
 };
 
+export type GiftSuggestion = {
+  id: string;
+  title: string;
+  note?: string;
+  imageUrl?: string;
+  linkUrl?: string;
+};
+
+export type GuestCompanionDetail = {
+  name: string;
+  type: "adult" | "child";
+  age?: number;
+};
+
+export type MuralAccessRequest = {
+  id: string;
+  eventId: string;
+  guestFirstName: string;
+  guestLastName: string;
+  guestEmail: string;
+  phone?: string;
+  status: "pending" | "approved" | "denied";
+  createdAt: string;
+};
+
+export type GuestMessage = {
+  id: string;
+  eventId: string;
+  authorName: string;
+  body: string;
+  visibility: "public" | "private";
+  createdAt: string;
+};
+
 export type User = {
   id: string;
   name: string;
@@ -57,6 +91,7 @@ export type Event = {
   theme: string;
   eventType: EventType;
   hostName: string;
+  organizerName?: string;
   hostPhotoUrl?: string;
   coverImageUrl?: string;
   coverSource?: CoverSource;
@@ -75,7 +110,12 @@ export type Event = {
   endsAt: string;
   venueName: string;
   venueAddress: string;
+  venueZip?: string;
+  venueComplement?: string;
   city: string;
+  rsvpEnabled: boolean;
+  rsvpDeadline?: string;
+  giftSuggestions: GiftSuggestion[];
   visibility: EventVisibility;
   phase: EventPhase;
   plan: EventPlan;
@@ -87,13 +127,22 @@ export type Event = {
   screen: ScreenSettings;
 };
 
+export type GuestRsvpStatus = "confirmed" | "declined";
+
 export type GuestRsvp = {
   id: string;
   eventId: string;
   guestName: string;
+  guestFirstName?: string;
+  guestLastName?: string;
+  guestEmail?: string;
   phone?: string;
   companionName?: string;
   companionNames?: string[];
+  companionsDetail?: GuestCompanionDetail[];
+  rsvpStatus: GuestRsvpStatus;
+  pixContributedAmount?: number;
+  termsAcceptedAt?: string;
   wantsCapsule: boolean;
   checkedInAt?: string;
   confirmedAt: string;
@@ -125,7 +174,11 @@ export type PixSettings = {
   enabled: boolean;
   receiverName: string;
   key: string;
+  /** Meta total a arrecadar (vaquinha). */
   suggestedAmount?: number;
+  goalAmount?: number;
+  /** Contribuição mínima sugerida por pessoa (opcional). */
+  minPerPerson?: number;
   message?: string;
 };
 
@@ -143,7 +196,9 @@ export type MediaItem = {
   id: string;
   eventId: string;
   userId: string;
+  guestRsvpId?: string;
   authorName: string;
+  caption?: string;
   type: MediaType;
   status: MediaStatus;
   visibleOnScreen: boolean;

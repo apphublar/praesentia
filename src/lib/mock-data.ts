@@ -32,6 +32,8 @@ export const events: Event[] = [
     venueName: "Quintal das Acacias",
     venueAddress: "R. das Hortensias, 88 - Jardim Botanico",
     city: "Sao Paulo",
+    rsvpEnabled: true,
+    giftSuggestions: [],
     visibility: "private",
     phase: "live",
     plan: PLANS.capsule,

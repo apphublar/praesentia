@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import type { GuestRsvp } from "@/types/domain";
+import { useEffect, useMemo, useState } from "react";
+import type { GuestRsvp, MuralAccessRequest } from "@/types/domain";
 import { guestCompanionNames, guestPartySize, sumPartySize } from "@/lib/guests/rsvp-display";
 
 export function GuestListPanel({
@@ -19,6 +19,15 @@ export function GuestListPanel({
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [copiedPortaria, setCopiedPortaria] = useState(false);
+  const [accessRequests, setAccessRequests] = useState<MuralAccessRequest[]>([]);
+  const [loadingRequestId, setLoadingRequestId] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch(`/api/events/${eventId}/mural/access-requests`)
+      .then((res) => res.json())
+      .then((data) => setAccessRequests(data.requests ?? []))
+      .catch(() => undefined);
+  }, [eventId]);
 
   const portariaLink =
     typeof window !== "undefined" && eventFreeCode
@@ -38,6 +47,27 @@ export function GuestListPanel({
     await navigator.clipboard.writeText(portariaLink);
     setCopiedPortaria(true);
     setTimeout(() => setCopiedPortaria(false), 2500);
+  }
+
+  async function reviewAccessRequest(requestId: string, status: "approved" | "denied") {
+    setLoadingRequestId(requestId);
+    setError("");
+    try {
+      const res = await fetch(`/api/events/${eventId}/mural/access-requests`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ requestId, status })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Não foi possível atualizar.");
+      setAccessRequests((current) =>
+        current.map((item) => (item.id === requestId ? data.request : item))
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao atualizar solicitação.");
+    } finally {
+      setLoadingRequestId(null);
+    }
   }
 
   async function toggleCheckIn(rsvp: GuestRsvp) {
@@ -104,6 +134,30 @@ export function GuestListPanel({
               Abrir check-in
             </a>
           </div>
+        </section>
+      ) : null}
+
+      {accessRequests.filter((item) => item.status === "pending").length ? (
+        <section className="checkin-link-card" style={{ marginTop: 16 }}>
+          <h3>Solicitações de acesso ao mural</h3>
+          {accessRequests
+            .filter((item) => item.status === "pending")
+            .map((request) => (
+              <div key={request.id} className="guest-list-row">
+                <div>
+                  <strong>{request.guestFirstName} {request.guestLastName}</strong>
+                  <div className="guest-list-meta">{request.guestEmail}{request.phone ? ` · ${request.phone}` : ""}</div>
+                </div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button type="button" className="btn" disabled={loadingRequestId === request.id} onClick={() => reviewAccessRequest(request.id, "approved")}>
+                    Permitir
+                  </button>
+                  <button type="button" className="btn secondary" disabled={loadingRequestId === request.id} onClick={() => reviewAccessRequest(request.id, "denied")}>
+                    Negar
+                  </button>
+                </div>
+              </div>
+            ))}
         </section>
       ) : null}
 

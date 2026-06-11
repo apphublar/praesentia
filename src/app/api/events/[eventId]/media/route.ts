@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { randomUUID } from "node:crypto";
-import { canContribute } from "@/lib/auth/permissions";
 import { canManageEventById } from "@/lib/auth/event-access";
 import { getCurrentSession } from "@/lib/auth/session";
 import { repositories } from "@/lib/db";
+import { resolveMuralContributor } from "@/lib/mural/media-auth";
 import { publishRealtimeEvent } from "@/lib/realtime/events";
 import { checkRateLimit } from "@/lib/security/rate-limit";
 import { assertTrustedOrigin } from "@/lib/security/origin";
@@ -12,6 +12,7 @@ import { resolveStorageContext } from "@/lib/storage/context";
 import { assessGuestPhotoUpload, countConfirmedGuests } from "@/lib/storage/guest-upload-limits";
 import { canAcceptStorageUpload, buildStorageLimitMessage } from "@/lib/storage/quota";
 import { buildMediaKey, createUploadUrl, getPublicMediaUrl, isEventMediaKey } from "@/lib/storage/r2";
+import { resolveStoredMediaUrl } from "@/lib/storage/media-url";
 import { validateUploadRequest } from "@/lib/storage/validation";
 import type { MediaItem } from "@/types/domain";
 
@@ -21,28 +22,33 @@ export async function POST(request: Request, context: { params: Promise<{ eventI
 
   const { eventId } = await context.params;
   const session = await getCurrentSession();
-  if (!session) return NextResponse.json({ error: "Conta obrigatória." }, { status: 401 });
-
-  const limit = checkRateLimit(`media:${session.user.id}:${eventId}`, 12, 60_000);
-  if (!limit.ok) return NextResponse.json({ error: "Muitas tentativas. Aguarde um pouco." }, { status: 429 });
-
   const event = await repositories.events.findById(eventId);
   if (!event) return NextResponse.json({ error: "Evento não encontrado." }, { status: 404 });
 
-  const member = await repositories.members.findMembership(event.id, session.user.id);
-  if (!canContribute(event, member ?? undefined)) {
+  const contributor = await resolveMuralContributor(event);
+  if (!contributor) {
     if (!event.capsuleActivatedAt) {
       return NextResponse.json({ error: "Mural ao vivo disponível apenas com a Cápsula ativa." }, { status: 403 });
     }
-    return NextResponse.json({ error: "Somente convidados confirmados podem compartilhar memórias." }, { status: 403 });
+    return NextResponse.json({ error: "Acesso ao mural indisponível no momento." }, { status: 403 });
   }
+
+  const rateKey =
+    contributor.kind === "guest" ? `media:guest:${contributor.guestRsvpId}:${eventId}` : `media:${contributor.userId}:${eventId}`;
+  const limit = checkRateLimit(rateKey, 12, 60_000);
+  if (!limit.ok) return NextResponse.json({ error: "Muitas tentativas. Aguarde um pouco." }, { status: 429 });
 
   const body = await request.json().catch(() => null);
   const action = sanitizeText(body?.action, 40);
   const type = sanitizeText(body?.type, 20);
-  const isManager = await canManageEventById(session.user, eventId);
+  const isManager =
+    contributor.kind === "manager" &&
+    Boolean(session && (await canManageEventById(session.user, eventId)));
   const eventItems = await repositories.media.listPublishedByEvent(eventId);
-  const userItems = eventItems.filter((item) => item.userId === session.user.id);
+  const userItems =
+    contributor.kind === "guest"
+      ? eventItems.filter((item) => item.guestRsvpId === contributor.guestRsvpId)
+      : eventItems.filter((item) => item.userId === contributor.userId);
   const [rsvps, members] = await Promise.all([
     repositories.guestRsvps.listByEvent(eventId),
     repositories.members.listByEvent(eventId)
@@ -87,14 +93,18 @@ export async function POST(request: Request, context: { params: Promise<{ eventI
       return NextResponse.json({ error: buildStorageLimitMessage(storageContext.snapshot, size) }, { status: 403 });
     }
 
-    const publicUrl = getPublicMediaUrl(key);
+    const publicUrl = resolveStoredMediaUrl(eventId, key, getPublicMediaUrl(key));
+    const caption = sanitizeText(body?.caption, 80);
     const item: MediaItem = await repositories.media.create({
       eventId,
-      userId: session.user.id,
+      userId: contributor.userId,
+      guestRsvpId: contributor.kind === "guest" ? contributor.guestRsvpId : undefined,
+      authorDisplayName: contributor.authorName,
       type: mediaType,
+      caption: caption || undefined,
       r2Key: key,
-      url: publicUrl || (mediaType === "video" ? "/placeholder-video.svg" : "/placeholder-photo.svg"),
-      thumbnailUrl: publicUrl || (mediaType === "video" ? "/placeholder-video.svg" : "/placeholder-photo.svg"),
+      url: publicUrl,
+      thumbnailUrl: publicUrl,
       byteSize: size
     });
 
@@ -111,7 +121,9 @@ export async function POST(request: Request, context: { params: Promise<{ eventI
 
     const item: MediaItem = await repositories.media.create({
       eventId,
-      userId: session.user.id,
+      userId: contributor.userId,
+      guestRsvpId: contributor.kind === "guest" ? contributor.guestRsvpId : undefined,
+      authorDisplayName: contributor.authorName,
       type: "message",
       text
     });

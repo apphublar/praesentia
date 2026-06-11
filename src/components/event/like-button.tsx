@@ -5,11 +5,13 @@ import { useState } from "react";
 export function LikeButton({
   eventId,
   mediaId,
-  initialCount
+  initialCount,
+  guestMural = false
 }: {
   eventId: string;
   mediaId: string;
   initialCount: number;
+  guestMural?: boolean;
 }) {
   const [count, setCount] = useState(initialCount);
   const [liked, setLiked] = useState(false);
@@ -40,7 +42,7 @@ export function LikeButton({
       style={{ padding: "7px 10px", borderRadius: 999, fontSize: 12 }}
       aria-pressed={liked}
     >
-      {count} curtidas
+      {guestMural ? (liked ? "♥" : "♡") : null} {count} curtidas
     </button>
   );
 }

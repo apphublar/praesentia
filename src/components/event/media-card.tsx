@@ -1,5 +1,6 @@
 import type { MediaItem } from "@/types/domain";
 import { LikeButton } from "@/components/event/like-button";
+import { resolveMediaItemUrl } from "@/lib/storage/media-url";
 
 export function MediaCard({
   item,
@@ -10,38 +11,33 @@ export function MediaCard({
   featured?: boolean;
   interactive?: boolean;
 }) {
+  const imageUrl = resolveMediaItemUrl(item.eventId, item);
+
   return (
-    <article className="card" style={{ padding: 12 }}>
+    <article className="media-card-shell" style={{ padding: featured ? 16 : 12 }}>
       {item.type === "message" ? (
-        <div
-          style={{
-            minHeight: featured ? 260 : 150,
-            display: "grid",
-            placeItems: "center",
-            background: "var(--gold)",
-            borderRadius: 8,
-            padding: 22,
-            textAlign: "center",
-            fontSize: featured ? 28 : 18,
-            lineHeight: 1.25,
-            fontWeight: 700
-          }}
-        >
+        <div className="media-card-message" data-featured={featured ? "true" : "false"}>
           {item.text}
         </div>
-      ) : (
+      ) : imageUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={item.thumbnailUrl || item.url}
-          alt={`Conteúdo compartilhado por ${item.authorName}`}
-          style={{ width: "100%", aspectRatio: featured ? "16 / 10" : "4 / 3", objectFit: "cover", borderRadius: 8 }}
+          src={imageUrl}
+          alt={item.caption || `Conteúdo compartilhado por ${item.authorName}`}
+          className="media-card-photo"
+          data-featured={featured ? "true" : "false"}
         />
+      ) : (
+        <div className="media-card-message" data-featured={featured ? "true" : "false"}>
+          {item.caption || "Memória"}
+        </div>
       )}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10, fontSize: 13 }}>
+      {item.caption && item.type === "photo" ? <p className="media-card-caption">{item.caption}</p> : null}
+      <div className="media-card-footer">
         <strong>{item.authorName}</strong>
         <span style={{ marginLeft: "auto" }}>
           {interactive ? (
-            <LikeButton eventId={item.eventId} mediaId={item.id} initialCount={item.likesCount} />
+            <LikeButton eventId={item.eventId} mediaId={item.id} initialCount={item.likesCount} guestMural />
           ) : (
             <span style={{ color: "var(--ink-soft)" }}>{item.likesCount} curtidas</span>
           )}

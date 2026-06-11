@@ -1,59 +1,151 @@
 "use client";
 
 import { useState } from "react";
+import type { GuestCompanionDetail } from "@/types/domain";
 
 type Step = "form" | "capsule" | "done";
+
+type CompanionRow = {
+  id: string;
+  name: string;
+  type: "adult" | "child";
+  age: string;
+};
+
+function createRowId() {
+  return `cmp_${Math.random().toString(36).slice(2, 9)}`;
+}
+
+function buildGuestName(firstName: string, lastName: string) {
+  return `${firstName.trim()} ${lastName.trim()}`.trim();
+}
 
 export function RsvpForm({
   eventId,
   eventSlug,
   eventTitle,
-  capsuleAvailable = false
+  capsuleAvailable = false,
+  collectPixAmount = false,
+  minPerPerson
 }: {
   eventId: string;
   eventSlug: string;
   eventTitle: string;
   capsuleAvailable?: boolean;
+  collectPixAmount?: boolean;
+  minPerPerson?: number;
 }) {
   const [step, setStep] = useState<Step>("form");
-  const [name, setName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [companions, setCompanions] = useState<string[]>([]);
-  const [companionDraft, setCompanionDraft] = useState("");
+  const [pixAmount, setPixAmount] = useState("");
+  const [companions, setCompanions] = useState<CompanionRow[]>([]);
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
+  const [rsvpStatus, setRsvpStatus] = useState<"confirmed" | "declined">("confirmed");
 
-  const partySize = 1 + companions.length;
+  const guestName = buildGuestName(firstName, lastName);
+  const partySize = 1 + companions.filter((item) => item.name.trim()).length;
 
   function addCompanion() {
-    const trimmed = companionDraft.trim();
-    if (!trimmed) return;
-    setCompanions((current) => [...current, trimmed]);
-    setCompanionDraft("");
-    setError("");
+    setCompanions((current) => [...current, { id: createRowId(), name: "", type: "adult", age: "" }]);
   }
 
-  function removeCompanion(index: number) {
-    setCompanions((current) => current.filter((_, i) => i !== index));
+  function updateCompanion(id: string, patch: Partial<CompanionRow>) {
+    setCompanions((current) => current.map((item) => (item.id === id ? { ...item, ...patch } : item)));
   }
 
-  async function handleConfirm(wantsCapsule: boolean) {
+  function removeCompanion(id: string) {
+    setCompanions((current) => current.filter((item) => item.id !== id));
+  }
+
+  function companionsDetail(): GuestCompanionDetail[] {
+    const detail: GuestCompanionDetail[] = [];
+    for (const item of companions) {
+      const name = item.name.trim();
+      if (!name) continue;
+      const age = item.type === "child" && item.age.trim() ? Number(item.age.replace(",", ".")) : undefined;
+      detail.push({
+        name,
+        type: item.type,
+        age: Number.isFinite(age) ? age : undefined
+      });
+    }
+    return detail;
+  }
+
+  function validateForm(status: "confirmed" | "declined") {
+    if (!termsAccepted) {
+      setError("Marque a caixa de aceite dos Termos de Uso e Política de Privacidade.");
+      return false;
+    }
+    if (!firstName.trim() || !lastName.trim()) {
+      setError("Informe nome e sobrenome.");
+      return false;
+    }
+    if (!email.trim()) {
+      setError("Informe seu e-mail.");
+      return false;
+    }
+    if (!phone.trim()) {
+      setError("Informe seu WhatsApp.");
+      return false;
+    }
+    if (status === "confirmed" && collectPixAmount) {
+      const amount = Number(pixAmount.replace(",", "."));
+      if (!Number.isFinite(amount) || amount <= 0) {
+        setError("Informe o valor enviado via Pix.");
+        return false;
+      }
+      if (minPerPerson && amount < minPerPerson) {
+        setError(`O valor mínimo informado pelo organizador é R$ ${minPerPerson.toLocaleString("pt-BR")}.`);
+        return false;
+      }
+    }
+    for (const companion of companions) {
+      if (!companion.name.trim()) continue;
+      if (companion.type === "child" && !companion.age.trim()) {
+        setError("Informe a idade de cada criança acompanhante.");
+        return false;
+      }
+    }
+    return true;
+  }
+
+  async function handleSubmit(status: "confirmed" | "declined", wantsCapsule = false) {
+    setRsvpStatus(status);
+    if (!validateForm(status)) return;
+
     setPending(true);
     setError("");
     try {
+      const detail = companionsDetail();
       const res = await fetch(`/api/events/${eventId}/rsvp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          guestName: name.trim(),
-          phone: phone.trim() || undefined,
-          companionNames: companions,
+          guestName,
+          guestFirstName: firstName.trim(),
+          guestLastName: lastName.trim(),
+          guestEmail: email.trim(),
+          phone: phone.trim(),
+          companionNames: detail.map((item) => item.name),
+          companionsDetail: detail,
+          rsvpStatus: status,
+          pixContributedAmount:
+            status === "confirmed" && collectPixAmount
+              ? Number(pixAmount.replace(",", "."))
+              : undefined,
+          termsAcceptedAt: new Date().toISOString(),
           wantsCapsule
         })
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error ?? "Erro ao confirmar.");
+        setError(data.error ?? "Erro ao enviar resposta.");
         setPending(false);
         return;
       }
@@ -68,34 +160,24 @@ export function RsvpForm({
     return (
       <section className="public-rsvp-state">
         <div className="public-rsvp-icon" aria-hidden="true">
-          🎉
+          {rsvpStatus === "confirmed" ? "🎉" : "💌"}
         </div>
-        <h2 className="public-event-section-title">Presença confirmada!</h2>
+        <h2 className="public-event-section-title">
+          {rsvpStatus === "confirmed" ? "Presença confirmada!" : "Resposta registrada"}
+        </h2>
         <p className="public-event-message">
-          Obrigado, <strong>{name}</strong>!
-          {companions.length ? (
+          {rsvpStatus === "confirmed" ? (
             <>
-              {" "}
-              Sua família ({partySize} pessoa{partySize !== 1 ? "s" : ""}) está confirmada para <strong>{eventTitle}</strong>.
+              Obrigado, <strong>{guestName}</strong>! Sua presença em <strong>{eventTitle}</strong> está confirmada
+              {partySize > 1 ? ` para ${partySize} pessoas` : ""}.
             </>
           ) : (
-            <> Sua presença em <strong>{eventTitle}</strong> está confirmada.</>
+            <>
+              Obrigado, <strong>{guestName}</strong>. Registramos que você não poderá comparecer a <strong>{eventTitle}</strong>.
+            </>
           )}
         </p>
-        {companions.length ? (
-          <ul className="public-rsvp-companion-list">
-            <li>{name.trim()}</li>
-            {companions.map((companion) => (
-              <li key={companion}>{companion}</li>
-            ))}
-          </ul>
-        ) : null}
-        {companions.length ? (
-          <p className="public-event-message" style={{ fontSize: 14 }}>
-            No dia do evento, entrem juntos na portaria — a entrada será registrada para todos de uma vez.
-          </p>
-        ) : null}
-        {capsuleAvailable ? (
+        {capsuleAvailable && rsvpStatus === "confirmed" ? (
           <a className="btn public-rsvp-action" href={`/login?next=/evento/${eventSlug}`}>
             Criar conta para participar do mural
           </a>
@@ -110,13 +192,12 @@ export function RsvpForm({
         <h2 className="public-event-section-title">Participar da cápsula do tempo?</h2>
         <p className="public-event-message">
           Durante o evento você pode compartilhar fotos e recados que ficam guardados por <strong>36 meses</strong>.
-          Para isso, crie uma conta agora — leva menos de um minuto.
         </p>
         <div className="public-rsvp-actions">
           <a className="btn public-rsvp-action" href={`/login?next=/evento/${eventSlug}`}>
             Criar conta e participar
           </a>
-          <button className="btn secondary public-rsvp-action" type="button" onClick={() => handleConfirm(false)} disabled={pending}>
+          <button className="btn secondary public-rsvp-action" type="button" onClick={() => handleSubmit("confirmed", false)} disabled={pending}>
             {pending ? "Confirmando..." : "Só confirmar presença"}
           </button>
         </div>
@@ -129,88 +210,108 @@ export function RsvpForm({
     <section className="public-rsvp-form">
       <h2 className="public-event-section-title">Confirmar presença</h2>
       <p className="public-event-message">
-        Informe seu nome completo. Se vier com família ou acompanhantes, adicione o nome de cada pessoa.
+        Confirme sua presença e participe de um evento inesquecível!
       </p>
-      <div className="praesentia-form praesentia-form-stack">
+
+      <div className="praesentia-form praesentia-form-stack public-rsvp-fields">
+        <div className="public-rsvp-name-row">
+          <label className="field">
+            <span>Nome *</span>
+            <input value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="Digite seu nome" maxLength={80} />
+          </label>
+          <label className="field">
+            <span>Sobrenome *</span>
+            <input value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Digite seu sobrenome" maxLength={80} />
+          </label>
+        </div>
         <label className="field">
-          <span>Nome completo *</span>
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Seu nome como no documento ou convite"
-            maxLength={120}
-            required
-          />
+          <span>Email *</span>
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Digite seu email" maxLength={160} />
+        </label>
+        <label className="field">
+          <span>WhatsApp *</span>
+          <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(00) 00000-0000" maxLength={20} />
         </label>
 
-        <div className="public-rsvp-companions-block">
-          <span className="field">
-            <span>Acompanhantes</span>
-          </span>
-          {companions.length ? (
-            <ul className="public-rsvp-companion-list">
-              {companions.map((companion, index) => (
-                <li key={`${companion}-${index}`}>
-                  <span>{companion}</span>
-                  <button type="button" className="public-rsvp-companion-remove" onClick={() => removeCompanion(index)}>
-                    Remover
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : null}
-          <div className="public-rsvp-companion-add-row">
+        {collectPixAmount ? (
+          <label className="field">
+            <span>Valor enviado via Pix *</span>
             <input
-              type="text"
-              value={companionDraft}
-              onChange={(e) => setCompanionDraft(e.target.value)}
-              placeholder="Nome completo do acompanhante"
-              maxLength={120}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  addCompanion();
-                }
-              }}
+              inputMode="decimal"
+              value={pixAmount}
+              onChange={(e) => setPixAmount(e.target.value)}
+              placeholder={minPerPerson ? `Mínimo R$ ${minPerPerson}` : "Ex: 50,00"}
             />
-            <button type="button" className="btn secondary" onClick={addCompanion} disabled={!companionDraft.trim()}>
-              Adicionar
-            </button>
-          </div>
-          {companions.length ? (
-            <p className="cover-field-help">
-              Total: {partySize} pessoa{partySize !== 1 ? "s" : ""} (você + {companions.length} acompanhante{companions.length !== 1 ? "s" : ""})
-            </p>
-          ) : (
-            <p className="cover-field-help">Opcional. Adicione quantos acompanhantes forem levar.</p>
-          )}
+          </label>
+        ) : null}
+
+        <div className="public-rsvp-companions-block">
+          {companions.map((companion) => (
+            <div key={companion.id} className="public-rsvp-companion-row">
+              <select
+                value={companion.type}
+                onChange={(e) => updateCompanion(companion.id, { type: e.target.value as "adult" | "child" })}
+                aria-label="Tipo de acompanhante"
+              >
+                <option value="adult">Adulto</option>
+                <option value="child">Criança</option>
+              </select>
+              <input
+                value={companion.name}
+                onChange={(e) => updateCompanion(companion.id, { name: e.target.value })}
+                placeholder="Nome do acompanhante"
+                maxLength={120}
+              />
+              {companion.type === "child" ? (
+                <input
+                  value={companion.age}
+                  onChange={(e) => updateCompanion(companion.id, { age: e.target.value })}
+                  placeholder="Idade"
+                  inputMode="numeric"
+                  maxLength={3}
+                  className="public-rsvp-age-input"
+                />
+              ) : null}
+              <button type="button" className="public-rsvp-companion-remove" onClick={() => removeCompanion(companion.id)} aria-label="Remover acompanhante">
+                🗑
+              </button>
+            </div>
+          ))}
+          <button type="button" className="btn secondary public-rsvp-add-companion" onClick={addCompanion}>
+            + Adicionar acompanhante
+          </button>
         </div>
 
-        <label className="field">
-          <span>WhatsApp (opcional, só para o organizador)</span>
-          <input
-            type="tel"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="(11) 99999-9999"
-            maxLength={20}
-          />
+        <label className="public-rsvp-terms">
+          <input type="checkbox" checked={termsAccepted} onChange={(e) => setTermsAccepted(e.target.checked)} />
+          <span>
+            Declaro que tive acesso, li e concordo com os{" "}
+            <a href="/termos" target="_blank" rel="noopener noreferrer">
+              Termos de Uso
+            </a>{" "}
+            e a{" "}
+            <a href="/privacidade" target="_blank" rel="noopener noreferrer">
+              Política de Privacidade
+            </a>{" "}
+            da Praesentia.
+          </span>
         </label>
 
         {error ? <p className="public-rsvp-error">{error}</p> : null}
-        <button
-          className="btn public-rsvp-action"
-          type="button"
-          disabled={!name.trim() || pending}
-          onClick={() => (capsuleAvailable ? setStep("capsule") : handleConfirm(false))}
-        >
-          {pending
-            ? "Confirmando..."
-            : partySize > 1
-              ? `Confirmar presença (${partySize} pessoas)`
-              : "Confirmar presença"}
-        </button>
+
+        <div className="public-rsvp-actions">
+          <button
+            className="btn public-rsvp-action"
+            type="button"
+            disabled={pending}
+            onClick={() => (capsuleAvailable ? setStep("capsule") : handleSubmit("confirmed"))}
+          >
+            {pending ? "Enviando..." : "Confirmar presença"}
+          </button>
+          <button className="btn secondary public-rsvp-action" type="button" disabled={pending} onClick={() => handleSubmit("declined")}>
+            Não vou
+          </button>
+        </div>
       </div>
     </section>
   );

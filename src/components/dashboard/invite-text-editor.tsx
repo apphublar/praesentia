@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { InviteCopy } from "@/types/domain";
 import { apiErrorMessage, dashboardFetchJson } from "@/lib/api/dashboard-fetch";
+import { inviteCopyGuidance, validateInviteCopyForContinue } from "@/lib/events/invite-text-validation";
 import { previewWhatsappMessage, resolveInviteCopy } from "@/lib/events/invite-copy";
 
 export type TextQuota = {
@@ -21,7 +22,8 @@ export function InviteTextEditor({
   initialCopy,
   initialQuota,
   onCopyChange,
-  compactTitle
+  compactTitle,
+  showContinueHints = false
 }: {
   eventId: string;
   eventSlug: string;
@@ -30,6 +32,7 @@ export function InviteTextEditor({
   initialQuota: TextQuota;
   onCopyChange?: (copy: InviteCopy) => void;
   compactTitle?: string;
+  showContinueHints?: boolean;
 }) {
   const [copy, setCopy] = useState<InviteCopy>(() => resolveInviteCopy(initialCopy));
   const [quota, setQuota] = useState(initialQuota);
@@ -37,18 +40,26 @@ export function InviteTextEditor({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
+  const [showValidation, setShowValidation] = useState(false);
 
   const appUrl = typeof window !== "undefined" ? window.location.origin : "";
   const eventLink = `${appUrl}/evento/${eventSlug}`;
+  const validation = useMemo(() => validateInviteCopyForContinue(copy), [copy]);
 
   function updateCopy(next: InviteCopy) {
     const safe = resolveInviteCopy(next);
     setCopy(safe);
     onCopyChange?.(safe);
     setSaved(false);
+    setShowValidation(false);
   }
 
   async function generateWithAi() {
+    if (!copy.headline.trim() && !copy.message.trim()) {
+      setError("Preencha pelo menos o título ou o texto principal antes de pedir ajuda da IA.");
+      return;
+    }
+
     setLoading(true);
     setError("");
     try {
@@ -57,17 +68,21 @@ export function InviteTextEditor({
         body: JSON.stringify({ mode: "generate" })
       });
       if (!response.ok) {
-        setError(response.status === 401 ? "Não foi possível confirmar sua sessão. Recarregue a página e tente de novo." : String(data.error ?? "Erro ao gerar texto."));
-        setLoading(false);
+        setError(
+          response.status === 401
+            ? "Não foi possível confirmar sua sessão. Recarregue a página e tente de novo."
+            : String(data.error ?? "Erro ao gerar texto.")
+        );
         return;
       }
       updateCopy(data.inviteCopy as InviteCopy);
       if (data.quota) setQuota(data.quota as TextQuota);
       setSaved(true);
-    } catch (error) {
-      setError(apiErrorMessage(error, "Erro de conexão. Tente novamente."));
+    } catch (err) {
+      setError(apiErrorMessage(err, "Erro de conexão. Tente novamente."));
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   async function saveManual() {
@@ -79,33 +94,35 @@ export function InviteTextEditor({
         body: JSON.stringify({ inviteCopy: copy })
       });
       if (!response.ok) {
-        setError(response.status === 401 ? "Não foi possível confirmar sua sessão. Recarregue a página e tente de novo." : String(data.error ?? "Erro ao salvar texto."));
-        setSaving(false);
+        setError(
+          response.status === 401
+            ? "Não foi possível confirmar sua sessão. Recarregue a página e tente de novo."
+            : String(data.error ?? "Erro ao salvar texto.")
+        );
         return;
       }
       updateCopy((data.inviteCopy as InviteCopy) ?? copy);
       setSaved(true);
-    } catch (error) {
-      setError(apiErrorMessage(error, "Erro de conexão. Tente novamente."));
+    } catch (err) {
+      setError(apiErrorMessage(err, "Erro de conexão. Tente novamente."));
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   }
 
   const whatsappPreview = previewWhatsappMessage(copy.whatsapp, eventLink);
 
   return (
-    <article className="card dashboard-card">
+    <article className="card dashboard-card invite-text-editor-card">
       <span className="pill">texto do convite</span>
       <h2 className="display" style={{ fontSize: 28, margin: "12px 0" }}>
         {compactTitle ?? (isFundraising ? "Texto da vaquinha" : "Texto do convite")}
       </h2>
-      <p style={{ color: "var(--ink-soft)", lineHeight: 1.6, fontSize: 14, marginBottom: 16 }}>
-        Edite livremente ou use a IA uma vez no plano gratuito. A data e o local vêm dos dados que você informou.
-      </p>
+      <p className="invite-text-editor-lead">{inviteCopyGuidance(isFundraising)}</p>
 
       <div className="praesentia-form praesentia-form-stack">
         <label className="field">
-          <span>Título / headline</span>
+          <span>Título / headline *</span>
           <input
             value={copy.headline}
             onChange={(e) => updateCopy({ ...copy, headline: e.target.value })}
@@ -114,7 +131,7 @@ export function InviteTextEditor({
           />
         </label>
         <label className="field">
-          <span>{isFundraising ? "História / descrição" : "Texto da página"}</span>
+          <span>{isFundraising ? "História / descrição *" : "Texto da página *"}</span>
           <textarea
             value={copy.message}
             onChange={(e) => updateCopy({ ...copy, message: e.target.value })}
@@ -124,7 +141,7 @@ export function InviteTextEditor({
           />
         </label>
         <label className="field">
-          <span>Mensagem para WhatsApp</span>
+          <span>Mensagem para WhatsApp *</span>
           <textarea
             value={copy.whatsapp}
             onChange={(e) => updateCopy({ ...copy, whatsapp: e.target.value })}
@@ -134,22 +151,28 @@ export function InviteTextEditor({
           />
         </label>
         {copy.whatsapp.trim() ? (
-          <p style={{ color: "var(--ink-soft)", fontSize: 13, lineHeight: 1.55, margin: 0 }}>
+          <p className="cover-field-help" style={{ margin: 0 }}>
             Prévia: {whatsappPreview}
           </p>
         ) : null}
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 20 }}>
+      {showContinueHints && showValidation && !validation.ok ? (
+        <p className="settings-status is-error invite-text-validation">
+          Preencha os campos obrigatórios: {validation.missing.join(", ")}.
+        </p>
+      ) : null}
+
+      <div className="invite-text-editor-actions">
         <button type="button" className="btn secondary" onClick={saveManual} disabled={saving}>
           {saving ? "Salvando..." : saved ? "Salvo ✓" : "Salvar texto"}
         </button>
         {quota.canGenerate ? (
           <button type="button" className="btn" onClick={generateWithAi} disabled={loading}>
-            {loading ? "Gerando..." : "✨ Gerar sugestão com IA (1x)"}
+            {loading ? "Melhorando com IA…" : "✨ Pedir ajuda da IA para melhorar o texto"}
           </button>
         ) : null}
-        {saved ? <p className="settings-status is-ok">Texto salvo. O checklist foi atualizado.</p> : null}
+        {saved ? <p className="settings-status is-ok" style={{ margin: 0 }}>Texto salvo.</p> : null}
         {error ? <p className="settings-status is-error">{error}</p> : null}
       </div>
     </article>

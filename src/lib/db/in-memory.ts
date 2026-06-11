@@ -7,8 +7,10 @@ import type {
   CreateGuestRsvpInput,
   CreateMediaInput,
   EventRepository,
+  GuestMessageRepository,
   GuestRsvpRepository,
   LikeRepository,
+  MuralAccessRepository,
   MediaRepository,
   MemberRepository,
   SubscriptionRepository,
@@ -16,7 +18,7 @@ import type {
   UserRepository
 } from "@/lib/db/repositories";
 import { PLANS } from "@/lib/plans";
-import type { Event, GuestRsvp, MediaItem, PlanTier, UserSubscription } from "@/types/domain";
+import type { Event, GuestMessage, GuestRsvp, MediaItem, MuralAccessRequest, PlanTier, UserSubscription } from "@/types/domain";
 
 function createId(prefix: string) {
   return `${prefix}_${randomUUID()}`;
@@ -104,12 +106,18 @@ export const inMemoryEvents: EventRepository = {
       theme: input.theme,
       eventType: input.eventType,
       hostName: input.hostName || users.find((user) => user.id === input.ownerId)?.name || "Responsável",
+      organizerName: input.organizerName,
       date: input.date,
       startsAt: input.startsAt,
       endsAt: input.endsAt,
       venueName: input.venueName,
       venueAddress: input.venueAddress,
+      venueZip: input.venueZip,
+      venueComplement: input.venueComplement,
       city: input.city,
+      rsvpEnabled: input.rsvpEnabled !== false,
+      rsvpDeadline: input.rsvpDeadline,
+      giftSuggestions: input.giftSuggestions ?? [],
       visibility: "private",
       phase: "before",
       plan: PLANS.free,
@@ -137,6 +145,17 @@ export const inMemoryEvents: EventRepository = {
       accessStatus: "active",
       joinedAt: new Date().toISOString()
     });
+    return event;
+  },
+  async patchCreationFields(eventId, _actorUserId, input) {
+    const event = events.find((item) => item.id === eventId);
+    if (!event) throw new Error("EVENT_NOT_FOUND");
+    if (input.organizerName !== undefined) event.organizerName = input.organizerName;
+    if (input.venueZip !== undefined) event.venueZip = input.venueZip;
+    if (input.venueComplement !== undefined) event.venueComplement = input.venueComplement;
+    if (input.rsvpEnabled !== undefined) event.rsvpEnabled = input.rsvpEnabled;
+    if (input.giftSuggestions !== undefined) event.giftSuggestions = input.giftSuggestions;
+    if (input.hostName !== undefined) event.hostName = input.hostName;
     return event;
   },
   async update(eventId, _actorUserId, input: UpdateEventInput) {
@@ -333,7 +352,9 @@ export const inMemoryMedia: MediaRepository = {
       id: createId("med"),
       eventId: input.eventId,
       userId: input.userId,
-      authorName: user?.name ?? "Convidado",
+      guestRsvpId: input.guestRsvpId,
+      authorName: input.authorDisplayName ?? user?.name ?? "Convidado",
+      caption: input.caption,
       type: input.type,
       status: "published",
       visibleOnScreen: true,
@@ -429,8 +450,23 @@ export const inMemoryMedia: MediaRepository = {
 };
 
 const likedMedia = new Set<string>();
+const guestLikedMedia = new Set<string>();
 
 export const inMemoryLikes: LikeRepository = {
+  async toggleGuestLike(eventId, mediaId, guestRsvpId) {
+    const item = mediaItems.find((media) => media.eventId === eventId && media.id === mediaId);
+    if (!item) throw new Error("MEDIA_NOT_FOUND");
+    const key = `guest:${eventId}:${mediaId}:${guestRsvpId}`;
+    const liked = !guestLikedMedia.has(key);
+    if (liked) {
+      guestLikedMedia.add(key);
+      item.likesCount += 1;
+    } else {
+      guestLikedMedia.delete(key);
+      item.likesCount = Math.max(0, item.likesCount - 1);
+    }
+    return { liked, likesCount: item.likesCount };
+  },
   async toggleLike(eventId, mediaId, userId) {
     const item = mediaItems.find((media) => media.eventId === eventId && media.id === mediaId);
     if (!item) throw new Error("MEDIA_NOT_FOUND");
@@ -460,18 +496,44 @@ const guestRsvpStore: GuestRsvp[] = [];
 export const inMemoryGuestRsvps: GuestRsvpRepository = {
   async create(input: CreateGuestRsvpInput): Promise<GuestRsvp> {
     const companions = (input.companionNames ?? []).map((name) => name.trim()).filter(Boolean);
+    const companionsDetail = input.companionsDetail ?? [];
+    const detailNames = companionsDetail.map((item) => item.name.trim()).filter(Boolean);
+    const mergedNames = detailNames.length ? detailNames : companions;
     const rsvp: GuestRsvp = {
       id: createId("rsvp"),
       eventId: input.eventId,
       guestName: input.guestName,
+      guestFirstName: input.guestFirstName,
+      guestLastName: input.guestLastName,
+      guestEmail: input.guestEmail,
       phone: input.phone,
-      companionName: companions[0] ?? input.companionName,
-      companionNames: companions.length ? companions : input.companionName ? [input.companionName] : [],
+      companionName: mergedNames[0] ?? input.companionName,
+      companionNames: mergedNames.length ? mergedNames : input.companionName ? [input.companionName] : [],
+      companionsDetail: companionsDetail.length ? companionsDetail : undefined,
+      rsvpStatus: input.rsvpStatus ?? "confirmed",
+      pixContributedAmount: input.pixContributedAmount,
+      termsAcceptedAt: input.termsAcceptedAt,
       wantsCapsule: input.wantsCapsule,
       confirmedAt: new Date().toISOString()
     };
     guestRsvpStore.push(rsvp);
     return rsvp;
+  },
+  async sumPixContributions(eventId: string): Promise<number> {
+    return guestRsvpStore
+      .filter((item) => item.eventId === eventId && item.rsvpStatus === "confirmed")
+      .reduce((sum, item) => sum + (item.pixContributedAmount ?? 0), 0);
+  },
+  async findConfirmedByEmail(eventId, email) {
+    const normalized = email.trim().toLowerCase();
+    return (
+      guestRsvpStore.find(
+        (item) =>
+          item.eventId === eventId &&
+          item.rsvpStatus === "confirmed" &&
+          item.guestEmail?.trim().toLowerCase() === normalized
+      ) ?? null
+    );
   },
   async listByEvent(eventId: string): Promise<GuestRsvp[]> {
     return guestRsvpStore.filter((r) => r.eventId === eventId);
@@ -604,6 +666,78 @@ const inMemoryAiCoverArtifacts: AiCoverArtifactRepository = {
   }
 };
 
+const guestMessageStore: GuestMessage[] = [];
+
+const muralCodeStore: Array<{
+  eventId: string;
+  guestRsvpId: string;
+  email: string;
+  codeHash: string;
+  expiresAt: string;
+}> = [];
+const muralRequestStore: MuralAccessRequest[] = [];
+
+const inMemoryMuralAccess: MuralAccessRepository = {
+  async createCode(input) {
+    muralCodeStore.push({
+      eventId: input.eventId,
+      guestRsvpId: input.guestRsvpId,
+      email: input.email.toLowerCase(),
+      codeHash: input.codeHash,
+      expiresAt: input.expiresAt
+    });
+  },
+  async findLatestCode(eventId, email) {
+    const row = [...muralCodeStore]
+      .reverse()
+      .find((item) => item.eventId === eventId && item.email === email.toLowerCase());
+    return row
+      ? { codeHash: row.codeHash, expiresAt: row.expiresAt, guestRsvpId: row.guestRsvpId }
+      : null;
+  },
+  async createAccessRequest(input) {
+    const request: MuralAccessRequest = {
+      id: createId("mreq"),
+      eventId: input.eventId,
+      guestFirstName: input.guestFirstName,
+      guestLastName: input.guestLastName,
+      guestEmail: input.guestEmail,
+      phone: input.phone,
+      status: "pending",
+      createdAt: new Date().toISOString()
+    };
+    muralRequestStore.push(request);
+    return request;
+  },
+  async listAccessRequests(eventId) {
+    return muralRequestStore.filter((item) => item.eventId === eventId);
+  },
+  async updateAccessRequestStatus(eventId, requestId, status) {
+    const request = muralRequestStore.find((item) => item.id === requestId && item.eventId === eventId);
+    if (!request) throw new Error("REQUEST_NOT_FOUND");
+    request.status = status;
+    return request;
+  }
+};
+
+const inMemoryGuestMessages: GuestMessageRepository = {
+  async create(input) {
+    const message: GuestMessage = {
+      id: createId("gmsg"),
+      eventId: input.eventId,
+      authorName: input.authorName,
+      body: input.body,
+      visibility: input.visibility,
+      createdAt: new Date().toISOString()
+    };
+    guestMessageStore.push(message);
+    return message;
+  },
+  async listPublicByEvent(eventId) {
+    return guestMessageStore.filter((item) => item.eventId === eventId && item.visibility === "public");
+  }
+};
+
 export const repositories = {
   users: inMemoryUsers,
   events: inMemoryEvents,
@@ -613,5 +747,7 @@ export const repositories = {
   audit: inMemoryAudit,
   aiCoverArtifacts: inMemoryAiCoverArtifacts,
   guestRsvps: inMemoryGuestRsvps,
+  guestMessages: inMemoryGuestMessages,
+  muralAccess: inMemoryMuralAccess,
   subscriptions: inMemorySubscriptions
 };

@@ -4,6 +4,7 @@ import { repositories } from "@/lib/db";
 import { canAccessCapsule } from "@/lib/plans/features";
 import { assertTrustedOrigin } from "@/lib/security/origin";
 import { sanitizeText } from "@/lib/security/sanitize";
+import type { GuestCompanionDetail } from "@/types/domain";
 
 export async function POST(request: Request, { params }: { params: Promise<{ eventId: string }> }) {
   const originError = assertTrustedOrigin(request);
@@ -17,25 +18,63 @@ export async function POST(request: Request, { params }: { params: Promise<{ eve
     if (!event) return NextResponse.json({ error: "Evento não encontrado" }, { status: 404 });
 
     const body = await request.json();
-    const guestName = sanitizeText(body.guestName, 120);
+    const guestFirstName = sanitizeText(body.guestFirstName, 80);
+    const guestLastName = sanitizeText(body.guestLastName, 80);
+    const guestName =
+      sanitizeText(body.guestName, 120) || `${guestFirstName} ${guestLastName}`.trim();
+    const guestEmail = body.guestEmail ? sanitizeText(body.guestEmail, 160) : undefined;
     const phone = body.phone ? sanitizeText(body.phone, 20) : undefined;
     const rawCompanions = Array.isArray(body.companionNames) ? body.companionNames : [];
     const companionNames = rawCompanions
       .map((name: unknown) => sanitizeText(String(name ?? ""), 120))
       .filter(Boolean);
+    const rawDetail = Array.isArray(body.companionsDetail) ? body.companionsDetail : [];
+    const companionsDetail: GuestCompanionDetail[] = [];
+    for (const item of rawDetail) {
+      if (!item || typeof item !== "object") continue;
+      const row = item as { name?: unknown; type?: unknown; age?: unknown };
+      const name = sanitizeText(String(row.name ?? ""), 120);
+      if (!name) continue;
+      const type: GuestCompanionDetail["type"] = row.type === "child" ? "child" : "adult";
+      const age = row.age != null && row.age !== "" ? Number(row.age) : undefined;
+      companionsDetail.push({ name, type, age: Number.isFinite(age) ? age : undefined });
+    }
     const companionName = body.companionName ? sanitizeText(body.companionName, 120) : companionNames[0];
+    const rsvpStatus = body.rsvpStatus === "declined" ? "declined" : "confirmed";
+    const pixContributedAmount =
+      body.pixContributedAmount != null ? Number(body.pixContributedAmount) : undefined;
+    const termsAcceptedAt = body.termsAcceptedAt ? String(body.termsAcceptedAt) : undefined;
     const wantsCapsule = Boolean(body.wantsCapsule) && canAccessCapsule(event);
 
     if (!guestName) {
       return NextResponse.json({ error: "Informe seu nome para confirmar presença." }, { status: 400 });
     }
+    if (!termsAcceptedAt) {
+      return NextResponse.json(
+        { error: "É necessário aceitar os Termos de Uso e a Política de Privacidade." },
+        { status: 400 }
+      );
+    }
+    if (!guestEmail || !phone) {
+      return NextResponse.json({ error: "Informe e-mail e WhatsApp." }, { status: 400 });
+    }
 
     const rsvp = await repositories.guestRsvps.create({
       eventId,
       guestName,
+      guestFirstName: guestFirstName || undefined,
+      guestLastName: guestLastName || undefined,
+      guestEmail,
       phone,
       companionName: companionName || undefined,
       companionNames: companionNames.length ? companionNames : companionName ? [companionName] : [],
+      companionsDetail: companionsDetail.length ? companionsDetail : undefined,
+      rsvpStatus,
+      pixContributedAmount:
+        Number.isFinite(pixContributedAmount) && pixContributedAmount! > 0
+          ? pixContributedAmount
+          : undefined,
+      termsAcceptedAt,
       wantsCapsule
     });
 

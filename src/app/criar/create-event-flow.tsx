@@ -4,6 +4,7 @@ import { useActionState, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createEventAction } from "@/app/criar/actions";
 import { createEventFieldErrorMessage, type CreateEventState } from "@/app/criar/create-event-state";
+import { GiftSuggestionsEditor } from "@/components/criar/gift-suggestions-editor";
 import { createEventContinuePath } from "@/lib/auth/routes";
 import { getEventProfile } from "@/lib/events/event-profile";
 import { EVENT_TYPE_OPTIONS } from "@/lib/events/event-types";
@@ -159,8 +160,12 @@ export function CreateEventFlow() {
                   <div className="create-form-kicker">meta e prazo</div>
                   <div className="create-form-fields create-form-fields-grid">
                     <label className="field">
-                      <span>Meta em R$ (opcional)</span>
+                      <span>Meta total a arrecadar em R$ (opcional)</span>
                       <input name="goalAmount" inputMode="decimal" placeholder="Ex: 5000" />
+                    </label>
+                    <label className="field">
+                      <span>Contribuição mínima por pessoa em R$ (opcional)</span>
+                      <input name="minPerPerson" inputMode="decimal" placeholder="Ex: 50" />
                     </label>
                     <label className="field">
                       <span>Prazo (opcional)</span>
@@ -184,6 +189,16 @@ export function CreateEventFlow() {
                     </label>
                   </div>
                 </div>
+
+                <div className="card create-form-section">
+                  <div className="create-form-kicker">confirmação de convidados</div>
+                  <label className="create-checkbox-field">
+                    <input type="checkbox" name="rsvpEnabled" value="1" />
+                    <span>
+                      Quero que os convidados confirmem presença e informem nome, WhatsApp e valor enviado via Pix
+                    </span>
+                  </label>
+                </div>
               </>
             ) : (
               <>
@@ -197,8 +212,12 @@ export function CreateEventFlow() {
                       <input name="title" required maxLength={120} placeholder="Ex: Aniversário de 1 ano da Mavie" />
                     </label>
                     <label className="field">
-                      <span>Nome do homenageado / responsável *</span>
-                      <input name="hostName" required maxLength={120} placeholder="Ex: Mavie, João e Maria..." />
+                      <span>Nome do homenageado(a) *</span>
+                      <input name="hostName" required maxLength={120} placeholder="Ex: Mavie, João..." />
+                    </label>
+                    <label className="field">
+                      <span>Quem está organizando *</span>
+                      <input name="organizerName" required maxLength={120} placeholder="Ex: Maria Silva (mãe)" />
                     </label>
                     <label className="field">
                       <span>Tema / estilo *</span>
@@ -213,6 +232,11 @@ export function CreateEventFlow() {
                     <label className="field field-span-full">
                       <span>Data *</span>
                       <input name="date" type="date" required className="native-picker-field" />
+                    </label>
+                    <label className="field field-span-full">
+                      <span>Confirmar presença até (opcional)</span>
+                      <input name="rsvpDeadline" type="date" className="native-picker-field" />
+                      <p className="cover-field-help">Após essa data o link mostra a contagem para o evento.</p>
                     </label>
                     <label className="field">
                       <span>Início *</span>
@@ -245,6 +269,16 @@ export function CreateEventFlow() {
                         <span>Endereço *</span>
                         <input name="venueAddress" required maxLength={220} placeholder="Rua, número, bairro" />
                       </label>
+                      <div className="create-form-fields-grid">
+                        <label className="field">
+                          <span>CEP</span>
+                          <input name="venueZip" maxLength={12} placeholder="00000-000" />
+                        </label>
+                        <label className="field">
+                          <span>Complemento</span>
+                          <input name="venueComplement" maxLength={120} placeholder="Apto, bloco, salão..." />
+                        </label>
+                      </div>
                       <label className="field">
                         <span>Cidade *</span>
                         <input name="city" required maxLength={120} placeholder="Ex: São Paulo" />
@@ -252,6 +286,8 @@ export function CreateEventFlow() {
                     </div>
                   </div>
                 )}
+
+                <GiftSuggestionsEditor />
               </>
             )}
 

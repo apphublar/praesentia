@@ -6,8 +6,10 @@ import type {
   CreateGuestRsvpInput,
   CreateMediaInput,
   EventRepository,
+  GuestMessageRepository,
   GuestRsvpRepository,
   LikeRepository,
+  MuralAccessRepository,
   MediaRepository,
   MemberRepository,
   SubscriptionRepository,
@@ -17,7 +19,55 @@ import type {
 import { bytesFromGb, PLANS } from "@/lib/plans";
 import { normalizeEventType } from "@/lib/events/event-types";
 import { normalizeInviteCopy } from "@/lib/events/invite-copy";
-import type { Event, EventMember, EventType, GuestRsvp, InviteCopy, MediaItem, PlanTier, User, UserSubscription } from "@/types/domain";
+import type {
+  Event,
+  EventMember,
+  EventType,
+  GiftSuggestion,
+  GuestCompanionDetail,
+  GuestMessage,
+  GuestRsvp,
+  MuralAccessRequest,
+  InviteCopy,
+  MediaItem,
+  PlanTier,
+  User,
+  UserSubscription
+} from "@/types/domain";
+
+function parseGiftSuggestions(raw: unknown): GiftSuggestion[] {
+  if (!Array.isArray(raw)) return [];
+  const items: GiftSuggestion[] = [];
+  raw.forEach((item, index) => {
+    if (!item || typeof item !== "object") return;
+    const row = item as Record<string, unknown>;
+    const title = String(row.title ?? "").trim();
+    if (!title) return;
+    items.push({
+      id: String(row.id ?? `gift_${index}`),
+      title,
+      note: row.note ? String(row.note) : undefined,
+      imageUrl: row.imageUrl ? String(row.imageUrl) : undefined,
+      linkUrl: row.linkUrl ? String(row.linkUrl) : undefined
+    });
+  });
+  return items;
+}
+
+function parseCompanionsDetail(raw: unknown): GuestCompanionDetail[] {
+  if (!Array.isArray(raw)) return [];
+  const items: GuestCompanionDetail[] = [];
+  raw.forEach((item) => {
+    if (!item || typeof item !== "object") return;
+    const row = item as Record<string, unknown>;
+    const name = String(row.name ?? "").trim();
+    if (!name) return;
+    const type: GuestCompanionDetail["type"] = row.type === "child" ? "child" : "adult";
+    const age = row.age != null && row.age !== "" ? Number(row.age) : undefined;
+    items.push({ name, type, age: Number.isFinite(age) ? age : undefined });
+  });
+  return items;
+}
 
 function rowToUser(row: Record<string, unknown>): User {
   return {
@@ -60,9 +110,15 @@ function rowToEvent(row: Record<string, unknown>): Event {
     date: String(row.date),
     startsAt: String(row.starts_at),
     endsAt: String(row.ends_at),
+    organizerName: row.organizer_name ? String(row.organizer_name) : undefined,
     venueName: String(row.venue_name),
     venueAddress: String(row.venue_address),
+    venueZip: row.venue_zip ? String(row.venue_zip) : undefined,
+    venueComplement: row.venue_complement ? String(row.venue_complement) : undefined,
     city: String(row.city),
+    rsvpEnabled: row.rsvp_enabled !== false,
+    rsvpDeadline: row.rsvp_deadline ? String(row.rsvp_deadline).slice(0, 10) : undefined,
+    giftSuggestions: parseGiftSuggestions(row.gift_suggestions),
     visibility: row.visibility as Event["visibility"],
     phase: row.phase as Event["phase"],
     plan,
@@ -75,6 +131,8 @@ function rowToEvent(row: Record<string, unknown>): Event {
           receiverName: String(row.pix_receiver_name),
           key: String(row.pix_key_encrypted),
           suggestedAmount: row.pix_suggested_amount_cents ? Number(row.pix_suggested_amount_cents) / 100 : undefined,
+          goalAmount: row.pix_suggested_amount_cents ? Number(row.pix_suggested_amount_cents) / 100 : undefined,
+          minPerPerson: row.pix_min_per_person_cents ? Number(row.pix_min_per_person_cents) / 100 : undefined,
           message: row.pix_message ? String(row.pix_message) : undefined
         }
       : undefined,
@@ -107,7 +165,9 @@ function rowToMedia(row: Record<string, unknown>): MediaItem {
     id: String(row.id),
     eventId: String(row.event_id),
     userId: String(row.user_id),
-    authorName: String(row.author_name ?? "Convidado"),
+    guestRsvpId: row.guest_rsvp_id ? String(row.guest_rsvp_id) : undefined,
+    authorName: String(row.author_display_name ?? row.author_name ?? "Convidado"),
+    caption: row.caption ? String(row.caption) : undefined,
     type: row.type as MediaItem["type"],
     status: row.status as MediaItem["status"],
     visibleOnScreen: Boolean(row.visible_on_screen),
@@ -140,7 +200,8 @@ export const postgresEvents: EventRepository = {
     const rows = await sql`
       select e.*, u.name as owner_name, p.enabled as pix_enabled, p.receiver_name as pix_receiver_name,
         p.key_encrypted as pix_key_encrypted, p.suggested_amount_cents as pix_suggested_amount_cents,
-        p.message as pix_message, s.enabled as screen_enabled, s.paused as screen_paused,
+        p.min_per_person_cents as pix_min_per_person_cents, p.message as pix_message,
+        s.enabled as screen_enabled, s.paused as screen_paused,
         s.show_qr_code as screen_show_qr_code, s.show_videos as screen_show_videos,
         s.show_messages as screen_show_messages
       from events e
@@ -157,7 +218,8 @@ export const postgresEvents: EventRepository = {
     const rows = await sql`
       select e.*, u.name as owner_name, p.enabled as pix_enabled, p.receiver_name as pix_receiver_name,
         p.key_encrypted as pix_key_encrypted, p.suggested_amount_cents as pix_suggested_amount_cents,
-        p.message as pix_message, s.enabled as screen_enabled, s.paused as screen_paused,
+        p.min_per_person_cents as pix_min_per_person_cents, p.message as pix_message,
+        s.enabled as screen_enabled, s.paused as screen_paused,
         s.show_qr_code as screen_show_qr_code, s.show_videos as screen_show_videos,
         s.show_messages as screen_show_messages
       from events e
@@ -174,7 +236,8 @@ export const postgresEvents: EventRepository = {
     const rows = await sql`
       select e.*, u.name as owner_name, p.enabled as pix_enabled, p.receiver_name as pix_receiver_name,
         p.key_encrypted as pix_key_encrypted, p.suggested_amount_cents as pix_suggested_amount_cents,
-        p.message as pix_message, s.enabled as screen_enabled, s.paused as screen_paused,
+        p.min_per_person_cents as pix_min_per_person_cents, p.message as pix_message,
+        s.enabled as screen_enabled, s.paused as screen_paused,
         s.show_qr_code as screen_show_qr_code, s.show_videos as screen_show_videos,
         s.show_messages as screen_show_messages
       from events e
@@ -235,15 +298,18 @@ export const postgresEvents: EventRepository = {
     const slug = input.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
     const rows = await sql`
       insert into events (
-        owner_id, slug, free_code, title, theme, event_type, host_name, date, starts_at, ends_at,
-        venue_name, venue_address, city, event_format, online_meeting_url,
-        plan_tier, storage_limit_bytes, retention_until
+        owner_id, slug, free_code, title, theme, event_type, host_name, organizer_name, date, starts_at, ends_at,
+        venue_name, venue_address, venue_zip, venue_complement, city, event_format, online_meeting_url,
+        rsvp_enabled, rsvp_deadline, gift_suggestions, plan_tier, storage_limit_bytes, retention_until
       )
       values (
         ${input.ownerId}, ${slug}, ${Math.random().toString(36).slice(2, 8)}, ${input.title},
-        ${input.theme}, ${input.eventType}, ${input.hostName}, ${input.date}, ${input.startsAt},
-        ${input.endsAt}, ${input.venueName}, ${input.venueAddress}, ${input.city},
+        ${input.theme}, ${input.eventType}, ${input.hostName}, ${input.organizerName ?? null},
+        ${input.date}, ${input.startsAt}, ${input.endsAt}, ${input.venueName}, ${input.venueAddress},
+        ${input.venueZip ?? null}, ${input.venueComplement ?? null}, ${input.city},
         ${input.eventFormat}, ${input.onlineMeetingUrl ?? null},
+        ${input.rsvpEnabled !== false}, ${input.rsvpDeadline ?? null},
+        ${sql.json(JSON.parse(JSON.stringify(input.giftSuggestions ?? [])))},
         ${plan.tier}, ${bytesFromGb(plan.storageGb)}, now() + interval '36 months'
       )
       returning *
@@ -253,6 +319,23 @@ export const postgresEvents: EventRepository = {
       values (${rows[0].id}, ${input.ownerId}, 'owner', 'confirmed')
     `;
     return (await this.findById(String(rows[0].id))) as Event;
+  },
+  async patchCreationFields(eventId, _actorUserId, input) {
+    const sql = getSql();
+    const event = await this.findById(eventId);
+    if (!event) throw new Error("EVENT_NOT_FOUND");
+    await sql`
+      update events set
+        organizer_name = ${input.organizerName ?? event.organizerName ?? null},
+        venue_zip = ${input.venueZip ?? event.venueZip ?? null},
+        venue_complement = ${input.venueComplement ?? event.venueComplement ?? null},
+        rsvp_enabled = ${input.rsvpEnabled ?? event.rsvpEnabled},
+        gift_suggestions = ${sql.json(JSON.parse(JSON.stringify(input.giftSuggestions ?? event.giftSuggestions)))},
+        host_name = ${input.hostName ?? event.hostName},
+        updated_at = now()
+      where id = ${eventId}
+    `;
+    return (await this.findById(eventId)) as Event;
   },
   async update(eventId, _actorUserId, input: UpdateEventInput) {
     const sql = getSql();
@@ -431,17 +514,21 @@ export const postgresEvents: EventRepository = {
       await sql`delete from pix_settings where event_id = ${eventId}`;
       return (await this.findById(eventId)) as Event;
     }
+    const goalCents = input.goalAmount ?? input.suggestedAmount;
     await sql`
-      insert into pix_settings (event_id, enabled, receiver_name, key_encrypted, suggested_amount_cents, message)
+      insert into pix_settings (event_id, enabled, receiver_name, key_encrypted, suggested_amount_cents, min_per_person_cents, message)
       values (
         ${eventId}, ${input.enabled}, ${input.receiverName}, ${input.key},
-        ${input.suggestedAmount ? Math.round(input.suggestedAmount * 100) : null}, ${input.message ?? null}
+        ${goalCents ? Math.round(goalCents * 100) : null},
+        ${input.minPerPerson ? Math.round(input.minPerPerson * 100) : null},
+        ${input.message ?? null}
       )
       on conflict (event_id) do update set
         enabled = excluded.enabled,
         receiver_name = excluded.receiver_name,
         key_encrypted = excluded.key_encrypted,
         suggested_amount_cents = excluded.suggested_amount_cents,
+        min_per_person_cents = excluded.min_per_person_cents,
         message = excluded.message,
         updated_at = now()
     `;
@@ -544,7 +631,7 @@ export const postgresMedia: MediaRepository = {
   async listPublishedByEvent(eventId) {
     const sql = getSql();
     const rows = await sql`
-      select m.*, u.name as author_name
+      select m.*, coalesce(m.author_display_name, u.name) as author_name
       from media_items m
       join users u on u.id = m.user_id
       where m.event_id = ${eventId} and m.status = 'published'
@@ -568,10 +655,13 @@ export const postgresMedia: MediaRepository = {
     const byteSize = input.byteSize ?? 0;
     const rows = await sql.begin(async (tx) => {
       const inserted = await tx`
-        insert into media_items (event_id, user_id, type, r2_key, url, thumbnail_url, text, byte_size)
+        insert into media_items (
+          event_id, user_id, guest_rsvp_id, author_display_name, type, r2_key, url, thumbnail_url, text, caption, byte_size
+        )
         values (
-          ${input.eventId}, ${input.userId}, ${input.type}, ${input.r2Key ?? null}, ${input.url ?? null},
-          ${input.thumbnailUrl ?? null}, ${input.text ?? null}, ${byteSize}
+          ${input.eventId}, ${input.userId}, ${input.guestRsvpId ?? null}, ${input.authorDisplayName ?? null},
+          ${input.type}, ${input.r2Key ?? null}, ${input.url ?? null},
+          ${input.thumbnailUrl ?? null}, ${input.text ?? null}, ${input.caption ?? null}, ${byteSize}
         )
         returning *
       `;
@@ -589,7 +679,10 @@ export const postgresMedia: MediaRepository = {
       await postgresSubscriptions.syncSharedStorageUsed(ownerId);
     }
     const user = await postgresUsers.findById(input.userId);
-    return rowToMedia({ ...rows[0], author_name: user?.name ?? "Convidado" });
+    return rowToMedia({
+      ...rows[0],
+      author_name: input.authorDisplayName ?? user?.name ?? "Convidado"
+    });
   },
   async archive(mediaId) {
     const sql = getSql();
@@ -679,6 +772,109 @@ export const postgresLikes: LikeRepository = {
       `;
       return { liked: true, likesCount: Number(rows[0]?.likes_count ?? 0) };
     });
+  },
+  async toggleGuestLike(eventId, mediaId, guestRsvpId) {
+    const sql = getSql();
+    try {
+      return await sql.begin(async (tx) => {
+        const existing = await tx`
+          select 1 from mural_guest_likes
+          where event_id = ${eventId} and media_id = ${mediaId} and guest_rsvp_id = ${guestRsvpId}
+        `;
+        if (existing[0]) {
+          await tx`
+            delete from mural_guest_likes
+            where event_id = ${eventId} and media_id = ${mediaId} and guest_rsvp_id = ${guestRsvpId}
+          `;
+          const rows = await tx`
+            update media_items set likes_count = greatest(0, likes_count - 1)
+            where id = ${mediaId} and event_id = ${eventId}
+            returning likes_count
+          `;
+          return { liked: false, likesCount: Number(rows[0]?.likes_count ?? 0) };
+        }
+        await tx`
+          insert into mural_guest_likes (event_id, media_id, guest_rsvp_id)
+          values (${eventId}, ${mediaId}, ${guestRsvpId})
+        `;
+        const rows = await tx`
+          update media_items set likes_count = likes_count + 1
+          where id = ${mediaId} and event_id = ${eventId}
+          returning likes_count
+        `;
+        return { liked: true, likesCount: Number(rows[0]?.likes_count ?? 0) };
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "";
+      if (!/mural_guest_likes|relation.*does not exist/i.test(message)) throw err;
+      return { liked: false, likesCount: 0 };
+    }
+  }
+};
+
+function rowToMuralAccessRequest(row: Record<string, unknown>): MuralAccessRequest {
+  return {
+    id: String(row.id),
+    eventId: String(row.event_id),
+    guestFirstName: String(row.guest_first_name),
+    guestLastName: String(row.guest_last_name),
+    guestEmail: String(row.guest_email),
+    phone: row.phone ? String(row.phone) : undefined,
+    status: row.status === "approved" || row.status === "denied" ? row.status : "pending",
+    createdAt: new Date(String(row.created_at)).toISOString()
+  };
+}
+
+export const postgresMuralAccess: MuralAccessRepository = {
+  async createCode(input) {
+    const sql = getSql();
+    await sql`
+      insert into mural_access_codes (event_id, guest_rsvp_id, email, code_hash, expires_at)
+      values (${input.eventId}, ${input.guestRsvpId}, ${input.email}, ${input.codeHash}, ${input.expiresAt})
+    `;
+  },
+  async findLatestCode(eventId, email) {
+    const sql = getSql();
+    const rows = await sql`
+      select code_hash, expires_at, guest_rsvp_id
+      from mural_access_codes
+      where event_id = ${eventId} and lower(email) = lower(${email})
+      order by created_at desc
+      limit 1
+    `;
+    if (!rows[0]) return null;
+    return {
+      codeHash: String(rows[0].code_hash),
+      expiresAt: new Date(String(rows[0].expires_at)).toISOString(),
+      guestRsvpId: String(rows[0].guest_rsvp_id)
+    };
+  },
+  async createAccessRequest(input) {
+    const sql = getSql();
+    const rows = await sql`
+      insert into mural_access_requests (event_id, guest_first_name, guest_last_name, guest_email, phone)
+      values (${input.eventId}, ${input.guestFirstName}, ${input.guestLastName}, ${input.guestEmail}, ${input.phone ?? null})
+      returning *
+    `;
+    return rowToMuralAccessRequest(rows[0]);
+  },
+  async listAccessRequests(eventId) {
+    const sql = getSql();
+    const rows = await sql`
+      select * from mural_access_requests where event_id = ${eventId} order by created_at desc
+    `;
+    return rows.map(rowToMuralAccessRequest);
+  },
+  async updateAccessRequestStatus(eventId, requestId, status) {
+    const sql = getSql();
+    const rows = await sql`
+      update mural_access_requests
+      set status = ${status}, updated_at = now()
+      where id = ${requestId} and event_id = ${eventId}
+      returning *
+    `;
+    if (!rows[0]) throw new Error("REQUEST_NOT_FOUND");
+    return rowToMuralAccessRequest(rows[0]);
   }
 };
 
@@ -701,13 +897,26 @@ function parseCompanionNames(row: Record<string, unknown>): string[] {
 
 function rowToGuestRsvp(row: Record<string, unknown>): GuestRsvp {
   const companionNames = parseCompanionNames(row);
+  const companionsDetail = parseCompanionsDetail(row.companions_detail);
+  const guestFirstName = row.guest_first_name ? String(row.guest_first_name) : undefined;
+  const guestLastName = row.guest_last_name ? String(row.guest_last_name) : undefined;
   return {
     id: String(row.id),
     eventId: String(row.event_id),
     guestName: String(row.guest_name),
+    guestFirstName,
+    guestLastName,
+    guestEmail: row.guest_email ? String(row.guest_email) : undefined,
     phone: row.phone ? String(row.phone) : undefined,
     companionName: companionNames[0],
     companionNames,
+    companionsDetail: companionsDetail.length ? companionsDetail : undefined,
+    rsvpStatus: row.rsvp_status === "declined" ? "declined" : "confirmed",
+    pixContributedAmount:
+      row.pix_contributed_amount != null ? Number(row.pix_contributed_amount) : undefined,
+    termsAcceptedAt: row.terms_accepted_at
+      ? new Date(String(row.terms_accepted_at)).toISOString()
+      : undefined,
     wantsCapsule: Boolean(row.wants_capsule),
     checkedInAt: row.checked_in_at ? new Date(String(row.checked_in_at)).toISOString() : undefined,
     confirmedAt: new Date(String(row.confirmed_at)).toISOString()
@@ -720,15 +929,31 @@ export const postgresGuestRsvps: GuestRsvpRepository = {
     const companions = (input.companionNames ?? []).map((name) => name.trim()).filter(Boolean);
     const legacyName = companions[0] ?? input.companionName?.trim();
 
+    const companionsDetail = input.companionsDetail ?? [];
+    const detailNames = companionsDetail.map((item) => item.name.trim()).filter(Boolean);
+    const mergedNames = detailNames.length ? detailNames : companions;
+    const legacy = mergedNames[0] ?? legacyName;
+
     try {
       const rows = await sql`
-        insert into guest_rsvps (event_id, guest_name, phone, companion_name, companion_names, wants_capsule)
+        insert into guest_rsvps (
+          event_id, guest_name, guest_first_name, guest_last_name, guest_email, phone,
+          companion_name, companion_names, companions_detail, rsvp_status,
+          pix_contributed_amount, terms_accepted_at, wants_capsule
+        )
         values (
           ${input.eventId},
           ${input.guestName},
+          ${input.guestFirstName ?? null},
+          ${input.guestLastName ?? null},
+          ${input.guestEmail ?? null},
           ${input.phone ?? null},
-          ${legacyName ?? null},
-          ${JSON.stringify(companions)}::jsonb,
+          ${legacy ?? null},
+          ${JSON.stringify(mergedNames)}::jsonb,
+          ${JSON.stringify(companionsDetail)}::jsonb,
+          ${input.rsvpStatus ?? "confirmed"},
+          ${input.pixContributedAmount ?? null},
+          ${input.termsAcceptedAt ?? null},
           ${input.wantsCapsule}
         )
         returning *
@@ -736,14 +961,48 @@ export const postgresGuestRsvps: GuestRsvpRepository = {
       return rowToGuestRsvp(rows[0]);
     } catch (err) {
       const message = err instanceof Error ? err.message : "";
-      if (!/companion_names|companion_name|column/.test(message)) throw err;
+      if (!/companion_names|companion_name|column|guest_email|rsvp_status|companions_detail/.test(message)) {
+        throw err;
+      }
       const rows = await sql`
-        insert into guest_rsvps (event_id, guest_name, phone, wants_capsule)
-        values (${input.eventId}, ${input.guestName}, ${input.phone ?? null}, ${input.wantsCapsule})
+        insert into guest_rsvps (event_id, guest_name, phone, companion_name, companion_names, wants_capsule)
+        values (
+          ${input.eventId},
+          ${input.guestName},
+          ${input.phone ?? null},
+          ${legacy ?? null},
+          ${JSON.stringify(mergedNames)}::jsonb,
+          ${input.wantsCapsule}
+        )
         returning *
       `;
       return rowToGuestRsvp(rows[0]);
     }
+  },
+  async sumPixContributions(eventId: string): Promise<number> {
+    const sql = getSql();
+    try {
+      const rows = await sql`
+        select coalesce(sum(pix_contributed_amount), 0)::numeric as total
+        from guest_rsvps
+        where event_id = ${eventId} and rsvp_status = 'confirmed'
+      `;
+      return Number(rows[0]?.total ?? 0);
+    } catch {
+      return 0;
+    }
+  },
+  async findConfirmedByEmail(eventId, email) {
+    const sql = getSql();
+    const rows = await sql`
+      select * from guest_rsvps
+      where event_id = ${eventId}
+        and lower(guest_email) = lower(${email})
+        and rsvp_status = 'confirmed'
+      order by confirmed_at desc
+      limit 1
+    `;
+    return rows[0] ? rowToGuestRsvp(rows[0]) : null;
   },
   async listByEvent(eventId: string): Promise<GuestRsvp[]> {
     const sql = getSql();
@@ -967,6 +1226,38 @@ export const postgresAudit: AuditRepository = {
   }
 };
 
+function rowToGuestMessage(row: Record<string, unknown>): GuestMessage {
+  return {
+    id: String(row.id),
+    eventId: String(row.event_id),
+    authorName: String(row.author_name),
+    body: String(row.body),
+    visibility: row.visibility === "private" ? "private" : "public",
+    createdAt: new Date(String(row.created_at)).toISOString()
+  };
+}
+
+export const postgresGuestMessages: GuestMessageRepository = {
+  async create(input) {
+    const sql = getSql();
+    const rows = await sql`
+      insert into guest_messages (event_id, author_name, body, visibility)
+      values (${input.eventId}, ${input.authorName}, ${input.body}, ${input.visibility})
+      returning *
+    `;
+    return rowToGuestMessage(rows[0]);
+  },
+  async listPublicByEvent(eventId) {
+    const sql = getSql();
+    const rows = await sql`
+      select * from guest_messages
+      where event_id = ${eventId} and visibility = 'public'
+      order by created_at desc
+    `;
+    return rows.map(rowToGuestMessage);
+  }
+};
+
 export const postgresRepositories = {
   users: postgresUsers,
   events: postgresEvents,
@@ -976,5 +1267,7 @@ export const postgresRepositories = {
   audit: postgresAudit,
   aiCoverArtifacts: postgresAiCoverArtifacts,
   guestRsvps: postgresGuestRsvps,
+  guestMessages: postgresGuestMessages,
+  muralAccess: postgresMuralAccess,
   subscriptions: postgresSubscriptions
 };

@@ -10,9 +10,7 @@ type SubmitState = {
 };
 
 const idleState: SubmitState = { loading: false, message: "", tone: "idle" };
-
 const PHOTO_ACCEPT = "image/jpeg,image/png,image/webp";
-const VIDEO_ACCEPT = "video/mp4,video/quicktime";
 
 async function readJson(response: Response) {
   const data = await response.json().catch(() => ({}));
@@ -24,6 +22,8 @@ export function GuestContributionPanel({
   eventId,
   items,
   currentUserId,
+  guestRsvpId,
+  muralGuestMode = false,
   canUploadVideo = false,
   onCreated,
   onDeleted
@@ -31,25 +31,25 @@ export function GuestContributionPanel({
   eventId: string;
   items: MediaItem[];
   currentUserId?: string;
+  guestRsvpId?: string;
+  muralGuestMode?: boolean;
   canUploadVideo?: boolean;
   onCreated: (item: MediaItem) => void;
   onDeleted?: (mediaId: string) => void;
 }) {
   const [text, setText] = useState("");
+  const [caption, setCaption] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [state, setState] = useState<SubmitState>(idleState);
 
   const messageCount = useMemo(() => items.filter((item) => item.type === "message").length, [items]);
+  const photoCount = useMemo(() => items.filter((item) => item.type === "photo").length, [items]);
 
-  const myItems = useMemo(
-    () => (currentUserId ? items.filter((item) => item.userId === currentUserId) : []),
-    [items, currentUserId]
-  );
-
-  const fileAccept = canUploadVideo ? `${PHOTO_ACCEPT},${VIDEO_ACCEPT}` : PHOTO_ACCEPT;
-  const fileHint = canUploadVideo
-    ? "JPG, PNG, WEBP, MP4 ou MOV"
-    : "JPG, PNG ou WEBP";
+  const myItems = useMemo(() => {
+    if (muralGuestMode && guestRsvpId) return items.filter((item) => item.guestRsvpId === guestRsvpId);
+    if (currentUserId) return items.filter((item) => item.userId === currentUserId);
+    return [];
+  }, [items, currentUserId, guestRsvpId, muralGuestMode]);
 
   async function deleteItem(mediaId: string) {
     setState({ loading: true, message: "", tone: "idle" });
@@ -78,7 +78,7 @@ export function GuestContributionPanel({
       }));
       onCreated(data.item);
       setText("");
-      setState({ loading: false, message: "Recado enviado para a cápsula.", tone: "ok" });
+      setState({ loading: false, message: "Recado de carinho enviado.", tone: "ok" });
     } catch (error) {
       setState({ loading: false, message: error instanceof Error ? error.message : "Falha ao enviar recado.", tone: "error" });
     }
@@ -86,12 +86,7 @@ export function GuestContributionPanel({
 
   async function submitFile() {
     if (!file) {
-      setState({ loading: false, message: "Escolha um arquivo antes de enviar.", tone: "error" });
-      return;
-    }
-
-    if (!canUploadVideo && file.type.startsWith("video/")) {
-      setState({ loading: false, message: "Somente o responsável do evento pode enviar vídeos.", tone: "error" });
+      setState({ loading: false, message: "Escolha uma foto antes de enviar.", tone: "error" });
       return;
     }
 
@@ -123,74 +118,79 @@ export function GuestContributionPanel({
           action: "finalize_upload",
           key: upload.key,
           contentType: file.type,
-          size: file.size
+          size: file.size,
+          caption: caption.trim()
         })
       }));
 
       onCreated(data.item);
       setFile(null);
-      setState({ loading: false, message: "Memória enviada para o mural.", tone: "ok" });
+      setCaption("");
+      setState({ loading: false, message: "Foto enviada para o mural.", tone: "ok" });
     } catch (error) {
-      setState({ loading: false, message: error instanceof Error ? error.message : "Falha ao enviar arquivo.", tone: "error" });
+      setState({ loading: false, message: error instanceof Error ? error.message : "Falha ao enviar foto.", tone: "error" });
     }
   }
 
   return (
     <div className="guest-contribution-panel praesentia-form">
       <div>
-        <span className="pill">seu espaço</span>
-        <h2>Compartilhar memória</h2>
+        <span className="pill">seu espaço no mural</span>
+        <h2>Compartilhar no evento</h2>
         <p>
-          {canUploadVideo
-            ? "Como responsável, você pode enviar fotos e vídeos. Convidados confirmados enviam fotos e recados enquanto houver espaço na cápsula."
-            : "Envie fotos e recados enquanto houver espaço na cápsula. Nem todo convidado precisa publicar — quem compartilha pode usar mais do espaço disponível."}
+          Envie <strong>1 foto</strong> com título curto e <strong>1 recado de carinho</strong> para o homenageado.
+          Vídeos são exclusivos do organizador.
         </p>
       </div>
 
-      {!canUploadVideo && messageCount >= 1 ? (
-        <p style={{ color: "var(--ink-soft)", fontSize: 13, margin: 0 }}>Você já enviou seu recado para este evento.</p>
-      ) : null}
+      {photoCount >= 1 ? (
+        <p className="cover-field-help">Você já enviou sua foto deste evento.</p>
+      ) : (
+        <div className="guest-upload-grid">
+          <label className="field field-file">
+            <span>Foto do momento</span>
+            <input type="file" accept={PHOTO_ACCEPT} onChange={(event) => setFile(event.target.files?.[0] ?? null)} />
+            <span className="field-file-preview">{file ? file.name : "JPG, PNG ou WEBP"}</span>
+          </label>
+          <label className="field">
+            <span>Título curto da foto</span>
+            <input value={caption} onChange={(e) => setCaption(e.target.value)} maxLength={80} placeholder="Ex: Momento especial!" />
+          </label>
+          <button className="btn guest-action" type="button" disabled={state.loading || !file} onClick={submitFile}>
+            {state.loading ? "Enviando..." : "Enviar foto"}
+          </button>
+        </div>
+      )}
 
-      <div className="guest-upload-grid">
-        <label className="field field-file">
-          <span>{canUploadVideo ? "Foto ou vídeo" : "Foto"}</span>
-          <input
-            type="file"
-            accept={fileAccept}
-            onChange={(event) => setFile(event.target.files?.[0] ?? null)}
-          />
-          <span className="field-file-preview">{file ? file.name : fileHint}</span>
-        </label>
-        <button className="btn guest-action" type="button" disabled={state.loading} onClick={submitFile}>
-          {state.loading ? "Enviando..." : "Enviar arquivo"}
-        </button>
-      </div>
-
-      {!canUploadVideo && messageCount >= 1 ? null : (
+      {messageCount >= 1 ? (
+        <p className="cover-field-help">Você já enviou seu recado de carinho.</p>
+      ) : (
         <>
           <label className="field">
-            <span>Recado</span>
-            <textarea value={text} onChange={(event) => setText(event.target.value)} placeholder="Escreva algo que mereça ficar guardado..." />
+            <span>Recado de carinho (único)</span>
+            <textarea
+              value={text}
+              onChange={(event) => setText(event.target.value)}
+              maxLength={600}
+              placeholder="Escreva uma homenagem para o homenageado..."
+            />
           </label>
-          <button className="btn secondary guest-message-action" type="button" disabled={state.loading} onClick={submitMessage}>
+          <button className="btn secondary guest-message-action" type="button" disabled={state.loading || text.trim().length < 2} onClick={submitMessage}>
             Enviar recado
           </button>
         </>
       )}
 
-      {state.message && <p className={`guest-submit-status ${state.tone === "error" ? "is-error" : "is-ok"}`}>{state.message}</p>}
+      {state.message ? <p className={`guest-submit-status ${state.tone === "error" ? "is-error" : "is-ok"}`}>{state.message}</p> : null}
 
-      {myItems.length > 0 && (
+      {myItems.length > 0 && !muralGuestMode ? (
         <div style={{ marginTop: 20, paddingTop: 16, borderTop: "1px solid var(--line)" }}>
           <strong style={{ fontSize: 14 }}>Suas publicações</strong>
-          <p style={{ color: "var(--ink-soft)", fontSize: 13, margin: "6px 0 12px" }}>
-            Você pode excluir seu conteúdo nas primeiras 24h após o início do evento.
-          </p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
             {myItems.map((item) => (
-              <div key={item.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+              <div key={item.id} style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
                 <span style={{ fontSize: 14 }}>
-                  {item.type === "message" ? `Recado: ${item.text?.slice(0, 40)}...` : item.type === "video" ? "Vídeo" : "Foto"}
+                  {item.type === "message" ? `Recado: ${item.text?.slice(0, 40)}...` : item.caption || "Foto"}
                 </span>
                 <button type="button" className="btn secondary" disabled={state.loading} onClick={() => deleteItem(item.id)}>
                   Excluir
@@ -199,7 +199,7 @@ export function GuestContributionPanel({
             ))}
           </div>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
