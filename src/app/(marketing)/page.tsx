@@ -37,7 +37,7 @@ const phases = [
 ];
 
 const pillars = [
-  ["01", "A IA cria o convite", "Você diz o tipo, tema, data e local. A Praesentia prepara texto, paleta, capa e mensagens."],
+  ["01", "A IA cria o convite", "1 imagem com IA grátis, texto e assistente de prompt. Precisa de mais versões? Pacote simbólico de R$ 4,90."],
   ["02", "Convidados confirmam", "Cada pessoa confirma presença e cria conta para participar da cápsula com segurança."],
   ["03", "O evento fica vivo", "Fotos, vídeos, recados e curtidas confidenciais aparecem no mural e no telão em tempo real."],
   ["04", "Tudo vira memória", "Depois da festa, a cápsula guarda o que foi vivido com permissão, acesso e armazenamento controlados."]

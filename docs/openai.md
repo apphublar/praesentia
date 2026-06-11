@@ -31,8 +31,10 @@ Configure `OPENAI_API_KEY` no `.env.local` (desenvolvimento) e nas **Environment
 
 | Plano | Texto | Imagem |
 |-------|-------|--------|
-| Gratuito | 1 geração, sem ajustes | 10 gerações + 5 ajustes (modo teste; configurável via env) |
+| Gratuito | 1 geração + assistente de prompt (sem ajustes de texto) | **1 imagem** incluída; pacote extra **R$ 4,90** → +2 imagens e +2 ajustes |
 | Cápsula / Plus | 1 geração + 3 ajustes | 2 versões + 3 ajustes |
+
+> Modo teste (env `AI_COVER_TESTING_UNLIMITED=true`): ignora limites para avaliar qualidade.
 
 ## Persistência das imagens
 

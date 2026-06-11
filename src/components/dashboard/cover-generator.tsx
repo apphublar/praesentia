@@ -14,17 +14,10 @@ import {
 } from "@/lib/openai/cover-invitation-spec";
 import { formatEventDateLine } from "@/lib/events/format-event-date";
 import { CoverGenerationOverlay } from "@/components/dashboard/cover-generation-overlay";
+import type { AiCoverQuota } from "@/lib/plans/features";
+import { AI_COVER_PACK_DESCRIPTION } from "@/lib/plans/ai-cover-pack";
 
-export type CoverQuota = {
-  maxGenerations: number;
-  maxEdits: number;
-  remainingGenerations: number;
-  remainingEdits: number;
-  canGenerate: boolean;
-  canEdit: boolean;
-  allowsCustomUpload: boolean;
-  testingMode?: boolean;
-};
+export type CoverQuota = AiCoverQuota;
 
 function updateCoverField<K extends keyof CoverEditableFields>(
   setter: React.Dispatch<React.SetStateAction<CoverEditableFields>>,
@@ -156,6 +149,8 @@ export function CoverGenerator({
   const [loading, setLoading] = useState(false);
   const [generatingCover, setGeneratingCover] = useState(false);
   const [assistingPrompt, setAssistingPrompt] = useState(false);
+  const [purchasingPack, setPurchasingPack] = useState(false);
+  const [packOk, setPackOk] = useState(false);
   const [promptAssistOk, setPromptAssistOk] = useState(false);
   const [editHint, setEditHint] = useState("");
   const [orientation, setOrientation] = useState("");
@@ -282,6 +277,30 @@ export function CoverGenerator({
     setLoading(false);
   }
 
+  async function purchaseAiCoverPack() {
+    setPurchasingPack(true);
+    setLoading(true);
+    setError("");
+    setPackOk(false);
+    try {
+      const { response, data } = await dashboardFetchJson("/api/billing/purchase-ai-cover-pack", {
+        method: "POST",
+        body: JSON.stringify({ eventId })
+      });
+      if (!response.ok) {
+        setError(String(data.error ?? "Erro ao ativar pacote."));
+        return;
+      }
+      if (data.quota) setQuota(data.quota as CoverQuota);
+      setPackOk(true);
+    } catch (err) {
+      setError(apiErrorMessage(err, "Erro de conexão. Tente novamente."));
+    } finally {
+      setPurchasingPack(false);
+      setLoading(false);
+    }
+  }
+
   async function uploadCustom(file: File) {
     setLoading(true);
     setError("");
@@ -308,6 +327,8 @@ export function CoverGenerator({
           <p style={{ color: "var(--ink-soft)", lineHeight: 1.6, fontSize: 14, margin: 0 }}>
             {isPaid
               ? `Plano pago: até ${quota.maxGenerations} versões por IA e ${quota.maxEdits} ajustes.`
+              : quota.freePlan
+              ? "Plano gratuito: 1 imagem do convite com IA, texto do convite e assistente de prompt inclusos."
               : "Gere a arte do convite com IA — ou envie a sua própria."}
           </p>
         </div>
@@ -476,24 +497,63 @@ export function CoverGenerator({
                 </button>
               )}
               {!quota.canGenerate && !coverUrl && !imageError && (
-                <p style={{ color: "var(--ink-soft)", fontSize: 13 }}>Limite de gerações atingido. Envie sua própria imagem abaixo.</p>
+                <p style={{ color: "var(--ink-soft)", fontSize: 13 }}>
+                  {quota.canPurchasePack
+                    ? "Sua imagem gratuita já foi usada. Desbloqueie mais versões abaixo ou envie sua própria imagem."
+                    : "Limite de gerações atingido. Envie sua própria imagem abaixo."}
+                </p>
               )}
               {!quota.canGenerate && coverUrl && !imageError && (
-                <p style={{ color: "var(--ink-soft)", fontSize: 13 }}>Limite de gerações atingido neste evento.</p>
+                <p style={{ color: "var(--ink-soft)", fontSize: 13 }}>
+                  {quota.canPurchasePack
+                    ? "Limite de gerações atingido. Compre o pacote extra ou envie sua própria imagem."
+                    : "Limite de gerações atingido neste evento."}
+                </p>
               )}
 
-              {quota.canEdit && coverUrl && source === "ai" && (
+              {quota.canPurchasePack && !quota.testingMode && (!quota.canGenerate || !quota.canEdit) ? (
+                <div className="cover-pack-offer">
+                  <p className="cover-pack-offer-title">Precisa de mais versões ou ajustes?</p>
+                  <p className="cover-pack-offer-text">
+                    Pacote simbólico de <strong>{quota.packPriceLabel ?? "R$ 4,90"}</strong>. {AI_COVER_PACK_DESCRIPTION}
+                  </p>
+                  <button
+                    type="button"
+                    className="btn"
+                    onClick={() => purchaseAiCoverPack()}
+                    disabled={loading || purchasingPack}
+                  >
+                    {purchasingPack ? "Ativando pacote…" : `Desbloquear pacote (${quota.packPriceLabel ?? "R$ 4,90"})`}
+                  </button>
+                  {packOk ? (
+                    <p className="settings-status is-ok" style={{ margin: 0 }}>
+                      Pacote ativado! Agora você pode gerar mais versões ou pedir ajustes.
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
+
+              {coverUrl && source === "ai" && (
                 <div className="praesentia-form praesentia-form-stack">
                   <label className="field">
                     <span>Ajuste na imagem</span>
                     <input value={editHint} onChange={(e) => setEditHint(e.target.value)}
                       placeholder="Ex: usar cores mais quentes, adicionar borboletas..."
-                      maxLength={400} />
+                      maxLength={400}
+                      disabled={!quota.canEdit} />
                   </label>
-                  <button type="button" className="btn secondary" onClick={() => generate("edit")}
-                    disabled={loading || editHint.length < 4}>
-                    Pedir ajuste à IA ({quota.remainingEdits} restante{quota.remainingEdits !== 1 ? "s" : ""})
-                  </button>
+                  {quota.canEdit ? (
+                    <button type="button" className="btn secondary" onClick={() => generate("edit")}
+                      disabled={loading || editHint.length < 4}>
+                      Pedir ajuste à IA ({quota.remainingEdits} restante{quota.remainingEdits !== 1 ? "s" : ""})
+                    </button>
+                  ) : quota.canPurchasePack ? (
+                    <p className="cover-field-help" style={{ margin: 0 }}>
+                      Ajustes com IA estão no pacote extra ({quota.packPriceLabel ?? "R$ 4,90"}).
+                    </p>
+                  ) : (
+                    <p className="cover-field-help" style={{ margin: 0 }}>Limite de ajustes atingido neste evento.</p>
+                  )}
                 </div>
               )}
 

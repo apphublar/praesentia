@@ -28,6 +28,8 @@ function baseEventFields(input: CreateEventInput) {
     onlineMeetingUrl: input.onlineMeetingUrl,
     aiCoverGenerationsCount: 0,
     aiCoverEditsCount: 0,
+    aiCoverPackBonusGenerations: 0,
+    aiCoverPackBonusEdits: 0,
     aiTextGenerationsCount: 0,
     aiTextEditsCount: 0,
     aiCoverPendingUrls: [] as string[],
@@ -183,6 +185,13 @@ export const inMemoryEvents: EventRepository = {
     if (!event) throw new Error("EVENT_NOT_FOUND");
     if (type === "generation") event.aiCoverGenerationsCount = Math.max(0, event.aiCoverGenerationsCount - 1);
     else event.aiCoverEditsCount = Math.max(0, event.aiCoverEditsCount - 1);
+    return event;
+  },
+  async purchaseAiCoverPack(eventId, _actorUserId) {
+    const event = events.find((item) => item.id === eventId);
+    if (!event) throw new Error("EVENT_NOT_FOUND");
+    event.aiCoverPackBonusGenerations += 2;
+    event.aiCoverPackBonusEdits += 2;
     return event;
   },
   async setAiCoverPendingUrls(eventId, urls) {

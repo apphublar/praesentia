@@ -44,6 +44,8 @@ function rowToEvent(row: Record<string, unknown>): Event {
     coverSource: row.cover_source ? (row.cover_source as Event["coverSource"]) : undefined,
     aiCoverGenerationsCount: Number(row.ai_cover_generations_count ?? 0),
     aiCoverEditsCount: Number(row.ai_cover_edits_count ?? 0),
+    aiCoverPackBonusGenerations: Number(row.ai_cover_pack_bonus_generations ?? 0),
+    aiCoverPackBonusEdits: Number(row.ai_cover_pack_bonus_edits ?? 0),
     aiTextGenerationsCount: Number(row.ai_text_generations_count ?? 0),
     aiTextEditsCount: Number(row.ai_text_edits_count ?? 0),
     aiCoverPendingUrls: Array.isArray(row.ai_cover_pending_urls)
@@ -351,6 +353,17 @@ export const postgresEvents: EventRepository = {
         where id = ${eventId}
       `;
     }
+    return (await this.findById(eventId)) as Event;
+  },
+  async purchaseAiCoverPack(eventId, _actorUserId) {
+    const sql = getSql();
+    await sql`
+      update events set
+        ai_cover_pack_bonus_generations = ai_cover_pack_bonus_generations + 2,
+        ai_cover_pack_bonus_edits = ai_cover_pack_bonus_edits + 2,
+        updated_at = now()
+      where id = ${eventId}
+    `;
     return (await this.findById(eventId)) as Event;
   },
   async setAiCoverPendingUrls(eventId, urls) {

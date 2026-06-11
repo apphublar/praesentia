@@ -62,6 +62,8 @@ export type Event = {
   coverSource?: CoverSource;
   aiCoverGenerationsCount: number;
   aiCoverEditsCount: number;
+  aiCoverPackBonusGenerations: number;
+  aiCoverPackBonusEdits: number;
   aiCoverPendingUrls?: string[];
   aiTextGenerationsCount: number;
   aiTextEditsCount: number;

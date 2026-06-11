@@ -20,6 +20,8 @@ export const events: Event[] = [
     eventFormat: "in_person",
     aiCoverGenerationsCount: 0,
     aiCoverEditsCount: 0,
+    aiCoverPackBonusGenerations: 0,
+    aiCoverPackBonusEdits: 0,
     aiTextGenerationsCount: 0,
     aiTextEditsCount: 0,
     aiCoverPendingUrls: [],

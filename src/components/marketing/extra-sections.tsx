@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 const faqs = [
-  ["Quanto custa de verdade?", "O plano Gratuito cria o convite, RSVP e link compartilhável. Cápsula custa R$59, com 5 GB e 36 meses. Cápsula Plus custa R$197/ano, com até 6 eventos e 20 GB compartilhados."],
+  ["Quanto custa de verdade?", "O plano Gratuito inclui 1 convite com IA, texto do convite e assistente de prompt. Pacote extra de R$4,90 libera até mais 2 imagens e 2 ajustes. Cápsula custa R$59, com 5 GB e 36 meses. Cápsula Plus custa R$197/ano, com até 6 eventos e 20 GB compartilhados."],
   ["O link realmente não expira?", "Cápsulas pagas ficam armazenadas por 36 meses, com opção de expansão de espaço. O plano gratuito é temporário para validar o evento."],
   ["E a privacidade das crianças?", "Eventos nascem privados. O responsável controla convidados, conteúdos, bloqueios, telão e acesso à cápsula."],
   ["Como a IA cria o convite?", "O responsável informa tipo de festa, data, local, tema e tom. A Praesentia gera texto, paleta, capa e mensagens editáveis."],
@@ -54,7 +54,7 @@ const plans = [
     subtitle: "Comece hoje, valide o convite e organize presenças.",
     cta: "Começar grátis",
     sections: [
-      ["Convite & RSVP", ["Convite digital com IA básica", "Link do domínio Praesentia", "Lista de convidados", "Confirmação de presença"]],
+      ["Convite & RSVP", ["1 convite com IA + texto + assistente de prompt", "Pacote extra R$4,90: +2 imagens e +2 ajustes", "Link do domínio Praesentia", "Lista de convidados", "Confirmação de presença"]],
       ["Durante o evento", ["Pix opcional para contribuição", "Página do evento temporária", "Sem cápsula permanente"]]
     ]
   },

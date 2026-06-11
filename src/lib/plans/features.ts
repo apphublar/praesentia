@@ -1,4 +1,10 @@
 import type { Event, PlanTier } from "@/types/domain";
+import {
+  AI_COVER_PACK_PRICE_LABEL,
+  FREE_AI_COVER_EDITS,
+  FREE_AI_COVER_GENERATIONS,
+  FREE_AI_TEXT_GENERATIONS
+} from "@/lib/plans/ai-cover-pack";
 
 export type PlanFeatures = {
   mural: boolean;
@@ -14,6 +20,23 @@ export type PlanFeatures = {
   guestListPrint: boolean;
 };
 
+export type AiCoverQuota = {
+  maxGenerations: number;
+  maxEdits: number;
+  remainingGenerations: number;
+  remainingEdits: number;
+  canGenerate: boolean;
+  canEdit: boolean;
+  allowsCustomUpload: boolean;
+  testingMode?: true;
+  freePlan?: true;
+  freeIncludedGenerations?: number;
+  packBonusGenerations?: number;
+  packBonusEdits?: number;
+  canPurchasePack?: boolean;
+  packPriceLabel?: string;
+};
+
 const TESTING_UNLIMITED_COVER = process.env.AI_COVER_TESTING_UNLIMITED === "true";
 const TESTING_COVER_GENERATIONS = Number(process.env.AI_COVER_TESTING_GENERATIONS ?? "10");
 const TESTING_COVER_EDITS = Number(process.env.AI_COVER_TESTING_EDITS ?? "5");
@@ -27,9 +50,9 @@ export const PLAN_FEATURES: Record<PlanTier, PlanFeatures> = {
     mural: false,
     capsule: false,
     liveScreen: false,
-    aiCoverGenerations: TESTING_UNLIMITED_COVER ? 999 : TESTING_COVER_GENERATIONS,
-    aiCoverEdits: TESTING_UNLIMITED_COVER ? 999 : TESTING_COVER_EDITS,
-    aiTextGenerations: 1,
+    aiCoverGenerations: TESTING_UNLIMITED_COVER ? 999 : FREE_AI_COVER_GENERATIONS,
+    aiCoverEdits: TESTING_UNLIMITED_COVER ? 999 : FREE_AI_COVER_EDITS,
+    aiTextGenerations: FREE_AI_TEXT_GENERATIONS,
     aiTextEdits: 0,
     customCoverUpload: true,
     guestSelfDeleteHours: 0,
@@ -85,10 +108,11 @@ export function canAccessLiveScreen(event: Event) {
   return hasCapsuleAccess(event) && getEffectiveFeatures(event).liveScreen;
 }
 
-export function getAiCoverQuota(event: Event) {
+export function getAiCoverQuota(event: Event): AiCoverQuota {
   const features = getEffectiveFeatures(event);
   const usedGenerations = event.aiCoverGenerationsCount;
   const usedEdits = event.aiCoverEditsCount;
+  const isFreeEvent = !hasCapsuleAccess(event);
 
   if (isAiCoverTestingUnlimited()) {
     return {
@@ -99,18 +123,29 @@ export function getAiCoverQuota(event: Event) {
       canGenerate: true,
       canEdit: true,
       allowsCustomUpload: features.customCoverUpload,
-      testingMode: true as const
+      testingMode: true
     };
   }
 
+  const packBonusGenerations = isFreeEvent ? event.aiCoverPackBonusGenerations : 0;
+  const packBonusEdits = isFreeEvent ? event.aiCoverPackBonusEdits : 0;
+  const maxGenerations = features.aiCoverGenerations + packBonusGenerations;
+  const maxEdits = features.aiCoverEdits + packBonusEdits;
+
   return {
-    maxGenerations: features.aiCoverGenerations,
-    maxEdits: features.aiCoverEdits,
-    remainingGenerations: Math.max(0, features.aiCoverGenerations - usedGenerations),
-    remainingEdits: Math.max(0, features.aiCoverEdits - usedEdits),
-    canGenerate: usedGenerations < features.aiCoverGenerations,
-    canEdit: usedEdits < features.aiCoverEdits,
-    allowsCustomUpload: features.customCoverUpload
+    maxGenerations,
+    maxEdits,
+    remainingGenerations: Math.max(0, maxGenerations - usedGenerations),
+    remainingEdits: Math.max(0, maxEdits - usedEdits),
+    canGenerate: usedGenerations < maxGenerations,
+    canEdit: usedEdits < maxEdits,
+    allowsCustomUpload: features.customCoverUpload,
+    freePlan: isFreeEvent || undefined,
+    freeIncludedGenerations: isFreeEvent ? features.aiCoverGenerations : undefined,
+    packBonusGenerations: isFreeEvent ? packBonusGenerations : undefined,
+    packBonusEdits: isFreeEvent ? packBonusEdits : undefined,
+    canPurchasePack: isFreeEvent || undefined,
+    packPriceLabel: isFreeEvent ? AI_COVER_PACK_PRICE_LABEL : undefined
   };
 }
 

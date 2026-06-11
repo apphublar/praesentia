@@ -29,13 +29,17 @@ export async function reserveAiCoverUsage(input: ReserveAiCoverUsageInput): Prom
     if (input.usageType === "generation" && !quota.canGenerate) {
       return {
         allowed: false,
-        message: "Limite de gerações por IA atingido."
+        message: quota.canPurchasePack
+          ? "Limite de gerações por IA atingido. Desbloqueie o pacote extra (R$ 4,90) para mais 2 versões."
+          : "Limite de gerações por IA atingido."
       };
     }
     if (input.usageType === "edit" && !quota.canEdit) {
       return {
         allowed: false,
-        message: "Limite de ajustes por IA atingido."
+        message: quota.canPurchasePack
+          ? "Ajustes com IA estão no pacote extra (R$ 4,90): +2 imagens e +2 ajustes."
+          : "Limite de ajustes por IA atingido."
       };
     }
   }
