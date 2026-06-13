@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { Confetti } from "@/components/app/ui/primitives";
+import { Icon } from "@/components/app/ui/icon";
 import { RETENTION_CAPSULE_DESCRIPTION } from "@/lib/copy/retention";
 
 type PanelMode = "live" | "memory";
@@ -9,11 +11,13 @@ type FormMode = "code" | "login" | "request";
 export function MuralAccessPanel({
   eventId,
   capsuleActive,
-  mode
+  mode,
+  eventTitle
 }: {
   eventId: string;
   capsuleActive: boolean;
   mode: PanelMode;
+  eventTitle?: string;
 }) {
   const [formMode, setFormMode] = useState<FormMode>("login");
   const [email, setEmail] = useState("");
@@ -28,10 +32,7 @@ export function MuralAccessPanel({
   if (!capsuleActive) return null;
 
   const isMemory = mode === "memory";
-  const title = isMemory ? "Cápsula do tempo" : "Mural ao vivo";
-  const intro = isMemory
-    ? "Este evento virou uma cápsula do tempo. Informe o e-mail usado na confirmação de presença e o código enviado para ver fotos, vídeos e recados."
-    : "Entre no mural ao vivo com o e-mail da confirmação de presença. Se ainda não confirmou, solicite acesso ao organizador.";
+  const tabMode = formMode === "request" ? "solicitar" : "codigo";
 
   async function requestCode() {
     setPending(true);
@@ -108,78 +109,196 @@ export function MuralAccessPanel({
   }
 
   return (
-    <article className="public-event-card public-mural-access">
-      <h2 className="public-event-section-title">{title}</h2>
-      <p className="public-event-message">{intro}</p>
-      {isMemory ? (
-        <p className="public-event-message public-event-retention-note">{RETENTION_CAPSULE_DESCRIPTION}</p>
-      ) : null}
-
-      <div className="public-mural-access-tabs">
-        <button type="button" className={formMode === "login" ? "is-active" : ""} onClick={() => setFormMode("login")}>
-          Entrar
-        </button>
-        <button type="button" className={formMode === "code" ? "is-active" : ""} onClick={() => setFormMode("code")}>
-          Receber código
-        </button>
-        {!isMemory ? (
-          <button type="button" className={formMode === "request" ? "is-active" : ""} onClick={() => setFormMode("request")}>
-            Solicitar acesso
-          </button>
-        ) : (
-          <button type="button" className={formMode === "request" ? "is-active" : ""} onClick={() => setFormMode("request")}>
-            Perdi o acesso
-          </button>
-        )}
+    <div
+      style={{
+        minHeight: "100%",
+        background: "var(--dark)",
+        color: "var(--paper)",
+        display: "flex",
+        flexDirection: "column",
+        padding: "60px 24px 40px",
+        position: "relative",
+        overflow: "hidden"
+      }}
+    >
+      <Confetti style={{ opacity: 0.25 }} />
+      <div style={{ textAlign: "center", marginBottom: 30, position: "relative" }}>
+        <span
+          className="pulse"
+          style={{ display: "inline-flex", width: 9, height: 9, borderRadius: 99, background: "var(--coral)", marginBottom: 14 }}
+        />
+        <h1 className="serif-i" style={{ fontSize: 30, fontWeight: 600, lineHeight: 1.05 }}>
+          {isMemory ? (
+            <>
+              A cápsula está
+              <br />
+              <span style={{ color: "var(--coral)" }}>guardada</span>.
+            </>
+          ) : (
+            <>
+              O mural está
+              <br />
+              <span style={{ color: "var(--coral)" }}>ao vivo</span>.
+            </>
+          )}
+        </h1>
+        <p style={{ margin: "10px auto 0", fontSize: 13.5, color: "rgba(244,237,223,.6)", maxWidth: 280 }}>
+          Entre para {isMemory ? "revisitar" : "ver e compartilhar"} os momentos de{" "}
+          <strong style={{ color: "var(--paper)" }}>{eventTitle ?? "este evento"}</strong>.
+        </p>
+        {isMemory ? (
+          <p style={{ margin: "12px auto 0", fontSize: 12, color: "rgba(244,237,223,.45)", maxWidth: 300 }}>
+            {RETENTION_CAPSULE_DESCRIPTION}
+          </p>
+        ) : null}
       </div>
 
-      {formMode === "request" ? (
-        <div className="praesentia-form praesentia-form-stack">
-          <label className="field">
-            <span>Nome completo *</span>
-            <input value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="Nome" />
-          </label>
-          <label className="field">
-            <span>Sobrenome *</span>
-            <input value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Sobrenome" />
-          </label>
-          <label className="field">
-            <span>E-mail *</span>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-          </label>
-          <label className="field">
-            <span>WhatsApp *</span>
-            <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(00) 00000-0000" />
-          </label>
-          <button type="button" className="btn" disabled={pending} onClick={requestAccess}>
-            {isMemory ? "Solicitar novo acesso" : "Enviar solicitação ao organizador"}
-          </button>
+      <div style={{ position: "relative" }}>
+        <div style={{ display: "flex", background: "#2a231a", borderRadius: 999, padding: 3, marginBottom: 20 }}>
+          {[
+            ["codigo", isMemory ? "Tenho código" : "Já confirmei"],
+            ["solicitar", isMemory ? "Perdi o acesso" : "Solicitar acesso"]
+          ].map(([v, l]) => (
+            <button
+              key={v}
+              type="button"
+              onClick={() => setFormMode(v === "solicitar" ? "request" : "login")}
+              style={{
+                flex: 1,
+                border: "none",
+                cursor: "pointer",
+                borderRadius: 999,
+                padding: 9,
+                fontFamily: "var(--font-sans)",
+                fontWeight: 600,
+                fontSize: 12.5,
+                background: tabMode === v ? "var(--paper)" : "transparent",
+                color: tabMode === v ? "var(--dark)" : "rgba(244,237,223,.6)",
+                transition: "all .15s"
+              }}
+            >
+              {l}
+            </button>
+          ))}
         </div>
-      ) : (
-        <div className="praesentia-form praesentia-form-stack">
-          <label className="field">
-            <span>E-mail usado na confirmação *</span>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-          </label>
-          {formMode === "login" ? (
-            <label className="field">
-              <span>Código de acesso *</span>
-              <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="6 dígitos" maxLength={6} />
-            </label>
-          ) : null}
-          <button
-            type="button"
-            className="btn"
-            disabled={pending || !email.trim() || (formMode === "login" && !code.trim())}
-            onClick={formMode === "login" ? login : requestCode}
-          >
-            {pending ? "Aguarde..." : formMode === "login" ? `Entrar na ${isMemory ? "cápsula" : "mural"}` : "Enviar código por e-mail"}
-          </button>
-        </div>
-      )}
 
-      {error ? <p className="public-rsvp-error">{error}</p> : null}
-      {message ? <p className="settings-status is-ok">{message}</p> : null}
-    </article>
+        {formMode === "request" ? (
+          <div className="fadeUp">
+            <label className="fl" style={{ color: "rgba(244,237,223,.55)" }}>
+              Nome
+            </label>
+            <input
+              className="input"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              style={{ background: "#2a231a", border: "1px solid var(--dark-line)", color: "var(--paper)", marginBottom: 12 }}
+            />
+            <label className="fl" style={{ color: "rgba(244,237,223,.55)" }}>
+              Sobrenome
+            </label>
+            <input
+              className="input"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              style={{ background: "#2a231a", border: "1px solid var(--dark-line)", color: "var(--paper)", marginBottom: 12 }}
+            />
+            <label className="fl" style={{ color: "rgba(244,237,223,.55)" }}>
+              E-mail
+            </label>
+            <input
+              type="email"
+              className="input"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              style={{ background: "#2a231a", border: "1px solid var(--dark-line)", color: "var(--paper)", marginBottom: 12 }}
+            />
+            <label className="fl" style={{ color: "rgba(244,237,223,.55)" }}>
+              WhatsApp
+            </label>
+            <input
+              className="input"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="(00) 00000-0000"
+              style={{ background: "#2a231a", border: "1px solid var(--dark-line)", color: "var(--paper)", marginBottom: 16 }}
+            />
+            <button type="button" className="btn btn-coral" style={{ width: "100%", padding: 14 }} disabled={pending} onClick={requestAccess}>
+              {pending ? "Enviando…" : isMemory ? "Solicitar novo acesso" : "Enviar solicitação"}
+            </button>
+          </div>
+        ) : (
+          <div className="fadeUp">
+            <label className="fl" style={{ color: "rgba(244,237,223,.55)" }}>
+              E-mail da confirmação
+            </label>
+            <input
+              type="email"
+              className="input"
+              placeholder="voce@email.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              style={{ background: "#2a231a", border: "1px solid var(--dark-line)", color: "var(--paper)", marginBottom: 16 }}
+            />
+            <label className="fl" style={{ color: "rgba(244,237,223,.55)" }}>
+              Código de acesso (enviado por e-mail)
+            </label>
+            <input
+              className="input"
+              value={code}
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              placeholder="000000"
+              maxLength={6}
+              style={{
+                background: "#2a231a",
+                border: "1px solid var(--dark-line)",
+                color: "var(--paper)",
+                marginBottom: 20,
+                textAlign: "center",
+                fontSize: 22,
+                fontWeight: 700,
+                fontFamily: "var(--font-mono)",
+                letterSpacing: 6
+              }}
+            />
+            <button
+              type="button"
+              className="btn btn-coral"
+              style={{ width: "100%", padding: 14 }}
+              disabled={pending || !email.trim() || code.trim().length < 4}
+              onClick={login}
+            >
+              {pending ? "Entrando…" : isMemory ? "Entrar na cápsula" : "Entrar no mural"}
+            </button>
+            <button
+              type="button"
+              style={{
+                width: "100%",
+                marginTop: 14,
+                background: "transparent",
+                border: "none",
+                color: "rgba(244,237,223,.45)",
+                cursor: "pointer",
+                fontSize: 12,
+                fontFamily: "var(--font-sans)"
+              }}
+              disabled={pending || !email.trim()}
+              onClick={requestCode}
+            >
+              Não recebi o código · reenviar
+            </button>
+          </div>
+        )}
+
+        {error ? <p style={{ color: "var(--coral)", fontSize: 13, marginTop: 14 }}>{error}</p> : null}
+        {message ? <p style={{ color: "rgba(244,237,223,.75)", fontSize: 13, marginTop: 14 }}>{message}</p> : null}
+      </div>
+
+      <div style={{ marginTop: "auto", textAlign: "center", paddingTop: 30, color: "rgba(244,237,223,.35)" }}>
+        <Icon name="lock" size={14} style={{ marginBottom: 6 }} />
+        <div className="mono" style={{ fontSize: 9 }}>
+          acesso privado · só convidados
+        </div>
+      </div>
+    </div>
   );
 }

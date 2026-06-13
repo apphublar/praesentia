@@ -2,13 +2,20 @@
 
 import { useState } from "react";
 import type { GuestMessage } from "@/types/domain";
+import { Avatar } from "@/components/app/ui/primitives";
+import { Icon } from "@/components/app/ui/icon";
+import { Mono } from "@/components/app/ui/primitives";
+
+const AVATAR_COLORS = ["#E7C9B9", "#C6D4E2", "#CCE0CE", "#D9CEE8", "#F3D7BC"];
 
 export function GuestMessageSection({
   eventId,
-  initialPublicMessages = []
+  initialPublicMessages = [],
+  variant = "default"
 }: {
   eventId: string;
   initialPublicMessages?: GuestMessage[];
+  variant?: "default" | "prototype";
 }) {
   const [authorName, setAuthorName] = useState("");
   const [body, setBody] = useState("");
@@ -46,6 +53,47 @@ export function GuestMessageSection({
     } finally {
       setPending(false);
     }
+  }
+
+  if (variant === "prototype") {
+    return (
+      <>
+        <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 14 }}>
+          <Icon name="msg" size={18} style={{ color: "var(--coral-deep)" }} />
+          <strong style={{ fontSize: 14.5 }}>Recados</strong>
+          <span className="mono" style={{ marginLeft: "auto", fontSize: 9 }}>
+            público
+          </span>
+        </div>
+        {publicMessages.map((message, i) => (
+          <div key={message.id} style={{ display: "flex", gap: 10, marginBottom: 13 }}>
+            <Avatar name={message.authorName} color={AVATAR_COLORS[i % AVATAR_COLORS.length]} size={30} />
+            <div style={{ flex: 1, background: "var(--card-2)", borderRadius: "4px 14px 14px 14px", padding: "9px 12px" }}>
+              <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 2 }}>{message.authorName}</div>
+              <div style={{ fontSize: 12.5, color: "var(--ink-2)", lineHeight: 1.45 }}>{message.body}</div>
+            </div>
+          </div>
+        ))}
+        <div style={{ display: "flex", gap: 8, marginTop: 6, flexDirection: "column" }}>
+          {!authorName.trim() ? (
+            <input className="input" placeholder="Seu nome" value={authorName} onChange={(e) => setAuthorName(e.target.value)} style={{ padding: "10px 12px", fontSize: 13 }} />
+          ) : null}
+          <div style={{ display: "flex", gap: 8 }}>
+            <input
+              className="input"
+              placeholder="Deixe um carinho…"
+              value={body}
+              onChange={(e) => setBody(e.target.value.slice(0, 500))}
+              style={{ padding: "10px 12px" }}
+            />
+            <button type="button" className="btn btn-coral btn-sm" style={{ padding: "0 14px" }} disabled={pending || !body.trim() || !authorName.trim()} onClick={sendMessage}>
+              <Icon name="send" size={16} />
+            </button>
+          </div>
+        </div>
+        {error ? <p style={{ color: "var(--coral-deep)", fontSize: 12, marginTop: 8 }}>{error}</p> : null}
+      </>
+    );
   }
 
   return (

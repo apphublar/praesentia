@@ -1,0 +1,567 @@
+@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..800;1,400..800&family=Hanken+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap");
+
+.praesentia-app {
+  --paper: #f4eddf;
+  --paper-2: #ece3d2;
+  --card: #fbf8f0;
+  --card-2: #f6f0e4;
+  --ink: #221b14;
+  --ink-2: #4c4236;
+  --muted: #8b8173;
+  --faint: #a89e8d;
+  --line: #e5dccb;
+  --line-2: #dbd0bc;
+  --coral: #f26b5a;
+  --coral-deep: #e0543f;
+  --amber: #f2a93c;
+  --dark: #1e1813;
+  --dark-2: #28211a;
+  --dark-line: #3a3127;
+  --p-blue: #c6d4e2;
+  --p-rose: #e7c9b9;
+  --p-lilac: #d9cee8;
+  --p-green: #cce0ce;
+  --p-sand: #e6ddc9;
+  --p-peach: #f3d7bc;
+  --tape-y: #f4e08a;
+  --tape-c: #f1a695;
+  --font-display: "Playfair Display", Georgia, serif;
+  --font-sans: "Hanken Grotesk", system-ui, sans-serif;
+  --font-mono: "Space Mono", ui-monospace, monospace;
+  --r-lg: 24px;
+  --r-md: 16px;
+  --r-sm: 10px;
+  --shadow-card: 0 1px 2px rgba(34, 27, 20, 0.04), 0 10px 30px -12px rgba(34, 27, 20, 0.14);
+  --shadow-pop: 0 24px 60px -24px rgba(34, 27, 20, 0.4);
+
+  min-height: 100vh;
+  font-family: var(--font-sans);
+  color: var(--ink);
+  background: var(--paper);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.praesentia-app ::selection {
+  background: var(--coral);
+  color: #fff;
+}
+
+.praesentia-app .mono {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.praesentia-app .serif {
+  font-family: var(--font-display);
+}
+
+.praesentia-app .serif-i {
+  font-family: var(--font-display);
+  font-style: italic;
+}
+
+.praesentia-app .coral {
+  color: var(--coral-deep);
+}
+
+.praesentia-app h1,
+.praesentia-app h2,
+.praesentia-app h3 {
+  margin: 0;
+  font-weight: 600;
+  line-height: 1.04;
+  letter-spacing: -0.01em;
+}
+
+.praesentia-app .display {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 500;
+  line-height: 1.02;
+  letter-spacing: -0.005em;
+}
+
+.praesentia-app .btn {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 14px;
+  border: none;
+  border-radius: 999px;
+  padding: 12px 22px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+  transition: transform 0.12s ease, box-shadow 0.2s ease, background 0.2s ease, opacity 0.2s;
+  white-space: nowrap;
+  text-decoration: none;
+  min-height: 44px;
+}
+
+.praesentia-app .btn:active {
+  transform: translateY(1px);
+}
+
+.praesentia-app .btn-dark {
+  background: var(--dark);
+  color: #f4eddf;
+}
+
+.praesentia-app .btn-dark:hover {
+  background: #000;
+}
+
+.praesentia-app .btn-coral {
+  background: var(--coral);
+  color: #fff;
+  box-shadow: 0 6px 18px -6px rgba(242, 107, 90, 0.6);
+}
+
+.praesentia-app .btn-coral:hover {
+  background: #ef5e4c;
+}
+
+.praesentia-app .btn-ghost {
+  background: transparent;
+  color: var(--ink);
+  border: 1.5px solid var(--line-2);
+}
+
+.praesentia-app .btn-ghost:hover {
+  border-color: var(--ink);
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.praesentia-app .btn-amber {
+  background: var(--amber);
+  color: #3a2a07;
+}
+
+.praesentia-app .btn-sm {
+  padding: 8px 16px;
+  font-size: 13px;
+}
+
+.praesentia-app .btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.praesentia-app .pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 10px;
+  font-weight: 700;
+  border: 1px solid var(--line-2);
+  background: var(--card);
+  color: var(--ink-2);
+}
+
+.praesentia-app .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 99px;
+  background: var(--coral);
+  display: inline-block;
+}
+
+.praesentia-app .tag-free {
+  background: #eee7d8;
+  color: #6e6555;
+  border: 1px solid var(--line-2);
+}
+
+.praesentia-app .tag-cap {
+  background: #fceadd;
+  color: var(--coral-deep);
+  border: 1px solid #f4cbbe;
+}
+
+.praesentia-app .card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-card);
+}
+
+.praesentia-app .card-flat {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+}
+
+.praesentia-app .field label,
+.praesentia-app .fl {
+  display: block;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 10.5px;
+  color: var(--muted);
+  margin-bottom: 7px;
+}
+
+.praesentia-app .input,
+.praesentia-app .select,
+.praesentia-app textarea.input {
+  width: 100%;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  color: var(--ink);
+  background: #fff;
+  border: 1.5px solid var(--line-2);
+  border-radius: 12px;
+  padding: 12px 14px;
+  outline: none;
+  transition: border 0.15s, box-shadow 0.15s;
+}
+
+.praesentia-app .input::placeholder {
+  color: var(--faint);
+}
+
+.praesentia-app .input:focus,
+.praesentia-app textarea.input:focus,
+.praesentia-app .select:focus {
+  border-color: var(--ink);
+  box-shadow: 0 0 0 3px rgba(34, 27, 20, 0.06);
+}
+
+.praesentia-app .stripe {
+  position: relative;
+  overflow: hidden;
+  border-radius: 6px;
+  background-color: var(--p-sand);
+  background-image: repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.55) 0 2px, transparent 2px 9px);
+}
+
+.praesentia-app .polaroid {
+  background: #fff;
+  padding: 8px 8px 30px;
+  border-radius: 3px;
+  box-shadow: 0 14px 30px -14px rgba(34, 27, 20, 0.5), 0 1px 0 rgba(0, 0, 0, 0.04);
+  position: relative;
+}
+
+.praesentia-app .polaroid .cap {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 7px;
+  text-align: center;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 13px;
+  color: #5a5246;
+}
+
+.praesentia-app .tape {
+  position: absolute;
+  width: 58px;
+  height: 20px;
+  background: var(--tape-y);
+  opacity: 0.85;
+  top: -9px;
+  left: 50%;
+  transform: translateX(-50%) rotate(-3deg);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.praesentia-app .scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.18) transparent;
+}
+
+.praesentia-app .scroll::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+.praesentia-app .scroll::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.16);
+  border-radius: 99px;
+}
+
+.praesentia-app .confetti i {
+  position: absolute;
+  border-radius: 1px;
+}
+
+@keyframes pa-fadeUp {
+  from {
+    transform: translateY(9px);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@keyframes pa-pop {
+  from {
+    transform: scale(0.985);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@keyframes pa-shine {
+  from {
+    background-position: -200% 0;
+  }
+  to {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes pa-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pa-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(242, 107, 90, 0.5);
+  }
+  70% {
+    box-shadow: 0 0 0 7px rgba(242, 107, 90, 0);
+  }
+}
+
+.praesentia-app .fadeUp {
+  animation: pa-fadeUp 0.5s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+
+.praesentia-app .pop {
+  animation: pa-pop 0.35s cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+
+.praesentia-app .shine {
+  background: linear-gradient(90deg, #e8dfce 25%, #f2ebdb 50%, #e8dfce 75%);
+  background-size: 200% 100%;
+  animation: pa-shine 1.3s ease infinite;
+}
+
+.praesentia-app .spin {
+  animation: pa-spin 0.8s linear infinite;
+}
+
+.praesentia-app .pulse {
+  animation: pa-pulse 1.8s ease infinite;
+}
+
+.praesentia-app .evcard:hover .card {
+  transform: translateY(-3px);
+  box-shadow: 0 20px 44px -20px rgba(34, 27, 20, 0.32);
+}
+
+.praesentia-app .newev:hover {
+  border-color: var(--coral);
+  color: var(--coral-deep);
+}
+
+.praesentia-app .newev:hover span {
+  border-color: var(--coral);
+}
+
+.praesentia-app .rowhover:hover {
+  background: var(--card-2);
+}
+
+.praesentia-app .navitem {
+  transition: background 0.14s, color 0.14s;
+}
+
+/* App shell layout */
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+}
+
+.app-rail {
+  width: 264px;
+  flex-shrink: 0;
+  background: var(--card);
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+}
+
+.app-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.app-bottom-nav {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .app-rail {
+    display: none;
+  }
+
+  .app-bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 40;
+    background: var(--card);
+    border-top: 1px solid var(--line);
+    padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
+    gap: 6px;
+    justify-content: space-around;
+  }
+
+  .app-main {
+    padding-bottom: 72px;
+  }
+}
+
+.app-events-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+@media (max-width: 1100px) {
+  .app-events-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .app-events-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.app-create-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 720px) {
+  .app-create-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.app-create-layout {
+  display: flex;
+  height: 100%;
+  min-height: calc(100vh - 72px);
+}
+
+.app-create-rail {
+  width: 230px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--line);
+  padding: 30px 24px;
+  background: var(--card-2);
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 900px) {
+  .app-create-layout {
+    flex-direction: column;
+  }
+
+  .app-create-rail {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid var(--line);
+    padding: 16px;
+  }
+}
+
+.app-admin-tabs {
+  display: flex;
+  gap: 2px;
+  margin-top: 18px;
+  overflow-x: auto;
+}
+
+.app-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(30, 24, 19, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 100;
+}
+
+.prototype-guest-root {
+  min-height: 100vh;
+  background: var(--paper);
+}
+
+.prototype-guest-frame {
+  width: 100%;
+  max-width: 430px;
+  margin: 0 auto;
+  min-height: 100vh;
+  background: var(--paper);
+  box-shadow: 0 0 0 1px var(--line);
+}
+
+.prototype-guest-frame-dark {
+  background: var(--dark);
+  max-width: none;
+}
+
+.prototype-guest-scroll {
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (min-width: 901px) {
+  .prototype-guest-frame:not(.prototype-guest-frame-dark) {
+    margin-top: 0;
+    min-height: 100vh;
+  }
+}
+
+@keyframes pa-floatUp {
+  from {
+    transform: translateY(18px) scale(0.97);
+  }
+  to {
+    transform: none;
+  }
+}
+
+.praesentia-app .floatUp {
+  animation: pa-floatUp 0.5s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+
+@media (max-width: 900px) {
+  .app-create-layout .invite-art-grid {
+    grid-template-columns: 1fr !important;
+  }
+}

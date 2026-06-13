@@ -29,7 +29,8 @@ export function RsvpForm({
   rsvpDeadline,
   capsuleAvailable = false,
   collectPixAmount = false,
-  minPerPerson
+  minPerPerson,
+  variant = "default"
 }: {
   eventId: string;
   eventSlug: string;
@@ -38,6 +39,7 @@ export function RsvpForm({
   capsuleAvailable?: boolean;
   collectPixAmount?: boolean;
   minPerPerson?: number;
+  variant?: "default" | "prototype";
 }) {
   const rsvpDeadlineLabel = rsvpDeadline ? formatEventDateLong(rsvpDeadline) : null;
   const [step, setStep] = useState<Step>("form");
@@ -161,6 +163,22 @@ export function RsvpForm({
     setPending(false);
   }
 
+  if (step === "done" && variant === "prototype") {
+    return (
+      <div className="card pop" style={{ padding: 22, textAlign: "center", border: "1.5px solid #7d9a6f" }}>
+        <div style={{ width: 50, height: 50, borderRadius: 99, background: "#7d9a6f", margin: "0 auto 12px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <span style={{ color: "#fff", fontSize: 24 }}>✓</span>
+        </div>
+        <h3 className="serif-i" style={{ fontSize: 22, margin: 0 }}>
+          {rsvpStatus === "confirmed" ? "Presença confirmada!" : "Resposta registrada"}
+        </h3>
+        <p style={{ margin: "6px 0 0", fontSize: 13, color: "var(--ink-2)" }}>
+          Que alegria ter você{partySize > 1 ? `. Anotamos ${partySize} pessoas.` : "."}
+        </p>
+      </div>
+    );
+  }
+
   if (step === "done") {
     return (
       <section className="public-rsvp-state">
@@ -209,6 +227,57 @@ export function RsvpForm({
         </div>
         {error ? <p className="public-rsvp-error">{error}</p> : null}
       </section>
+    );
+  }
+
+  if (variant === "prototype") {
+    const extra = companions.length;
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
+        <input
+          className="input"
+          placeholder="Seu nome"
+          value={`${firstName}${lastName ? ` ${lastName}` : ""}`.trim()}
+          onChange={(e) => {
+            const parts = e.target.value.trim().split(/\s+/);
+            setFirstName(parts[0] ?? "");
+            setLastName(parts.slice(1).join(" "));
+          }}
+        />
+        <input className="input" type="email" placeholder="E-mail" value={email} onChange={(e) => setEmail(e.target.value)} />
+        <input className="input" type="tel" placeholder="WhatsApp" value={phone} onChange={(e) => setPhone(e.target.value)} />
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "6px 4px" }}>
+          <span style={{ fontSize: 13.5, color: "var(--ink-2)", fontWeight: 600 }}>Acompanhantes</span>
+          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+            <StepBtn onClick={() => setCompanions((c) => c.slice(0, -1))}>–</StepBtn>
+            <span style={{ width: 18, textAlign: "center", fontWeight: 700 }}>{extra}</span>
+            <StepBtn onClick={() => setCompanions((c) => [...c, { id: createRowId(), name: "", type: "adult", age: "" }])}>+</StepBtn>
+          </div>
+        </div>
+        {companions.map((companion) => (
+          <input
+            key={companion.id}
+            className="input"
+            placeholder="Nome do acompanhante"
+            value={companion.name}
+            onChange={(e) => updateCompanion(companion.id, { name: e.target.value })}
+          />
+        ))}
+        <label style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 12, color: "var(--muted)" }}>
+          <input type="checkbox" checked={termsAccepted} onChange={(e) => setTermsAccepted(e.target.checked)} style={{ marginTop: 3 }} />
+          <span>
+            Concordo com os <a href="/termos" target="_blank" rel="noopener noreferrer">Termos</a> e a{" "}
+            <a href="/privacidade" target="_blank" rel="noopener noreferrer">Privacidade</a>.
+          </span>
+        </label>
+        {error ? <p style={{ color: "var(--coral-deep)", fontSize: 13, margin: 0 }}>{error}</p> : null}
+        <button type="button" className="btn btn-coral" style={{ width: "100%" }} disabled={pending} onClick={() => (capsuleAvailable ? setStep("capsule") : handleSubmit("confirmed"))}>
+          {pending ? "Enviando…" : "Confirmar presença"}
+        </button>
+        <button type="button" className="btn btn-ghost btn-sm" style={{ width: "100%" }} disabled={pending} onClick={() => handleSubmit("declined")}>
+          Não vou
+        </button>
+      </div>
     );
   }
 
@@ -321,5 +390,31 @@ export function RsvpForm({
         </div>
       </div>
     </section>
+  );
+}
+
+function StepBtn({ children, onClick }: { children: React.ReactNode; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        width: 30,
+        height: 30,
+        borderRadius: 99,
+        border: "1.5px solid var(--line-2)",
+        background: "#fff",
+        cursor: "pointer",
+        fontSize: 18,
+        lineHeight: 1,
+        color: "var(--ink-2)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontWeight: 600
+      }}
+    >
+      {children}
+    </button>
   );
 }

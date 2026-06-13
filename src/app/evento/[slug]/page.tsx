@@ -46,9 +46,11 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
   );
 
   return (
-    <PublicEventLayout theme={event.theme} eventType={event.eventType}>
+    <>
       {isFundraising ? (
-        <VaquinhaPublicView event={event} collectedAmount={collectedAmount} publicMessages={publicMessages} />
+        <PublicEventLayout theme={event.theme} eventType={event.eventType}>
+          <VaquinhaPublicView event={event} collectedAmount={collectedAmount} publicMessages={publicMessages} />
+        </PublicEventLayout>
       ) : (
         <EventPublicShell
           event={event}
@@ -63,6 +65,6 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
           confirmedGuestCount={confirmedGuestCount}
         />
       )}
-    </PublicEventLayout>
+    </>
   );
 }

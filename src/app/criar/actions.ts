@@ -82,6 +82,8 @@ export async function createEventAction(_prev: CreateEventState, formData: FormD
   const giftSuggestions = parseGiftSuggestions(formData);
   const rsvpDeadline = optional(formData.get("rsvpDeadline"), 20);
   const rsvpEnabled = profile.isFundraising ? formData.get("rsvpEnabled") === "1" : true;
+  const locationMode = optional(formData.get("locationMode"), 20);
+  const locationTbd = locationMode === "tbd";
 
   const pixKey = required(formData.get("pixKey"), 120);
   const pixReceiverName = required(formData.get("pixReceiverName"), 120);
@@ -106,7 +108,7 @@ export async function createEventAction(_prev: CreateEventState, formData: FormD
     return validationError("link-online-obrigatorio");
   }
 
-  if (eventFormat === "in_person" && (!venueName || !venueAddress || !city)) {
+  if (eventFormat === "in_person" && !locationTbd && (!venueName || !venueAddress || !city)) {
     return validationError("local-obrigatorio");
   }
 
@@ -131,16 +133,27 @@ export async function createEventAction(_prev: CreateEventState, formData: FormD
           ? "Vaquinha online"
           : eventFormat === "online"
             ? "Evento online"
-            : venueName,
+            : locationTbd
+              ? "Local a definir"
+              : venueName,
       venueAddress:
         eventFormat === "fundraising"
           ? "Contribuição via Pix"
           : eventFormat === "online"
             ? onlineMeetingUrl
-            : venueAddress,
+            : locationTbd
+              ? "A definir"
+              : venueAddress,
       venueZip: eventFormat === "in_person" ? venueZip : undefined,
       venueComplement: eventFormat === "in_person" ? venueComplement : undefined,
-      city: eventFormat === "fundraising" ? "Online" : eventFormat === "online" ? "Online" : city,
+      city:
+        eventFormat === "fundraising"
+          ? "Online"
+          : eventFormat === "online"
+            ? "Online"
+            : locationTbd
+              ? city || "A definir"
+              : city,
       rsvpEnabled,
       rsvpDeadline,
       giftSuggestions

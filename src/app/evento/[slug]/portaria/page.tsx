@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { PortariaPanel } from "@/components/event/portaria-panel";
+import { PrototypePortariaView } from "@/components/app/guest/prototype-portaria-view";
 import { repositories } from "@/lib/db";
 import { safeRepositoryCall } from "@/lib/db/safe";
 import { formatEventDateLine } from "@/lib/events/format-event-date";
@@ -20,15 +20,17 @@ export default async function PortariaPage({
 
   if (!token || token !== event.freeCode) {
     return (
-      <main className="portaria-page portaria-page-locked">
-        <section className="portaria-lock-card">
-          <div className="portaria-lock-icon" aria-hidden="true">🔒</div>
-          <h1>Link de check-in inválido</h1>
-          <p>
-            Este endereço não está autorizado para check-in. Peça ao organizador do evento o link correto.
+      <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", padding: 24, background: "var(--paper)" }}>
+        <div className="card" style={{ maxWidth: 420, padding: 28, textAlign: "center" }}>
+          <div style={{ fontSize: 40, marginBottom: 12 }}>🔒</div>
+          <h1 className="serif-i" style={{ fontSize: 24, margin: "0 0 8px" }}>
+            Link de check-in inválido
+          </h1>
+          <p style={{ margin: 0, color: "var(--muted)", lineHeight: 1.5 }}>
+            Peça ao organizador o link correto da portaria.
           </p>
-        </section>
-      </main>
+        </div>
+      </div>
     );
   }
 
@@ -38,32 +40,12 @@ export default async function PortariaPage({
     "guestRsvps.listByEvent"
   );
 
-  const eventDate = formatEventDateLine(event.date);
-
   return (
-    <main className="portaria-page">
-      <div className="portaria-shell">
-        <header className="portaria-header">
-          <span className="portaria-kicker">Check-in dos convidados</span>
-          <h1>{event.title}</h1>
-          <p className="portaria-subtitle">
-            {event.hostName}
-            {eventDate ? ` · ${eventDate}` : ""}
-            {event.startsAt ? ` · ${event.startsAt}` : ""}
-          </p>
-          <p className="portaria-help">
-            Busque pelo nome, confirme a entrada e registre convidado + acompanhante juntos quando houver.
-          </p>
-          {event.checkInNotes ? (
-            <div className="portaria-notes">
-              <strong>Orientações do organizador</strong>
-              <p>{event.checkInNotes}</p>
-            </div>
-          ) : null}
-        </header>
-
-        <PortariaPanel eventId={event.id} token={token} initialRsvps={rsvps} />
-      </div>
-    </main>
+    <PrototypePortariaView
+      event={event}
+      token={token}
+      initialRsvps={rsvps}
+      subtitle={[event.hostName, formatEventDateLine(event.date), event.startsAt?.slice(0, 5)].filter(Boolean).join(" · ")}
+    />
   );
 }
