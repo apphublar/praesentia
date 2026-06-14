@@ -181,7 +181,7 @@ export function PlanCard({
             </div>
           ))}
         </div>
-        <div className={`btn ${dark ? "btn-amber" : selected ? "btn-coral" : "btn-ghost"}`} style={{ marginTop: 18, width: "100%", pointerEvents: "none" }}>
+        <div className={`btn ${selected ? "btn-coral" : dark ? "btn-amber" : "btn-ghost"}`} style={{ marginTop: 18, width: "100%", pointerEvents: "none" }}>
           {plan.cta}
         </div>
       </div>

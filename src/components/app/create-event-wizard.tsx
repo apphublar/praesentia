@@ -201,7 +201,7 @@ export function CreateEventWizard({
     <div className="app-create-layout">
       <StepRail step={step} maxStep={maxStep} onGo={setStep} />
       <div className="scroll" style={{ flex: 1, overflow: "auto", padding: "36px 48px 60px" }}>
-        <div style={{ maxWidth: step === 1 || step === 2 ? 920 : 680, margin: "0 auto" }} key={step} className="fadeUp">
+        <div style={{ maxWidth: step === 1 || step === 2 || step === 3 ? 920 : 680, margin: "0 auto" }} key={step} className="fadeUp">
           {step === 0 && (
             <>
               <h1 className="display" style={{ fontSize: 38, marginBottom: 6 }}>
@@ -337,7 +337,9 @@ export function CreateEventWizard({
             </>
           )}
 
-          {step === 3 && ev && <CreateEventPronto eventSlug={ev.slug} eventId={ev.id} plan={plan} />}
+          {step === 3 && ev && (
+            <CreateEventPronto event={ev} inviteCopy={copy} coverUrl={coverUrl || ev.coverImageUrl || undefined} plan={plan} />
+          )}
         </div>
 
         {step < 3 && step > 0 && (

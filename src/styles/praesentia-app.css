@@ -566,6 +566,72 @@
   }
 }
 
+.create-pronto-header {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.create-pronto-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
+  gap: 28px;
+  align-items: start;
+}
+
+.create-pronto-preview-frame {
+  max-width: 320px;
+  margin: 0 auto;
+}
+
+.create-pronto-message {
+  margin-top: 16px;
+  padding: 16px 18px;
+  background: var(--card-2);
+}
+
+.create-pronto-share {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.create-pronto-link-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  background: #fff;
+}
+
+.create-pronto-link-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  word-break: break-all;
+  color: var(--ink-2);
+}
+
+.create-pronto-share .btn {
+  width: 100%;
+  justify-content: center;
+}
+
+.create-pronto-whatsapp-preview {
+  margin-top: 4px;
+}
+
+@media (max-width: 820px) {
+  .create-pronto-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .create-pronto-preview-frame {
+    max-width: 280px;
+  }
+}
+
 .admin-experience-page {
   padding: 20px 28px 40px;
   min-height: 100%;
