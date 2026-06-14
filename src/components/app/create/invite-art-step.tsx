@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import type { Event, InviteCopy } from "@/types/domain";
+import { ArtStylePicker } from "@/components/app/ui/art-style-picker";
 import { Icon } from "@/components/app/ui/icon";
-import { InviteArt, type ArtStyle } from "@/components/app/ui/invite-art";
+import { InviteArt } from "@/components/app/ui/invite-art";
 import { Mono, Segmented, Shimmer, Tag, Toggle } from "@/components/app/ui/primitives";
 import { Spinner } from "@/components/app/ui/spinner";
 import type { CoverQuota } from "@/components/dashboard/cover-generator";
@@ -14,6 +15,7 @@ import { composeCoverWithHostPhoto, uploadComposedCover } from "@/lib/images/com
 import { buildPhotoZoneInstructions, type PhotoOverlayConfig, type PhotoSize } from "@/lib/images/photo-zone-instructions";
 import { formatEventDateLine } from "@/lib/events/format-event-date";
 import { resolveInviteCopy } from "@/lib/events/invite-copy";
+import { artStylePrompt, type ArtStyle } from "@/lib/openai/art-styles";
 import { buildInitialCoverEditableFields, coverEditableFieldsToOverride, toCoverFormEventInput } from "@/lib/openai/cover-invitation-spec";
 import { resizeImageForCover } from "@/lib/images/resize-host-photo";
 
@@ -30,6 +32,80 @@ function placeLabel(event: Event) {
   return event.venueName;
 }
 
+function FieldWithAi({
+  label,
+  hint,
+  value,
+  onChange,
+  onBlur,
+  placeholder,
+  rows,
+  loading,
+  onGenerate,
+  generateLabel,
+  generateAgainLabel,
+  disabled
+}: {
+  label: string;
+  hint?: string;
+  value: string;
+  onChange: (value: string) => void;
+  onBlur?: () => void;
+  placeholder: string;
+  rows: number;
+  loading: boolean;
+  onGenerate: () => void;
+  generateLabel: string;
+  generateAgainLabel: string;
+  disabled?: boolean;
+}) {
+  return (
+    <>
+      <span className="fl">{label}</span>
+      {hint ? (
+        <p style={{ margin: "0 0 10px", fontSize: 11.5, color: "var(--muted)", lineHeight: 1.45 }}>{hint}</p>
+      ) : null}
+      <div style={{ position: "relative" }}>
+        <textarea
+          className="input"
+          rows={rows}
+          placeholder={placeholder}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onBlur={onBlur}
+          disabled={loading}
+          style={{ opacity: loading ? 0.55 : 1, marginBottom: 0 }}
+        />
+        {loading ? (
+          <div
+            style={{
+              position: "absolute",
+              inset: "10px 12px",
+              borderRadius: 8,
+              background: "rgba(255,255,255,.72)",
+              display: "flex",
+              alignItems: "center",
+              pointerEvents: "none"
+            }}
+          >
+            <Shimmer lines={rows > 3 ? 4 : 3} />
+          </div>
+        ) : null}
+      </div>
+      <button
+        type="button"
+        className="btn btn-dark btn-sm"
+        style={{ marginTop: 12, width: "100%" }}
+        onClick={onGenerate}
+        disabled={loading || disabled}
+      >
+        <Icon name="spark" size={14} />
+        {loading ? "Gerando…" : value.trim() ? generateAgainLabel : generateLabel}
+      </button>
+    </>
+  );
+}
+
 export function InviteArtStep({
   event,
   textQuota,
@@ -43,12 +119,10 @@ export function InviteArtStep({
   onCoverChange: (url: string) => void;
   onCopyChange: (copy: InviteCopy) => void;
 }) {
-  const [tone, setTone] = useState("Carinhoso e poético, com toque de jardim encantado");
   const [genText, setGenText] = useState(false);
-  const [inviteText, setInviteText] = useState("");
-  const [artStyle, setArtStyle] = useState<ArtStyle>("Jardim");
-  const [artDesc, setArtDesc] = useState("");
-  const [proPrompt, setProPrompt] = useState("");
+  const [inviteText, setInviteText] = useState(event.inviteCopy?.message ?? "");
+  const [artStyle, setArtStyle] = useState<ArtStyle>("Elegante");
+  const [coverPrompt, setCoverPrompt] = useState("");
   const [genPrompt, setGenPrompt] = useState(false);
   const [includeInfo, setIncludeInfo] = useState(true);
   const [photoUrl, setPhotoUrl] = useState(event.hostPhotoUrl ?? "");
@@ -97,7 +171,10 @@ export function InviteArtStep({
     try {
       const { response, data } = await dashboardFetchJson(`/api/events/${event.id}/generate-invite-text`, {
         method: "POST",
-        body: JSON.stringify({ mode: "generate", editHint: tone })
+        body: JSON.stringify({
+          mode: "generate",
+          editHint: inviteText.trim() || undefined
+        })
       });
       if (!response.ok) {
         setError(String(data.error ?? "Não consegui gerar agora, tente de novo."));
@@ -117,10 +194,14 @@ export function InviteArtStep({
     setGenPrompt(true);
     setError("");
     try {
+      const styleLine = artStylePrompt(artStyle);
+      const draft = coverPrompt.trim()
+        ? `${coverPrompt.trim()}. ${styleLine}.`
+        : styleLine;
       const { response, data } = await dashboardFetchJson(`/api/events/${event.id}/generate-cover-prompt`, {
         method: "POST",
         body: JSON.stringify({
-          draftOrientation: `${artDesc}. Estilo ${artStyle}. ${tone}`,
+          draftOrientation: draft,
           draftPhotoInstructions: photo ? buildPhotoZoneInstructions(photo) : "",
           withHostPhoto: false,
           coverFields: coverEditableFieldsToOverride(coverFields)
@@ -130,7 +211,7 @@ export function InviteArtStep({
         setError(String(data.error ?? "Não consegui gerar o prompt."));
         return;
       }
-      setProPrompt(String(data.visualDirection ?? data.prompt ?? ""));
+      setCoverPrompt(String(data.visualDirection ?? data.prompt ?? ""));
     } catch (err) {
       setError(apiErrorMessage(err, "Erro de conexão."));
     } finally {
@@ -151,10 +232,13 @@ export function InviteArtStep({
         fields.city = "";
       }
       const hasPhoto = Boolean(photoUrl);
+      const orientation = coverPrompt.trim()
+        ? `${coverPrompt.trim()}. ${artStylePrompt(artStyle)}.`
+        : artStylePrompt(artStyle);
       const result = await generateEventCoverImageClient({
         eventId: event.id,
         mode: "generate",
-        orientation: proPrompt || `${artDesc}. Estilo ${artStyle} em tons pastel.`,
+        orientation,
         photoInstructions: photo ? buildPhotoZoneInstructions(photo) : undefined,
         externalPhotoCompose: hasPhoto,
         coverFields: coverEditableFieldsToOverride(fields)
@@ -203,6 +287,7 @@ export function InviteArtStep({
       if (typeof data.hostPhotoUrl === "string") {
         setPhotoUrl(data.hostPhotoUrl);
         setPhotoName(file.name);
+        setCoverComposed(false);
       }
     } catch (err) {
       setError(apiErrorMessage(err, "Erro de conexão."));
@@ -213,8 +298,8 @@ export function InviteArtStep({
     const copy = resolveInviteCopy({
       headline: event.title,
       message: inviteText,
-      whatsapp: `Você está convidado(a) para ${event.title}. Confirme aqui: {{link}}`,
-      hashtags: []
+      whatsapp: event.inviteCopy?.whatsapp ?? `Você está convidado(a) para ${event.title}. Confirme aqui: {{link}}`,
+      hashtags: event.inviteCopy?.hashtags ?? []
     });
     await dashboardFetchJson(`/api/events/${event.id}/invite-copy`, {
       method: "PATCH",
@@ -226,55 +311,14 @@ export function InviteArtStep({
   return (
     <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 300px", gap: 26, alignItems: "start" }}>
       <div>
+        {/* 1 — Foto do homenageado */}
         <div className="card" style={{ padding: 18, marginBottom: 18 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-            <Icon name="spark" size={17} style={{ color: "var(--coral)" }} />
-            <strong style={{ fontSize: 14 }}>Texto com IA</strong>
-          </div>
-          <textarea
-            className="input"
-            rows={3}
-            placeholder="Descreva o tom: carinhoso, divertido, formal…"
-            value={tone}
-            onChange={(e) => setTone(e.target.value)}
-          />
-          <button type="button" className="btn btn-dark btn-sm" style={{ marginTop: 12 }} onClick={generateText} disabled={genText || !textQuota.canGenerate}>
-            <Icon name="spark" size={14} />
-            {genText ? "Gerando…" : inviteText ? "Gerar novamente" : "Gerar texto"}
-          </button>
-          {genText || inviteText ? (
-            <div style={{ marginTop: 14, padding: 14, borderRadius: 12, background: "var(--card-2)", border: "1px solid var(--line)", minHeight: 70 }}>
-              {genText ? (
-                <Shimmer lines={3} />
-              ) : (
-                <textarea
-                  className="input"
-                  rows={5}
-                  value={inviteText}
-                  onChange={(e) => setInviteText(e.target.value)}
-                  onBlur={saveCopy}
-                  style={{ background: "transparent", border: "none", padding: 0 }}
-                />
-              )}
-            </div>
-          ) : null}
-        </div>
-
-        <div className="card" style={{ padding: 18 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <Icon name="image" size={17} style={{ color: "var(--coral)" }} />
-              <strong style={{ fontSize: 14 }}>Arte com IA</strong>
-            </div>
-            <Tag>1 grátis</Tag>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+            <Icon name="user" size={17} style={{ color: "var(--coral)" }} />
+            <strong style={{ fontSize: 14 }}>Foto do homenageado</strong>
+            <span style={{ fontSize: 11.5, color: "var(--faint)" }}>· opcional</span>
           </div>
 
-          <span className="fl">Tema da festa</span>
-          <input className="input" value={event.theme} readOnly style={{ marginBottom: 14, background: "var(--card-2)" }} />
-
-          <span className="fl">
-            Foto do homenageado <span style={{ textTransform: "none", letterSpacing: 0, color: "var(--faint)" }}>· opcional</span>
-          </span>
           {photoUrl ? (
             <>
               <div
@@ -295,13 +339,13 @@ export function InviteArtStep({
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 600, fontSize: 13 }}>{photoName || "Foto enviada"}</div>
-                  <div style={{ fontSize: 11.5, color: "var(--muted)" }}>Ajuste o formato e a posição abaixo</div>
+                  <div style={{ fontSize: 11.5, color: "var(--muted)" }}>Ajuste formato, tamanho e posição</div>
                 </div>
                 <button type="button" onClick={() => setPhotoUrl("")} style={{ border: "none", background: "transparent", cursor: "pointer", color: "var(--faint)", padding: 4 }}>
                   <Icon name="x" size={17} />
                 </button>
               </div>
-              <div style={{ marginBottom: 14, padding: 14, borderRadius: 12, background: "var(--card-2)", border: "1px solid var(--line)" }}>
+              <div style={{ padding: 14, borderRadius: 12, background: "var(--card-2)", border: "1px solid var(--line)" }}>
                 <span className="fl">Formato da foto</span>
                 <Segmented
                   full
@@ -408,7 +452,6 @@ export function InviteArtStep({
                 alignItems: "center",
                 width: "100%",
                 padding: "13px 14px",
-                marginBottom: 14,
                 borderRadius: 12,
                 cursor: "pointer",
                 textAlign: "left",
@@ -427,39 +470,38 @@ export function InviteArtStep({
               <Icon name="plus" size={17} style={{ color: "var(--muted)" }} />
             </label>
           )}
+        </div>
 
-          <span className="fl">Como você imagina a arte?</span>
-          <textarea className="input" rows={3} value={artDesc} onChange={(e) => setArtDesc(e.target.value)} placeholder="Descreva a cena, cores e elementos…" style={{ marginBottom: 14 }} />
+        {/* 2 — Arte do convite */}
+        <div className="card" style={{ padding: 18, marginBottom: 18 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <Icon name="image" size={17} style={{ color: "var(--coral)" }} />
+              <strong style={{ fontSize: 14 }}>Arte do convite</strong>
+            </div>
+            <Tag>1 grátis</Tag>
+          </div>
+
+          <span className="fl">Tema da festa</span>
+          <input className="input" value={event.theme} readOnly style={{ marginBottom: 14, background: "var(--card-2)" }} />
 
           <span className="fl">Estilo visual</span>
           <div style={{ marginBottom: 14 }}>
-            <Segmented full options={["Jardim", "Aquarela", "Minimal", "Festa"]} value={artStyle} onChange={(v) => setArtStyle(v as ArtStyle)} />
+            <ArtStylePicker value={artStyle} onChange={setArtStyle} />
           </div>
 
-          <button type="button" className="btn btn-ghost btn-sm" style={{ width: "100%" }} onClick={generateProPrompt} disabled={genPrompt}>
-            <Icon name="spark" size={14} />
-            {genPrompt ? "Escrevendo…" : proPrompt ? "Refazer prompt" : "Gerar prompt profissional com IA"}
-          </button>
-
-          {genPrompt || proPrompt ? (
-            <div style={{ marginTop: 12 }}>
-              <span className="fl" style={{ display: "flex", justifyContent: "space-between" }}>
-                <span>Prompt da imagem (editável)</span>
-                {proPrompt ? (
-                  <span className="mono" style={{ fontSize: 8.5, color: "var(--coral-deep)" }}>
-                    otimizado ✦
-                  </span>
-                ) : null}
-              </span>
-              {genPrompt ? (
-                <div style={{ padding: 14, borderRadius: 12, background: "var(--card-2)", border: "1px solid var(--line)" }}>
-                  <Shimmer lines={3} />
-                </div>
-              ) : (
-                <textarea className="input" rows={4} value={proPrompt} onChange={(e) => setProPrompt(e.target.value)} style={{ fontSize: 13, lineHeight: 1.5, background: "var(--card-2)" }} />
-              )}
-            </div>
-          ) : null}
+          <FieldWithAi
+            label="Prompt da imagem"
+            hint="Escreva como imagina a cena. A IA aprimora o texto aqui mesmo, no campo abaixo."
+            value={coverPrompt}
+            onChange={setCoverPrompt}
+            placeholder="Descreva cores, elementos e clima da arte… ou deixe em branco e use só o estilo visual."
+            rows={4}
+            loading={genPrompt}
+            onGenerate={generateProPrompt}
+            generateLabel="Aprimorar prompt com IA"
+            generateAgainLabel="Aprimorar novamente com IA"
+          />
 
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 14, padding: "11px 14px", borderRadius: 12, background: "var(--card-2)", border: "1px solid var(--line)" }}>
             <div style={{ paddingRight: 10 }}>
@@ -479,6 +521,30 @@ export function InviteArtStep({
             </p>
           ) : null}
         </div>
+
+        {/* 3 — Texto enviado com o convite */}
+        <div className="card" style={{ padding: 18 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+            <Icon name="msg" size={17} style={{ color: "var(--coral)" }} />
+            <strong style={{ fontSize: 14 }}>Texto enviado com o convite</strong>
+          </div>
+
+          <FieldWithAi
+            label="Mensagem do convite"
+            hint="Este texto acompanha o link do convite no WhatsApp e na página do evento."
+            value={inviteText}
+            onChange={setInviteText}
+            onBlur={saveCopy}
+            placeholder="Escreva sua ideia ou rascunho… A IA aprimora o texto aqui mesmo, substituindo o que você escreveu."
+            rows={5}
+            loading={genText}
+            onGenerate={generateText}
+            generateLabel="Aprimorar texto com IA"
+            generateAgainLabel="Aprimorar novamente com IA"
+            disabled={!textQuota.canGenerate}
+          />
+        </div>
+
         {error ? <p style={{ color: "var(--coral-deep)", fontSize: 13, marginTop: 12 }}>{error}</p> : null}
       </div>
 

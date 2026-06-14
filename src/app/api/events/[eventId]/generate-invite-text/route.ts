@@ -47,7 +47,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ eve
       return NextResponse.json({ error: "Limite de geração de texto atingido." }, { status: 403 });
     }
 
-    const inviteCopy = await generateInviteCopy(event, mode === "edit" ? editHint : undefined);
+    const inviteCopy = await generateInviteCopy(event, editHint || undefined);
     if (!inviteCopy) {
       return NextResponse.json({ error: "Falha ao gerar texto com a OpenAI." }, { status: 500 });
     }

@@ -3,21 +3,10 @@
 import type { CSSProperties } from "react";
 import { Confetti, StripePhoto } from "@/components/app/ui/primitives";
 import { photoSizePercent, type PhotoOverlayConfig, type PhotoSize } from "@/lib/images/photo-zone-instructions";
+import { artStyleTheme, type ArtStyle } from "@/lib/openai/art-styles";
 
-export type { PhotoOverlayConfig, PhotoSize };
-
-const STYLE_MAP = {
-  Jardim: { t: "var(--p-green)", a: "#7d9a6f" },
-  Aquarela: { t: "var(--p-blue)", a: "#5f7d9a" },
-  Minimal: { t: "var(--p-sand)", a: "#8a8173" },
-  Festa: { t: "var(--p-lilac)", a: "#7d6f9a" }
-} as const;
-
-export type ArtStyle = keyof typeof STYLE_MAP;
-
-export function artStyleTheme(style: ArtStyle) {
-  return STYLE_MAP[style] ?? STYLE_MAP.Jardim;
-}
+export type { PhotoOverlayConfig, PhotoSize, ArtStyle };
+export { artStyleTheme };
 
 function Leaf({ accent, style }: { accent: string; style?: CSSProperties }) {
   return (
@@ -75,7 +64,7 @@ export function InviteArt({
   dateShort,
   time,
   place,
-  artStyle = "Jardim",
+  artStyle = "Elegante",
   width = "100%",
   compact = false,
   info = true,

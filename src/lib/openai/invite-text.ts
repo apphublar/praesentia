@@ -31,7 +31,9 @@ function buildLocationLine(event: Event) {
 
 export function buildInviteTextPrompt(event: Event, editHint?: string) {
   const typeLabel = EVENT_TYPE_LABELS[event.eventType] ?? "evento especial";
-  const editLine = editHint ? `\nAjuste solicitado pelo organizador: ${editHint}` : "";
+  const editLine = editHint
+    ? `\nRascunho ou orientação do organizador (aprimore mantendo a intenção):\n${editHint}`
+    : "";
   const exactDate = formatEventDate(event.date);
   const isFundraising = event.eventFormat === "fundraising";
 
