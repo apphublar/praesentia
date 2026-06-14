@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PraesentiaLogo } from "@/components/brand/praesentia-logo";
 
 export function AppNav() {
   return (
@@ -21,21 +22,7 @@ export function AppNav() {
           gap: 18
         }}
       >
-        <Link href="/" style={{ display: "flex", alignItems: "center", gap: 10, fontWeight: 800 }}>
-          <span
-            style={{
-              width: 34,
-              height: 34,
-              borderRadius: 999,
-              border: "1px solid var(--ink)",
-              display: "inline-grid",
-              placeItems: "center"
-            }}
-          >
-            <span style={{ width: 10, height: 10, borderRadius: 999, background: "var(--coral)" }} />
-          </span>
-          Praesentia
-        </Link>
+        <PraesentiaLogo href="/" markHeight={36} wordmarkSize={20} withTape withShadow={false} />
         <nav className="nav-links" style={{ display: "flex", gap: 16, marginLeft: "auto", fontSize: 14, alignItems: "center" }}>
           <Link href="/#como-funciona">como funciona</Link>
           <Link href="/#diferencial">histórias</Link>

@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap");
 
 :root {
   --bg: #f7eedb;
@@ -2327,25 +2327,6 @@ p + a.btn,
 .dashboard-topbar-brand {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  font-weight: 800;
-  font-size: 18px;
-}
-
-.dashboard-topbar-mark {
-  width: 28px;
-  height: 28px;
-  border-radius: 999px;
-  border: 1px solid var(--ink);
-  position: relative;
-}
-
-.dashboard-topbar-mark::after {
-  content: "";
-  position: absolute;
-  inset: 9px;
-  border-radius: 999px;
-  background: var(--coral);
 }
 
 .dashboard-topbar-user {
@@ -4156,14 +4137,7 @@ p + a.btn,
   z-index: 1;
   display: flex;
   justify-content: center;
-  gap: 8px;
   padding: 0 16px 28px;
-  color: var(--ink-soft);
-  font-size: 13px;
-}
-
-.public-event-footer strong {
-  color: var(--ink);
 }
 
 @media (max-width: 640px) {

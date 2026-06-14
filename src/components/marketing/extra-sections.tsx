@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { PraesentiaLogo } from "@/components/brand/praesentia-logo";
 
 const faqs = [
   ["Quanto custa de verdade?", "O plano Gratuito inclui 1 convite com IA, texto do convite e assistente de prompt. Pacote extra de R$4,90 libera até mais 2 imagens e 2 ajustes. Cápsula custa R$59, com 5 GB e no mínimo 36 meses de armazenamento (ampliável depois). Cápsula Plus custa R$197/ano, com até 6 eventos e 20 GB compartilhados."],
@@ -364,7 +365,11 @@ export function SiteFooter() {
   return (
     <footer className="site-footer">
       <div className="shell footer-grid">
-        <div><b>Praesentia</b><p>Eventos particulares, memórias permanentes e cápsulas do tempo com controle do responsável.</p><Link className="btn" href="/criar">criar evento</Link></div>
+        <div>
+          <PraesentiaLogo markHeight={34} wordmarkSize={22} withTape withShadow={false} />
+          <p>Eventos particulares, memórias permanentes e cápsulas do tempo com controle do responsável.</p>
+          <Link className="btn" href="/criar">criar evento</Link>
+        </div>
         <nav><b>Produto</b><Link href="#como-funciona">como funciona</Link><Link href="#precos">preços</Link><Link href="/eu">meu perfil</Link></nav>
         <nav><b>Conta</b><Link href="/login">entrar</Link><Link href="/dashboard">responsável</Link><Link href="/admin">admin</Link></nav>
         <nav><b>Legal</b><Link href="#seguranca">privacidade</Link><Link href="#faq">perguntas frequentes</Link></nav>

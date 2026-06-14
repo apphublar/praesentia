@@ -7,6 +7,7 @@ import { Avatar, Confetti, Mono, Polaroid } from "@/components/app/ui/primitives
 import { RETENTION_CAPSULE_DESCRIPTION, RETENTION_MINIMUM_MONTHS } from "@/lib/copy/retention";
 import { formatEventDateLong } from "@/lib/events/format-event-date";
 import { resolveMediaItemUrl } from "@/lib/storage/media-url";
+import { PraesentiaBrandFooter } from "@/components/brand/praesentia-logo";
 
 function CapsulaLock({
   event,
@@ -329,14 +330,7 @@ export function CapsulaOpen({
           </p>
         </div>
 
-        <div style={{ textAlign: "center", marginTop: 26, color: "var(--faint)" }}>
-          <div className="mono" style={{ fontSize: 9 }}>
-            memórias guardadas com
-          </div>
-          <div className="serif-i" style={{ fontSize: 18, color: "var(--muted)" }}>
-            Praesentia
-          </div>
-        </div>
+        <PraesentiaBrandFooter kicker="memórias guardadas com" />
       </div>
     </div>
   );

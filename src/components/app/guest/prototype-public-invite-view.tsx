@@ -11,6 +11,7 @@ import { formatEventDateLong } from "@/lib/events/format-event-date";
 import { parseEventDateTime } from "@/lib/events/datetime";
 import type { PublicInvitePhase } from "@/lib/mural/timeline";
 import { GuestMessageSection } from "@/components/event/guest-message-section";
+import { PraesentiaBrandFooter } from "@/components/brand/praesentia-logo";
 
 function FakeQr() {
   return (
@@ -268,14 +269,7 @@ export function PrototypePublicInviteView({
           <GuestMessageSection eventId={event.id} initialPublicMessages={publicMessages} variant="prototype" />
         </div>
 
-        <div style={{ textAlign: "center", marginTop: 24, color: "var(--faint)" }}>
-          <div className="mono" style={{ fontSize: 9 }}>
-            feito com
-          </div>
-          <div className="serif-i" style={{ fontSize: 18, color: "var(--muted)" }}>
-            Praesentia
-          </div>
-        </div>
+        <PraesentiaBrandFooter />
 
         {managerHref ? (
           <p style={{ textAlign: "center", marginTop: 16, fontSize: 12 }}>

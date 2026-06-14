@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { PraesentiaBrandFooter } from "@/components/brand/praesentia-logo";
 import type { EventType } from "@/types/domain";
 import { resolvePublicEventTheme } from "@/lib/events/event-theme-style";
 
@@ -22,8 +23,7 @@ export function PublicEventLayout({
       </div>
       <main className="public-event-main">{children}</main>
       <footer className="public-event-footer">
-        <span>Feito com</span>
-        <strong>Praesentia</strong>
+        <PraesentiaBrandFooter />
       </footer>
     </div>
   );

@@ -13,6 +13,7 @@ import {
   isAppNavItemLocked,
   type AppNavItem
 } from "@/lib/app/app-nav-config";
+import { PraesentiaLogo } from "@/components/brand/praesentia-logo";
 
 function NavLink({
   item,
@@ -104,12 +105,14 @@ export function AppShell({ user, events, children }: { user: User; events: Event
   return (
     <div className="app-shell">
       <aside className="app-rail">
-        <Link href="/dashboard" className="app-rail-brand" style={{ textDecoration: "none", color: "inherit" }}>
-          <span className="app-rail-brand-mark">
-            <span />
-          </span>
-          <span style={{ fontWeight: 700, fontSize: 17, letterSpacing: "-.01em" }}>Praesentia</span>
-        </Link>
+        <PraesentiaLogo
+          href="/dashboard"
+          className="app-rail-brand"
+          markHeight={30}
+          wordmarkSize={17}
+          withTape
+          withShadow={false}
+        />
 
         <div style={{ padding: "0 22px 14px" }}>
           <span className="pill" style={{ fontSize: 9, maxWidth: "100%" }}>

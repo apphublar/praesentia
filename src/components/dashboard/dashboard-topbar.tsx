@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import type { User } from "@/types/domain";
+import { PraesentiaLogo } from "@/components/brand/praesentia-logo";
 import { IconMenu } from "@/components/dashboard/dashboard-icons";
 
 export function DashboardTopbar({
@@ -25,10 +26,14 @@ export function DashboardTopbar({
         <button type="button" className="dashboard-menu-btn" aria-expanded={sidebarOpen} aria-label="Abrir menu" onClick={onMenuToggle}>
           <IconMenu />
         </button>
-        <Link href="/dashboard" className="dashboard-topbar-brand">
-          <span className="dashboard-topbar-mark" aria-hidden="true" />
-          Praesentia
-        </Link>
+        <PraesentiaLogo
+          href="/dashboard"
+          className="dashboard-topbar-brand"
+          markHeight={30}
+          wordmarkSize={18}
+          withTape
+          withShadow={false}
+        />
         <div className="dashboard-topbar-user">
           <span className="dashboard-topbar-avatar" aria-hidden="true">
             {initials}
