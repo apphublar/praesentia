@@ -11,7 +11,7 @@ export type GenerateCoverInput = {
   photoInstructions?: string;
   coverFields?: Record<string, string>;
   primaryPhotoDataUrl?: string | null;
-  /** IA gera só fundo; foto real composta pelo app depois. */
+  /** @deprecated A foto é enviada via primaryPhotoDataUrl para geração integrada por IA. */
   externalPhotoCompose?: boolean;
   coverImageUrl?: string;
   promptVersion?: string;

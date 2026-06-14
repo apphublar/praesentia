@@ -16,6 +16,20 @@ function resolveFetchUrl(url: string) {
   return `${base}${url}`;
 }
 
+/** Baixa imagem remota (R2, proxy do app, etc.) como data URL para APIs de imagem. */
+export async function fetchRemoteImageAsDataUrl(url: string, maxBytes = DEFAULT_MAX_DATA_URL_BYTES) {
+  try {
+    const response = await fetch(resolveFetchUrl(url), { signal: AbortSignal.timeout(20_000) });
+    if (!response.ok) return null;
+    const buffer = Buffer.from(await response.arrayBuffer());
+    if (buffer.byteLength > maxBytes) return null;
+    const contentType = response.headers.get("content-type")?.split(";")[0]?.trim() || "image/jpeg";
+    return `data:${contentType};base64,${buffer.toString("base64")}`;
+  } catch {
+    return null;
+  }
+}
+
 async function uploadBufferToR2(buffer: Buffer, key: string, contentType: string) {
   const hasR2 =
     process.env.CLOUDFLARE_R2_BUCKET &&

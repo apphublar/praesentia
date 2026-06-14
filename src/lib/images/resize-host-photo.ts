@@ -42,6 +42,24 @@ export async function resizeImageForCover(file: File): Promise<string> {
   }
 }
 
+export async function urlToDataUrlForCover(url: string): Promise<string | null> {
+  if (url.startsWith("data:image/")) return resizeDataUrlForCover(url);
+  try {
+    const response = await fetch(url, { credentials: "same-origin" });
+    if (!response.ok) return null;
+    const blob = await response.blob();
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(blob);
+    });
+    return resizeDataUrlForCover(dataUrl);
+  } catch {
+    return null;
+  }
+}
+
 export async function resizeDataUrlForCover(dataUrl: string): Promise<string> {
   if (!dataUrl.startsWith("data:image/")) return dataUrl;
   try {

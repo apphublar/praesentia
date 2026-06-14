@@ -168,7 +168,7 @@ export function buildCoverInvitationSpec(
   const photoInstructions = options.withHostPhoto
     ? summary.photoInstructions?.trim() || DEFAULT_PHOTO_INSTRUCTIONS
     : reservePhotoZone
-      ? summary.photoInstructions?.trim() ?? null
+      ? summary.photoInstructions?.trim() || DEFAULT_PHOTO_INSTRUCTIONS
       : null;
 
   return {
@@ -189,29 +189,22 @@ export function buildPremiumCoverPrompt(spec: CoverInvitationSpec) {
       : "- (nenhum texto de rodapé — não invente data, horário ou local)";
 
   const photoBlock = spec.withHostPhoto
-    ? `PHOTO OF HONOREE (follow EXACTLY):
+    ? `PHOTO OF HONOREE — USE UPLOADED REFERENCE (follow EXACTLY):
 ${spec.photoInstructions}
 
-Use the REAL person from the uploaded reference photo.`
-    : spec.reservePhotoZone
-      ? `RESERVED PHOTO ZONE — CRITICAL (follow EXACTLY):
-${spec.photoInstructions}
+Use the REAL person from the uploaded reference photo. Create one integrated invitation — not a separate photo pasted on top.`
+    : "No reference photo — do not add a person photo.";
 
-Do NOT draw, generate, or include ANY person, face, portrait, human figure, or photo anywhere in the artwork.
-The real photo is inserted BEHIND the artwork by the app after generation.
-Never use a solid white/gray rectangular placeholder or empty frame fill in the photo zone — continue the scene background seamlessly.`
-      : "No reference photo — do not add a person photo.";
+  const layoutPhotoRule = spec.withHostPhoto
+    ? "1. Top and middle area: integrate the uploaded honoree photo into the themed design per photoInstructions. Decorations may overlap shoulders/body — never the face."
+    : "1. Top and middle area: visual design exactly as described above.";
 
-  const layoutPhotoRule = spec.reservePhotoZone
-    ? "1. Top and middle area: full visual design with themed elements that interact with the reserved honoree photo zone (see photo instructions). Headlines and decorations may overlap shoulders/body — never the face."
-    : "1. Top and middle area: visual design and photo treatment exactly as described above.";
-
-  const layoutTextRule = spec.reservePhotoZone
-    ? "2. Bottom panel: render the Portuguese event-detail lines from bottomTexts (date, time, location, etc.) legibly with icons. Headline/title typography from visualDirection may also appear in upper/middle areas and integrate with the photo zone."
+  const layoutTextRule = spec.withHostPhoto
+    ? "2. Bottom panel: render the Portuguese event-detail lines from bottomTexts (date, time, location, etc.) legibly with icons."
     : "2. Bottom area ONLY: render the Portuguese text lines listed below, legibly, with icons if appropriate.";
 
-  const layoutExtraRules = spec.reservePhotoZone
-    ? "3. Do NOT invent extra event fields the client left empty.\n4. Layer depth: artwork and honoree photo must feel like one integrated composition."
+  const layoutExtraRules = spec.withHostPhoto
+    ? "3. Do NOT invent extra event fields the client left empty.\n4. Single unified composition — person and invitation art together."
     : "3. Do NOT place event information (date, time, location, names) outside the bottom area.\n4. Do NOT add any text that is not listed in the bottom section below.";
 
   return `Create a premium vertical party invitation in Brazilian Portuguese.

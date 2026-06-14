@@ -4,7 +4,7 @@ import { useState } from "react";
 import type { Event } from "@/types/domain";
 import { generateEventCoverImageClient } from "@/lib/api/generate-cover";
 import { apiErrorMessage, dashboardFetchJson } from "@/lib/api/dashboard-fetch";
-import { resizeDataUrlForCover, resizeImageForCover } from "@/lib/images/resize-host-photo";
+import { resizeDataUrlForCover, resizeImageForCover, urlToDataUrlForCover } from "@/lib/images/resize-host-photo";
 import {
   buildInitialCoverEditableFields,
   coverEditableFieldsToOverride,
@@ -186,10 +186,7 @@ export function CoverGenerator({
 
   async function resolvePrimaryPhotoDataUrl() {
     if (!hostPhotoUrl) return null;
-    if (hostPhotoUrl.startsWith("data:image/")) {
-      return resizeDataUrlForCover(hostPhotoUrl);
-    }
-    return null;
+    return urlToDataUrlForCover(hostPhotoUrl);
   }
 
   async function generate(mode: "generate" | "edit" = "generate") {

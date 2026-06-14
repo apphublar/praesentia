@@ -1,27 +1,45 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import type { Event, InviteCopy } from "@/types/domain";
 import { ArtStylePicker } from "@/components/app/ui/art-style-picker";
 import { Icon } from "@/components/app/ui/icon";
 import { InviteArt } from "@/components/app/ui/invite-art";
 import { Mono, Segmented, Shimmer, Tag, Toggle } from "@/components/app/ui/primitives";
-import { CoverGenerationOverlay, type CoverGenerationPhase } from "@/components/dashboard/cover-generation-overlay";
+import { CoverGenerationOverlay } from "@/components/dashboard/cover-generation-overlay";
 import type { CoverQuota } from "@/components/dashboard/cover-generator";
 import type { TextQuota } from "@/components/dashboard/invite-text-editor";
 import { generateEventCoverImageClient } from "@/lib/api/generate-cover";
 import { apiErrorMessage, dashboardFetchJson } from "@/lib/api/dashboard-fetch";
-import { composeCoverWithHostPhoto, uploadComposedCover } from "@/lib/images/compose-cover-with-photo";
 import { downloadCoverImage } from "@/lib/images/download-cover-image";
 import { buildPhotoZoneInstructions, type PhotoOverlayConfig, type PhotoShape, type PhotoSize } from "@/lib/images/photo-zone-instructions";
-import { BackgroundRemovalError } from "@/lib/images/prepare-host-photo";
 import { formatEventDateLine } from "@/lib/events/format-event-date";
 import { resolveInviteCopy } from "@/lib/events/invite-copy";
 import { artStylePrompt, type ArtStyle } from "@/lib/openai/art-styles";
 import { buildInitialCoverEditableFields, coverEditableFieldsToOverride, toCoverFormEventInput } from "@/lib/openai/cover-invitation-spec";
-import { resizeImageForCover } from "@/lib/images/resize-host-photo";
+import { resizeImageForCover, urlToDataUrlForCover } from "@/lib/images/resize-host-photo";
 
 const PHOTO_POSITIONS = ["tl", "tc", "tr", "ml", "mc", "mr", "bl", "bc", "br"] as const;
+
+type InviteCoverMode = "ai" | "custom";
+
+function buildPhotoConfig(input: {
+  photoUrl: string;
+  photoShape: PhotoShape;
+  photoPos: (typeof PHOTO_POSITIONS)[number];
+  photoSize: PhotoSize;
+  removeBackground: boolean;
+  photoNotes: string;
+}): PhotoOverlayConfig {
+  return {
+    imageUrl: input.photoUrl,
+    shape: input.photoShape,
+    pos: input.photoPos,
+    size: input.photoSize,
+    removeBackground: input.removeBackground,
+    notes: input.photoNotes.trim() || undefined
+  };
+}
 
 function formatTimeShort(time: string) {
   const [h, m] = time.split(":");
@@ -132,18 +150,22 @@ export function InviteArtStep({
   const [photoShape, setPhotoShape] = useState<PhotoShape>("original");
   const [photoPos, setPhotoPos] = useState<(typeof PHOTO_POSITIONS)[number]>("br");
   const [photoSize, setPhotoSize] = useState<PhotoSize>("md");
-  const [removeBackground, setRemoveBackground] = useState(false);
+  const [removeBackground, setRemoveBackground] = useState(Boolean(event.hostPhotoUrl));
   const [photoNotes, setPhotoNotes] = useState("");
-  const [aiCoverBaseUrl, setAiCoverBaseUrl] = useState<string | null>(null);
-  const [coverComposed, setCoverComposed] = useState(Boolean(event.coverImageUrl));
+  const [coverMode, setCoverMode] = useState<InviteCoverMode>(event.coverSource === "custom" ? "custom" : "ai");
   const [imgState, setImgState] = useState<"empty" | "loading" | "done">(event.coverImageUrl ? "done" : "empty");
-  const [coverGenPhase, setCoverGenPhase] = useState<CoverGenerationPhase>("generating");
   const [coverUrl, setCoverUrl] = useState(event.coverImageUrl ?? "");
+  const [coverFileName, setCoverFileName] = useState("");
+  const [uploadingCover, setUploadingCover] = useState(false);
   const [downloading, setDownloading] = useState(false);
-  const [recomposing, setRecomposing] = useState(false);
   const [error, setError] = useState("");
-  const recomposeRequestRef = useRef(0);
-  const skipRecomposeRef = useRef(true);
+
+  const isAiMode = coverMode === "ai";
+  const previewBusy = isAiMode ? imgState === "loading" : uploadingCover;
+
+  const currentPhoto = photoUrl
+    ? buildPhotoConfig({ photoUrl, photoShape, photoPos, photoSize, removeBackground, photoNotes })
+    : null;
 
   const coverFields = buildInitialCoverEditableFields(
     toCoverFormEventInput({
@@ -164,68 +186,6 @@ export function InviteArtStep({
     })
   );
 
-  const photo: PhotoOverlayConfig | null = photoUrl
-    ? {
-        imageUrl: photoUrl,
-        shape: photoShape,
-        pos: photoPos,
-        size: photoSize,
-        removeBackground,
-        notes: photoNotes.trim() || undefined
-      }
-    : null;
-
-  async function applyPhotoToCover(baseUrl: string, photoConfig: PhotoOverlayConfig) {
-    setCoverGenPhase("composing");
-    const blob = await composeCoverWithHostPhoto(baseUrl, photoConfig);
-    return uploadComposedCover(event.id, blob);
-  }
-
-  useEffect(() => {
-    if (skipRecomposeRef.current) {
-      skipRecomposeRef.current = false;
-      return;
-    }
-    if (!aiCoverBaseUrl || !photoUrl || imgState === "loading") return;
-
-    const photoConfig: PhotoOverlayConfig = {
-      imageUrl: photoUrl,
-      shape: photoShape,
-      pos: photoPos,
-      size: photoSize,
-      removeBackground,
-      notes: photoNotes.trim() || undefined
-    };
-
-    const requestId = ++recomposeRequestRef.current;
-    const timer = window.setTimeout(async () => {
-      setRecomposing(true);
-      setCoverGenPhase("composing");
-      setError("");
-      try {
-        const composedUrl = await applyPhotoToCover(aiCoverBaseUrl, photoConfig);
-        if (requestId !== recomposeRequestRef.current) return;
-        setCoverUrl(composedUrl);
-        onCoverChange(composedUrl);
-        setCoverComposed(true);
-      } catch (composeError) {
-        if (requestId !== recomposeRequestRef.current) return;
-        console.warn("[invite-art] recompose cover", composeError);
-        setError(
-          composeError instanceof BackgroundRemovalError
-            ? composeError.message
-            : "Não foi possível aplicar a foto na arte. Tente gerar novamente."
-        );
-      } finally {
-        if (requestId === recomposeRequestRef.current) {
-          setRecomposing(false);
-        }
-      }
-    }, 650);
-
-    return () => window.clearTimeout(timer);
-  }, [photoShape, photoPos, photoSize, removeBackground, photoUrl, photoNotes, aiCoverBaseUrl, imgState, event.id]);
-
   async function downloadCover() {
     if (!coverUrl) return;
     setDownloading(true);
@@ -240,8 +200,8 @@ export function InviteArtStep({
     }
   }
 
-  // Prévia de posição só no placeholder (antes da 1ª geração). Nunca sobrepõe CSS na capa final.
-  const previewPhoto = photo && !aiCoverBaseUrl ? photo : null;
+  // Prévia de posição só no placeholder (antes de existir capa).
+  const previewPhoto = currentPhoto && !coverUrl ? currentPhoto : null;
   const previewCoverUrl = coverUrl || undefined;
 
   async function generateText() {
@@ -281,8 +241,8 @@ export function InviteArtStep({
         method: "POST",
         body: JSON.stringify({
           draftOrientation: draft,
-          draftPhotoInstructions: photo ? buildPhotoZoneInstructions(photo) : "",
-          withHostPhoto: false,
+          draftPhotoInstructions: currentPhoto ? buildPhotoZoneInstructions(currentPhoto) : "",
+          withHostPhoto: Boolean(photoUrl),
           coverFields: coverEditableFieldsToOverride(coverFields)
         })
       });
@@ -300,11 +260,6 @@ export function InviteArtStep({
 
   async function generateImage() {
     setImgState("loading");
-    setCoverGenPhase("generating");
-    setCoverComposed(false);
-    setAiCoverBaseUrl(null);
-    recomposeRequestRef.current += 1;
-    skipRecomposeRef.current = true;
     setError("");
     try {
       const fields = { ...coverFields };
@@ -315,6 +270,15 @@ export function InviteArtStep({
         fields.city = "";
       }
       const hasPhoto = Boolean(photoUrl);
+      const photoConfig = hasPhoto
+        ? buildPhotoConfig({ photoUrl, photoShape, photoPos, photoSize, removeBackground, photoNotes })
+        : null;
+      const primaryPhotoDataUrl = photoUrl ? await urlToDataUrlForCover(photoUrl) : null;
+      if (photoUrl && !primaryPhotoDataUrl) {
+        setError("Não foi possível carregar a foto do homenageado. Tente enviar novamente.");
+        setImgState(coverUrl ? "done" : "empty");
+        return;
+      }
       const orientation = coverPrompt.trim()
         ? `${coverPrompt.trim()}. ${artStylePrompt(artStyle)}.`
         : artStylePrompt(artStyle);
@@ -322,8 +286,8 @@ export function InviteArtStep({
         eventId: event.id,
         mode: "generate",
         orientation,
-        photoInstructions: photo ? buildPhotoZoneInstructions(photo) : undefined,
-        externalPhotoCompose: hasPhoto,
+        photoInstructions: photoConfig ? buildPhotoZoneInstructions(photoConfig) : undefined,
+        primaryPhotoDataUrl,
         coverFields: coverEditableFieldsToOverride(fields)
       });
       if (result.error) {
@@ -331,38 +295,41 @@ export function InviteArtStep({
         setImgState(coverUrl ? "done" : "empty");
         return;
       }
-      let finalUrl = result.coverImageUrl;
+      const finalUrl = result.coverImageUrl;
       if (!finalUrl) return;
-
-      setAiCoverBaseUrl(finalUrl);
-      skipRecomposeRef.current = true;
-
-      if (photo) {
-        try {
-          finalUrl = await applyPhotoToCover(finalUrl, photo);
-          setCoverComposed(true);
-        } catch (composeError) {
-          console.warn("[invite-art] compose cover", composeError);
-          setCoverComposed(false);
-          setCoverUrl(finalUrl);
-          setError(
-            composeError instanceof BackgroundRemovalError
-              ? composeError.message
-              : "Arte gerada, mas não foi possível aplicar a foto. Tente gerar novamente."
-          );
-          setImgState("done");
-          return;
-        }
-      } else {
-        setCoverComposed(true);
-      }
-
       setCoverUrl(finalUrl);
       onCoverChange(finalUrl);
       setImgState("done");
     } catch (err) {
       setError(apiErrorMessage(err, "Erro de conexão."));
       setImgState(coverUrl ? "done" : "empty");
+    }
+  }
+
+  async function uploadCover(file: File) {
+    setUploadingCover(true);
+    setError("");
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const { response, data } = await dashboardFetchJson(`/api/events/${event.id}/cover`, {
+        method: "POST",
+        body: formData
+      });
+      if (!response.ok) {
+        setError(String(data.error ?? "Erro ao enviar convite."));
+        return;
+      }
+      if (typeof data.coverImageUrl === "string") {
+        setCoverUrl(data.coverImageUrl);
+        onCoverChange(data.coverImageUrl);
+        setCoverFileName(file.name);
+        setImgState("done");
+      }
+    } catch (err) {
+      setError(apiErrorMessage(err, "Erro de conexão."));
+    } finally {
+      setUploadingCover(false);
     }
   }
 
@@ -383,6 +350,7 @@ export function InviteArtStep({
       if (typeof data.hostPhotoUrl === "string") {
         setPhotoUrl(data.hostPhotoUrl);
         setPhotoName(file.name);
+        setRemoveBackground(true);
       }
     } catch (err) {
       setError(apiErrorMessage(err, "Erro de conexão."));
@@ -406,6 +374,26 @@ export function InviteArtStep({
   return (
     <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 300px", gap: 26, alignItems: "start" }}>
       <div>
+        <div className="card" style={{ padding: 16, marginBottom: 18 }}>
+          <span className="fl">Como você quer a imagem do convite?</span>
+          <Segmented
+            full
+            value={coverMode}
+            onChange={setCoverMode}
+            options={[
+              { v: "ai" as const, l: "Gerar com IA" },
+              { v: "custom" as const, l: "Enviar minha imagem" }
+            ]}
+          />
+          <p style={{ margin: "10px 0 0", fontSize: 11.5, color: "var(--muted)", lineHeight: 1.45 }}>
+            {isAiMode
+              ? "A IA cria a arte com base no estilo, prompt e foto do homenageado (opcional)."
+              : "Envie o convite que você já criou. Só falta o texto que acompanha o link."}
+          </p>
+        </div>
+
+        {isAiMode ? (
+        <>
         {/* 1 — Foto do homenageado */}
         <div className="card" style={{ padding: 18, marginBottom: 18 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
@@ -470,7 +458,7 @@ export function InviteArtStep({
                   <div>
                     <div style={{ fontWeight: 600, fontSize: 12.5 }}>Remover fundo da foto do homenageado</div>
                     <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 2, lineHeight: 1.45 }}>
-                      Tira o fundo feio da foto enviada e deixa só a pessoa integrada à arte do convite. A arte gerada pela IA não é alterada.
+                      A IA usa a foto enviada junto com o prompt e remove o fundo ao criar o convite integrado.
                     </div>
                   </div>
                   <Toggle
@@ -609,6 +597,85 @@ export function InviteArtStep({
             </p>
           ) : null}
         </div>
+        </>
+        ) : (
+        <div className="card" style={{ padding: 18, marginBottom: 18 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+            <Icon name="image" size={17} style={{ color: "var(--coral)" }} />
+            <strong style={{ fontSize: 14 }}>Imagem do convite</strong>
+          </div>
+
+          {coverUrl ? (
+            <>
+              <div
+                style={{
+                  display: "flex",
+                  gap: 12,
+                  alignItems: "center",
+                  marginBottom: 14,
+                  padding: "10px 12px",
+                  borderRadius: 12,
+                  background: "var(--card-2)",
+                  border: "1px solid var(--line)"
+                }}
+              >
+                <div style={{ width: 40, height: 56, borderRadius: 8, overflow: "hidden", flexShrink: 0, border: "1px solid var(--line)" }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={coverUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 600, fontSize: 13 }}>{coverFileName || "Convite enviado"}</div>
+                  <div style={{ fontSize: 11.5, color: "var(--muted)" }}>JPG, PNG ou WebP · até 5 MB</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCoverUrl("");
+                    onCoverChange("");
+                    setCoverFileName("");
+                    setImgState("empty");
+                  }}
+                  style={{ border: "none", background: "transparent", cursor: "pointer", color: "var(--faint)", padding: 4 }}
+                >
+                  <Icon name="x" size={17} />
+                </button>
+              </div>
+              <label className="btn btn-sm" style={{ width: "100%", textAlign: "center", cursor: uploadingCover ? "wait" : "pointer" }}>
+                <input type="file" accept="image/jpeg,image/png,image/webp" hidden disabled={uploadingCover} onChange={(e) => e.target.files?.[0] && uploadCover(e.target.files[0])} />
+                {uploadingCover ? "Enviando…" : "Trocar imagem"}
+              </label>
+            </>
+          ) : (
+            <label
+              style={{
+                display: "flex",
+                gap: 12,
+                alignItems: "center",
+                width: "100%",
+                padding: "13px 14px",
+                borderRadius: 12,
+                cursor: uploadingCover ? "wait" : "pointer",
+                textAlign: "left",
+                background: "#fff",
+                border: "1.5px dashed var(--line-2)",
+                opacity: uploadingCover ? 0.65 : 1
+              }}
+            >
+              <input type="file" accept="image/jpeg,image/png,image/webp" hidden disabled={uploadingCover} onChange={(e) => e.target.files?.[0] && uploadCover(e.target.files[0])} />
+              <span style={{ width: 38, height: 38, borderRadius: 10, background: "var(--card-2)", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--coral-deep)" }}>
+                <Icon name="image" size={18} />
+              </span>
+              <span style={{ flex: 1 }}>
+                <span style={{ display: "block", fontWeight: 600, fontSize: 13, color: "var(--ink)" }}>
+                  {uploadingCover ? "Enviando convite…" : "Enviar imagem do convite"}
+                </span>
+                <span style={{ display: "block", fontSize: 11.5, color: "var(--muted)" }}>JPG, PNG ou WebP · arraste ou clique · até 5 MB</span>
+              </span>
+              {!uploadingCover ? <Icon name="plus" size={17} style={{ color: "var(--muted)" }} /> : null}
+            </label>
+          )}
+        </div>
+        )}
 
         {/* 3 — Texto enviado com o convite */}
         <div className="card" style={{ padding: 18 }}>
@@ -638,7 +705,7 @@ export function InviteArtStep({
 
       <div style={{ position: "sticky", top: 0 }}>
         <Mono style={{ display: "block", marginBottom: 10 }}>Prévia do convite</Mono>
-        {imgState === "loading" ? (
+        {previewBusy ? (
           <div
             className="stripe"
             style={{
@@ -665,11 +732,13 @@ export function InviteArtStep({
               }}
             />
             <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>
-              {coverGenPhase === "composing" ? "Finalizando a capa…" : "Criando sua arte com IA…"}
+              {isAiMode ? "Criando seu convite com IA…" : "Enviando sua imagem…"}
             </p>
-            <p style={{ margin: 0, fontSize: 11.5, color: "var(--muted)", lineHeight: 1.45, maxWidth: 220 }}>
-              Pode levar até 4 minutos. Veja o painel de progresso — não feche nem atualize a página.
-            </p>
+            {isAiMode ? (
+              <p style={{ margin: 0, fontSize: 11.5, color: "var(--muted)", lineHeight: 1.45, maxWidth: 220 }}>
+                Pode levar até 4 minutos. Veja o painel de progresso — não feche nem atualize a página.
+              </p>
+            ) : null}
           </div>
         ) : (
           <InviteArt
@@ -678,12 +747,12 @@ export function InviteArtStep({
             dateShort={formatEventDateLine(event.date) ?? event.date}
             time={formatTimeShort(event.startsAt)}
             place={placeLabel(event)}
-            info={includeInfo}
-            photo={previewPhoto}
+            info={isAiMode ? includeInfo : false}
+            photo={isAiMode ? previewPhoto : null}
             coverUrl={previewCoverUrl || undefined}
           />
         )}
-        {coverUrl && imgState === "done" ? (
+        {coverUrl && !previewBusy ? (
           <button
             type="button"
             className="btn btn-sm"
@@ -695,22 +764,21 @@ export function InviteArtStep({
             {downloading ? "Baixando…" : "Baixar imagem do convite"}
           </button>
         ) : null}
-        {recomposing ? (
-          <p style={{ margin: "10px 2px 0", fontSize: 11.5, color: "var(--muted)", textAlign: "center" }}>
-            Atualizando posição da foto na arte…
-          </p>
-        ) : null}
-        {!includeInfo ? (
+        {isAiMode && !includeInfo ? (
           <p style={{ margin: "10px 2px 0", fontSize: 11.5, color: "var(--muted)", lineHeight: 1.4 }}>
             Sem os detalhes na arte — data, horário e local aparecem na página do convite.
+          </p>
+        ) : null}
+        {!isAiMode && !coverUrl && !previewBusy ? (
+          <p style={{ margin: "10px 2px 0", fontSize: 11.5, color: "var(--muted)", lineHeight: 1.4 }}>
+            Envie a imagem do convite para ver a prévia aqui.
           </p>
         ) : null}
       </div>
 
       <CoverGenerationOverlay
-        active={imgState === "loading"}
+        active={isAiMode && imgState === "loading"}
         capsuleActive={Boolean(event.capsuleActivatedAt)}
-        phase={coverGenPhase}
         composingWithBgRemoval={removeBackground && Boolean(photoUrl)}
       />
     </div>

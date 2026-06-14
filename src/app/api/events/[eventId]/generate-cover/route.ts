@@ -17,7 +17,7 @@ import { isOpenAIConfigured } from "@/lib/openai/client";
 import { verifyPublicImageUrl } from "@/lib/openai/persist-image";
 import { getAiCoverQuota } from "@/lib/plans/features";
 import { assertTrustedOrigin } from "@/lib/security/origin";
-import { sanitizeText } from "@/lib/security/sanitize";
+import { sanitizeMultilineText, sanitizeText } from "@/lib/security/sanitize";
 
 export const maxDuration = 300;
 export const runtime = "nodejs";
@@ -44,7 +44,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ eve
     const mode = sanitizeText(body.mode, 20) || "generate";
     const editHint = sanitizeText(body.editHint, 400);
     const orientation = sanitizeText(body.orientation, 1000);
-    const photoInstructions = sanitizeText(body.photoInstructions, 1200);
+    const photoInstructions = sanitizeMultilineText(body.photoInstructions, 2500);
     const coverFields = (body.coverFields ?? {}) as Record<string, string>;
     const sanitizedCoverFields = {
       eventTitle: sanitizeText(coverFields.eventTitle, 160),
@@ -60,11 +60,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ eve
       city: sanitizeText(coverFields.city, 120),
       onlineMeetingUrl: sanitizeText(coverFields.onlineMeetingUrl, 400)
     };
-    const externalPhotoCompose = body.externalPhotoCompose === true;
+    const externalPhotoCompose = false;
     const primaryPhotoDataUrl =
-      !externalPhotoCompose &&
-      typeof body.primaryPhotoDataUrl === "string" &&
-      body.primaryPhotoDataUrl.startsWith("data:image/")
+      typeof body.primaryPhotoDataUrl === "string" && body.primaryPhotoDataUrl.startsWith("data:image/")
         ? body.primaryPhotoDataUrl
         : null;
     const promptVersion =

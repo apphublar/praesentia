@@ -34,8 +34,8 @@ const SIZE_LABEL: Record<PhotoSize, string> = {
 
 const SHAPE_LABEL: Record<PhotoShape, string> = {
   original: "natural photo rectangle (original aspect ratio as uploaded)",
-  round: "circular",
-  square: "rounded square"
+  round: "circular crop",
+  square: "rounded square crop"
 };
 
 export function photoSizePercent(size: PhotoSize = "md") {
@@ -43,42 +43,40 @@ export function photoSizePercent(size: PhotoSize = "md") {
   return map[size];
 }
 
-/** Instruções para a IA integrar a arte com a foto real (sem gerar rostos). */
+/** Instruções para a IA usar a foto enviada e criar o convite integrado numa única geração. */
 export function buildPhotoZoneInstructions(photo: PhotoOverlayConfig) {
   const pos = POS_LABEL[photo.pos] ?? photo.pos;
   const size = SIZE_LABEL[photo.size ?? "md"];
   const shape = SHAPE_LABEL[photo.shape];
+
   const bgNote = photo.removeBackground
-    ? "The app will cut out the selected people from their uploaded photo (remove the photo background) and place them onto the invitation artwork — the invitation design/background is never altered."
-    : "The app will place the real uploaded photo of the honoree with its original background.";
+    ? "REMOVE the background from the uploaded reference photo completely. Keep only the honoree person(s) with clean edges — no white box, no studio backdrop, no original photo background visible."
+    : "Keep the honoree from the uploaded reference photo; you may retain a soft natural background from the original if it blends with the invitation.";
 
   const notes = photo.notes?.trim();
   const notesBlock = notes
     ? [
         "",
-        "ORGANIZER PHOTO NOTES (follow EXACTLY — in addition to the settings above):",
+        "ORGANIZER PHOTO NOTES (follow EXACTLY):",
         notes,
-        "Honor these notes when designing the photo zone and when the app overlays the real photo (who to keep, who to exclude, replacements, or special treatment)."
+        "Apply these notes to who to keep, exclude, or adjust in the reference photo."
       ]
     : [];
 
   return [
-    "CRITICAL — EXTERNAL PHOTO COMPOSITION:",
-    "Do NOT generate, draw, paint, or include ANY person, face, portrait, human figure, or photo anywhere in the artwork.",
-    "The real honoree photo is inserted BEHIND the invitation artwork by the app AFTER generation — never by the AI.",
-    `Honoree photo placement: ${shape} zone in the ${pos}, ${size}.`,
+    "REFERENCE PHOTO — CRITICAL (follow EXACTLY):",
+    "The uploaded image is the REAL honoree photo. Use this exact person — preserve their face, identity, expression, and pose.",
+    "Create the full vertical invitation artwork AROUND and WITH this person integrated into the design — like a professional party poster made in one composition.",
+    "Do NOT replace the person with a different face or a generic illustrated character.",
+    `Place the honoree: ${shape}, ${pos}, ${size} of the invitation area.`,
     bgNote,
     "",
-    "PHOTO ZONE — NO PLACEHOLDER (mandatory):",
-    "NEVER draw a solid white, gray, cream, or empty rectangular block, polaroid card, mock photo, or picture frame fill in the photo zone.",
-    "The photo zone must continue the same background, scenery, colors, and atmosphere as the surrounding invitation — as if the person will step into the scene.",
-    "Paint decorative borders, ribbons, confetti, flowers, and themed props AROUND and ON TOP of the zone edges so they can overlap the honoree's shoulders and body after the app inserts the real photo.",
-    "",
-    "LAYERED INTERACTION WITH HONOREE (mandatory):",
-    "Design like a professional party poster: foreground decorations and typography may overlap the photo zone — especially shoulders, arms, sides, and lower body.",
-    "Some elements must appear IN FRONT of the body; others frame the person from behind or the sides.",
-    "NEVER cover the face: keep the upper-center face oval of the photo zone clear — no text, logos, or heavy objects over the face.",
-    "Event details (date, time, location) stay in the bottom panel; headline/title typography may sit in upper/middle areas and touch the photo zone edges.",
+    "INTEGRATION (mandatory):",
+    "Themed decorations, ribbons, confetti, flowers, and typography may overlap shoulders, arms, and sides for depth.",
+    "Some elements may pass in front of the body; others frame the person naturally.",
+    "NEVER cover the face: keep the upper-center face area clear — no text or heavy objects over the face.",
+    "Event details (date, time, location) stay in the bottom panel only.",
+    "Do NOT paste a flat rectangular photo card on top of the design — blend the person into the scene.",
     ...notesBlock
   ].join("\n");
 }

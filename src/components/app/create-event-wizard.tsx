@@ -303,7 +303,7 @@ export function CreateEventWizard({
               <h1 className="display" style={{ fontSize: 38, marginBottom: 6 }}>
                 Crie o <span className="coral">convite</span>.
               </h1>
-              <p style={{ color: "var(--muted)", fontSize: 15, margin: "0 0 24px" }}>Gere o texto e a arte com IA, ou escreva do seu jeito.</p>
+              <p style={{ color: "var(--muted)", fontSize: 15, margin: "0 0 24px" }}>Gere a arte com IA ou envie a imagem que você já criou — e escreva o texto que vai com o link.</p>
               <InviteArtStep event={ev} textQuota={textQuota} coverQuota={coverQuota} onCoverChange={setCoverUrl} onCopyChange={setCopy} />
               {continueError ? <p style={{ color: "var(--coral-deep)", marginTop: 16 }}>{continueError}</p> : null}
             </>

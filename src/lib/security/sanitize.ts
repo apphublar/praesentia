@@ -7,6 +7,18 @@ export function sanitizeText(input: unknown, maxLength = 1000) {
     .slice(0, maxLength);
 }
 
+/** Preserva quebras de linha — use em instruções estruturadas (ex.: zona da foto). */
+export function sanitizeMultilineText(input: unknown, maxLength = 2500) {
+  if (typeof input !== "string") return "";
+  return input
+    .replace(/[<>]/g, "")
+    .replace(/\r\n/g, "\n")
+    .replace(/[^\S\n]+/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim()
+    .slice(0, maxLength);
+}
+
 export function isValidPixKey(input: string) {
   const value = input.trim();
   if (!value || value.length > 120) return false;
