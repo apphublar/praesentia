@@ -66,11 +66,16 @@ export type GuestMessage = {
   createdAt: string;
 };
 
+export type AiInvitePoolPlan = "inspiracao" | "criativo";
+
 export type User = {
   id: string;
   name: string;
   email: string;
   role: "platform_admin" | "user";
+  aiInviteFreeUsed?: boolean;
+  aiInvitePoolRemaining?: number;
+  aiInvitePoolPlan?: AiInvitePoolPlan;
 };
 
 export type EventPlan = {

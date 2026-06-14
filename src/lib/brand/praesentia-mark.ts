@@ -23,6 +23,9 @@ export type PraesentiaMarkOptions = {
 
 export const PRAESENTIA_MARK_VIEWBOX = { width: 240, height: 280 } as const;
 
+/** Recorte mais justo para lockup horizontal (ícone + nome). */
+export const PRAESENTIA_MARK_LOCKUP_VIEWBOX = { x: 52, y: 24, width: 138, height: 205 } as const;
+
 export function praesentiaTapePath(width: number, height: number) {
   const d = height * 0.26;
   const half = width / 2;

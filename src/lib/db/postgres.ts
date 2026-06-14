@@ -90,11 +90,16 @@ function parseCompanionsDetail(raw: unknown): GuestCompanionDetail[] {
 }
 
 function rowToUser(row: Record<string, unknown>): User {
+  const poolPlan = row.ai_invite_pool_plan ? String(row.ai_invite_pool_plan) : undefined;
   return {
     id: String(row.id),
     name: String(row.name),
     email: String(row.email),
-    role: row.role as User["role"]
+    role: row.role as User["role"],
+    aiInviteFreeUsed: Boolean(row.ai_invite_free_used),
+    aiInvitePoolRemaining: Number(row.ai_invite_pool_remaining ?? 0),
+    aiInvitePoolPlan:
+      poolPlan === "inspiracao" || poolPlan === "criativo" ? poolPlan : undefined
   };
 }
 
@@ -205,13 +210,69 @@ function rowToMedia(row: Record<string, unknown>): MediaItem {
 export const postgresUsers: UserRepository = {
   async findById(id) {
     const sql = getSql();
-    const rows = await sql`select id, name, email, role from users where id = ${id} limit 1`;
+    const rows = await sql`
+      select id, name, email, role, ai_invite_free_used, ai_invite_pool_remaining, ai_invite_pool_plan
+      from users where id = ${id} limit 1
+    `;
     return rows[0] ? rowToUser(rows[0]) : null;
   },
   async findByEmail(email) {
     const sql = getSql();
-    const rows = await sql`select id, name, email, role from users where email = ${email} limit 1`;
+    const rows = await sql`
+      select id, name, email, role, ai_invite_free_used, ai_invite_pool_remaining, ai_invite_pool_plan
+      from users where email = ${email} limit 1
+    `;
     return rows[0] ? rowToUser(rows[0]) : null;
+  },
+  async purchaseAiInvitePlan(userId, plan) {
+    const sql = getSql();
+    const versions = plan === "inspiracao" ? 5 : 15;
+    await sql`
+      update users set
+        ai_invite_pool_remaining = ai_invite_pool_remaining + ${versions},
+        ai_invite_pool_plan = ${plan},
+        updated_at = now()
+      where id = ${userId}
+    `;
+    return (await this.findById(userId)) as User;
+  },
+  async consumeAiInviteGeneration(userId, event) {
+    if (event.capsuleActivatedAt) return;
+    const user = await this.findById(userId);
+    if (!user) return;
+    const sql = getSql();
+    if ((user.aiInvitePoolRemaining ?? 0) > 0) {
+      await sql`
+        update users set ai_invite_pool_remaining = greatest(0, ai_invite_pool_remaining - 1), updated_at = now()
+        where id = ${userId}
+      `;
+      return;
+    }
+    if (!user.aiInviteFreeUsed && event.aiCoverGenerationsCount <= 1) {
+      await sql`
+        update users set ai_invite_free_used = true, updated_at = now()
+        where id = ${userId}
+      `;
+    }
+  },
+  async refundAiInviteGeneration(userId, event) {
+    if (event.capsuleActivatedAt) return;
+    const user = await this.findById(userId);
+    if (!user) return;
+    const sql = getSql();
+    if ((user.aiInvitePoolRemaining ?? 0) >= 0 && user.aiInvitePoolPlan) {
+      await sql`
+        update users set ai_invite_pool_remaining = ai_invite_pool_remaining + 1, updated_at = now()
+        where id = ${userId} and ai_invite_pool_plan is not null
+      `;
+      return;
+    }
+    if (user.aiInviteFreeUsed && event.aiCoverGenerationsCount <= 1) {
+      await sql`
+        update users set ai_invite_free_used = false, updated_at = now()
+        where id = ${userId}
+      `;
+    }
   }
 };
 
@@ -310,6 +371,26 @@ export const postgresEvents: EventRepository = {
         and e.plan_tier = 'family'
         and e.capsule_activated_at is not null
         and e.capsule_activated_at >= ${since}
+    `;
+    return Number(rows[0]?.total ?? 0);
+  },
+  async sumAiCoverGenerationsByOwner(userId, tier) {
+    const sql = getSql();
+    if (tier === "family") {
+      const rows = await sql`
+        select coalesce(sum(ai_cover_generations_count), 0)::int as total
+        from events e
+        where e.owner_id = ${userId}
+          and e.plan_tier = 'family'
+          and e.capsule_activated_at is not null
+      `;
+      return Number(rows[0]?.total ?? 0);
+    }
+    const rows = await sql`
+      select coalesce(sum(ai_cover_generations_count), 0)::int as total
+      from events e
+      where e.owner_id = ${userId}
+        and e.capsule_activated_at is null
     `;
     return Number(rows[0]?.total ?? 0);
   },

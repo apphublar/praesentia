@@ -2,9 +2,9 @@ import type { Event, EventMember, MediaItem, User } from "@/types/domain";
 import { PLANS } from "@/lib/plans";
 
 export const users: User[] = [
-  { id: "usr_owner", name: "Camila Andrade", email: "camila@example.com", role: "user" },
-  { id: "usr_maria", name: "Maria Silva", email: "maria@example.com", role: "user" },
-  { id: "usr_admin", name: "Equipe Praesentia", email: "admin@praesentia.com.br", role: "platform_admin" }
+  { id: "usr_owner", name: "Camila Andrade", email: "camila@example.com", role: "user", aiInviteFreeUsed: false, aiInvitePoolRemaining: 0 },
+  { id: "usr_maria", name: "Maria Silva", email: "maria@example.com", role: "user", aiInviteFreeUsed: false, aiInvitePoolRemaining: 0 },
+  { id: "usr_admin", name: "Equipe Praesentia", email: "admin@praesentia.com.br", role: "platform_admin", aiInviteFreeUsed: false, aiInvitePoolRemaining: 0 }
 ];
 
 export const events: Event[] = [
@@ -13,7 +13,7 @@ export const events: Event[] = [
     slug: "mavie-1-ano",
     freeCode: "k8d2m9",
     subdomain: "mavie1ano",
-    title: "Mavie - 1 ano",
+    title: "Mavie Fontinhas - 1 ano",
     theme: "Jardim Encantado",
     eventType: "festa_infantil",
     hostName: "Camila Andrade",
@@ -45,7 +45,7 @@ export const events: Event[] = [
       receiverName: "Camila Andrade",
       key: "camila.pix@example.com",
       suggestedAmount: 50,
-      message: "Contribuição opcional para a festa da Mavie."
+      message: "Contribuição opcional para a festa da Mavie Fontinhas."
     },
     screen: {
       enabled: true,

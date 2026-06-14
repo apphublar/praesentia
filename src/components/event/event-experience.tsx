@@ -185,7 +185,7 @@ function BeforeEvent({ event }: { event: Event }) {
           recado da Camila & Diego
         </div>
         <p className="display-i" style={{ fontSize: "clamp(22px,2.4vw,32px)", lineHeight: 1.32, maxWidth: 900, margin: "8px 0 0" }}>
-          "A nossa Mavie chegou no começo de 2025 e mudou tudo. Queremos celebrar com você esse primeiro giro em volta do sol. Use tons de jardim no look se puder!"
+          "A nossa Mavie Fontinhas chegou no começo de 2025 e mudou tudo. Queremos celebrar com você esse primeiro giro em volta do sol. Use tons de jardim no look se puder!"
         </p>
       </section>
 
@@ -469,7 +469,7 @@ function MemoryEvent({ event, media }: { event: Event; media: MediaItem[] }) {
           <div style={{ background: "#f1d8c9", minHeight: 310, display: "grid", placeItems: "center", position: "relative" }}>
             <div className="polaroid" style={{ width: 210, transform: "rotate(-3deg)" }}>
               <div className="placeholder" style={{ height: 190, backgroundColor: "#d7edd9" }}>capa botanica</div>
-              <div className="display-i" style={{ marginTop: 8, textAlign: "center" }}>Mavie, 1.</div>
+              <div className="display-i" style={{ marginTop: 8, textAlign: "center" }}>Mavie Fontinhas, 1.</div>
             </div>
             <span className="tape" style={{ top: 28, right: 70, transform: "rotate(-8deg)" }} />
           </div>
@@ -496,7 +496,7 @@ function MemoryEvent({ event, media }: { event: Event; media: MediaItem[] }) {
       </section>
 
       <section className="card event-memory-cta" style={{ padding: 24, marginTop: 24, background: "var(--ink)", color: "var(--bg)" }}>
-        <h2 className="display-i" style={{ fontSize: 34, marginTop: 0 }}>Essa cápsula faz parte da vida da Mavie.</h2>
+        <h2 className="display-i" style={{ fontSize: 34, marginTop: 0 }}>Essa cápsula faz parte da vida da Mavie Fontinhas.</h2>
         <p style={{ color: "rgba(247,238,219,.72)", lineHeight: 1.65 }}>
           Quando ela crescer, a família poderá abrir esta e outras cápsulas conectadas. O valor do produto está na permanência, não só no convite.
         </p>

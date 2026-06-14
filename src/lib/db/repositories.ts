@@ -76,6 +76,12 @@ export type UpdateEventInput = {
 export interface UserRepository {
   findById(id: string): Promise<import("@/types/domain").User | null>;
   findByEmail(email: string): Promise<import("@/types/domain").User | null>;
+  purchaseAiInvitePlan(
+    userId: string,
+    plan: import("@/types/domain").AiInvitePoolPlan
+  ): Promise<import("@/types/domain").User>;
+  consumeAiInviteGeneration(userId: string, event: import("@/types/domain").Event): Promise<void>;
+  refundAiInviteGeneration(userId: string, event: import("@/types/domain").Event): Promise<void>;
 }
 
 export interface EventRepository {
@@ -85,6 +91,7 @@ export interface EventRepository {
   findOwnerId(eventId: string): Promise<string | null>;
   sumFamilyStorageUsedBytes(ownerId: string): Promise<number>;
   countCapsuleEventsByOwner(userId: string, since: Date): Promise<number>;
+  sumAiCoverGenerationsByOwner(userId: string, tier?: import("@/types/domain").PlanTier): Promise<number>;
   addExtraStorage(eventId: string, gb: number): Promise<Event>;
   create(input: CreateEventInput): Promise<Event>;
   patchCreationFields(

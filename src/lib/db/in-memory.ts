@@ -46,6 +46,34 @@ export const inMemoryUsers: UserRepository = {
   },
   async findByEmail(email) {
     return users.find((user) => user.email === email) ?? null;
+  },
+  async purchaseAiInvitePlan(userId, plan) {
+    const user = users.find((item) => item.id === userId);
+    if (!user) throw new Error("USER_NOT_FOUND");
+    const versions = plan === "inspiracao" ? 5 : 15;
+    user.aiInvitePoolRemaining = (user.aiInvitePoolRemaining ?? 0) + versions;
+    user.aiInvitePoolPlan = plan;
+    return user;
+  },
+  async consumeAiInviteGeneration(userId, event) {
+    if (event.capsuleActivatedAt) return;
+    const user = users.find((item) => item.id === userId);
+    if (!user) return;
+    if ((user.aiInvitePoolRemaining ?? 0) > 0) {
+      user.aiInvitePoolRemaining = Math.max(0, (user.aiInvitePoolRemaining ?? 0) - 1);
+      return;
+    }
+    user.aiInviteFreeUsed = true;
+  },
+  async refundAiInviteGeneration(userId, event) {
+    if (event.capsuleActivatedAt) return;
+    const user = users.find((item) => item.id === userId);
+    if (!user) return;
+    if (user.aiInvitePoolPlan) {
+      user.aiInvitePoolRemaining = (user.aiInvitePoolRemaining ?? 0) + 1;
+      return;
+    }
+    user.aiInviteFreeUsed = false;
   }
 };
 
@@ -96,6 +124,20 @@ export const inMemoryEvents: EventRepository = {
         event.capsuleActivatedAt &&
         new Date(event.capsuleActivatedAt) >= since
     ).length;
+  },
+  async sumAiCoverGenerationsByOwner(userId, tier) {
+    const ownedIds = new Set(
+      members.filter((member) => member.userId === userId && member.role === "owner").map((member) => member.eventId)
+    );
+    return events
+      .filter((event) => {
+        if (!ownedIds.has(event.id)) return false;
+        if (tier === "family") {
+          return event.plan.tier === "family" && Boolean(event.capsuleActivatedAt);
+        }
+        return !event.capsuleActivatedAt;
+      })
+      .reduce((sum, event) => sum + event.aiCoverGenerationsCount, 0);
   },
   async create(input: CreateEventInput) {
     const eventId = createId("evt");

@@ -1,15 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { Event, InviteCopy } from "@/types/domain";
 import { ArtStylePicker } from "@/components/app/ui/art-style-picker";
 import { Icon } from "@/components/app/ui/icon";
 import { InviteArt } from "@/components/app/ui/invite-art";
+import { InviteAiUpgradeModal } from "@/components/app/invite-ai-upgrade-modal";
 import { Mono, Segmented, Shimmer, Tag, Toggle } from "@/components/app/ui/primitives";
 import { CoverGenerationOverlay } from "@/components/dashboard/cover-generation-overlay";
 import type { CoverQuota } from "@/components/dashboard/cover-generator";
 import type { TextQuota } from "@/components/dashboard/invite-text-editor";
-import { generateEventCoverImageClient } from "@/lib/api/generate-cover";
+import { generateEventCoverImageClient, selectCoverVersionClient } from "@/lib/api/generate-cover";
 import { apiErrorMessage, dashboardFetchJson } from "@/lib/api/dashboard-fetch";
 import { downloadCoverImage } from "@/lib/images/download-cover-image";
 import { buildPhotoZoneInstructions, type PhotoOverlayConfig, type PhotoShape, type PhotoSize } from "@/lib/images/photo-zone-instructions";
@@ -155,6 +156,11 @@ export function InviteArtStep({
   const [coverMode, setCoverMode] = useState<InviteCoverMode>(event.coverSource === "custom" ? "custom" : "ai");
   const [imgState, setImgState] = useState<"empty" | "loading" | "done">(event.coverImageUrl ? "done" : "empty");
   const [coverUrl, setCoverUrl] = useState(event.coverImageUrl ?? "");
+  const [pendingUrls, setPendingUrls] = useState<string[]>(event.aiCoverPendingUrls ?? []);
+  const [quota, setQuota] = useState<CoverQuota>(coverQuota);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [upgradeSource, setUpgradeSource] = useState<"after_free_generation" | "retry_without_pack">("after_free_generation");
+  const versionTrackRef = useRef<HTMLDivElement>(null);
   const [coverFileName, setCoverFileName] = useState("");
   const [uploadingCover, setUploadingCover] = useState(false);
   const [downloading, setDownloading] = useState(false);
@@ -259,6 +265,12 @@ export function InviteArtStep({
   }
 
   async function generateImage() {
+    if (!quota.canGenerate) {
+      setUpgradeSource("retry_without_pack");
+      setShowUpgradeModal(true);
+      return;
+    }
+
     setImgState("loading");
     setError("");
     try {
@@ -291,12 +303,28 @@ export function InviteArtStep({
         coverFields: coverEditableFieldsToOverride(fields)
       });
       if (result.error) {
+        if (result.error.toLowerCase().includes("limite") || result.error.toLowerCase().includes("versão")) {
+          setUpgradeSource("retry_without_pack");
+          setShowUpgradeModal(true);
+        }
         setError(result.error);
         setImgState(coverUrl ? "done" : "empty");
         return;
       }
       const finalUrl = result.coverImageUrl;
       if (!finalUrl) return;
+      if (Array.isArray(result.pendingUrls)) {
+        setPendingUrls(result.pendingUrls);
+      } else if (quota.showVersionCarousel) {
+        setPendingUrls((current) => [...current, finalUrl].slice(-(quota.perEventMax ?? 3)));
+      }
+      if (result.quota) {
+        setQuota(result.quota);
+        if (result.quota.canPurchaseUpgrade && !result.quota.canGenerate) {
+          setUpgradeSource("after_free_generation");
+          setShowUpgradeModal(true);
+        }
+      }
       setCoverUrl(finalUrl);
       onCoverChange(finalUrl);
       setImgState("done");
@@ -304,6 +332,22 @@ export function InviteArtStep({
       setError(apiErrorMessage(err, "Erro de conexão."));
       setImgState(coverUrl ? "done" : "empty");
     }
+  }
+
+  async function selectVersion(url: string) {
+    setError("");
+    try {
+      await selectCoverVersionClient(event.id, url);
+      setCoverUrl(url);
+      onCoverChange(url);
+      setPendingUrls([]);
+    } catch (err) {
+      setError(apiErrorMessage(err, "Não foi possível selecionar esta versão."));
+    }
+  }
+
+  function scrollVersions(direction: -1 | 1) {
+    versionTrackRef.current?.scrollBy({ left: direction * 120, behavior: "smooth" });
   }
 
   async function uploadCover(file: File) {
@@ -587,13 +631,17 @@ export function InviteArtStep({
             <Toggle on={includeInfo} onChange={setIncludeInfo} />
           </div>
 
-          <button type="button" className="btn btn-dark" style={{ width: "100%", marginTop: 14 }} onClick={generateImage} disabled={imgState === "loading" || !coverQuota.canGenerate}>
+          <button type="button" className="btn btn-dark" style={{ width: "100%", marginTop: 14 }} onClick={generateImage} disabled={imgState === "loading"}>
             <Icon name="image" size={15} />
-            {imgState === "loading" ? "Desenhando…" : imgState === "done" ? "Gerar outra arte" : "Gerar imagem"}
+            {imgState === "loading" ? "Desenhando…" : imgState === "done" ? "Explorar outro estilo" : "Gerar convite com IA"}
           </button>
-          {imgState === "done" ? (
-            <p className="mono" style={{ marginTop: 10, fontSize: 9.5, textAlign: "center" }}>
-              1ª arte grátis usada · próximas: pacote +3 por R$9
+          {!quota.canGenerate && imgState !== "loading" ? (
+            <p className="mono" style={{ marginTop: 10, fontSize: 9.5, textAlign: "center", color: "var(--muted)" }}>
+              Sua versão gratuita já foi usada nesta conta · explore pacotes para novas tentativas criativas
+            </p>
+          ) : quota.accountPoolRemaining != null && quota.accountPoolRemaining > 0 ? (
+            <p className="mono" style={{ marginTop: 10, fontSize: 9.5, textAlign: "center", color: "var(--muted)" }}>
+              {quota.remainingGenerations} tentativa{quota.remainingGenerations === 1 ? "" : "s"} neste evento · {quota.accountPoolRemaining} na conta
             </p>
           ) : null}
         </div>
@@ -753,16 +801,46 @@ export function InviteArtStep({
           />
         )}
         {coverUrl && !previewBusy ? (
-          <button
-            type="button"
-            className="btn btn-sm"
-            style={{ width: "100%", marginTop: 12 }}
-            onClick={downloadCover}
-            disabled={downloading}
-          >
-            <Icon name="download" size={15} />
-            {downloading ? "Baixando…" : "Baixar imagem do convite"}
-          </button>
+          <>
+            {pendingUrls.length > 1 ? (
+              <div className="invite-cover-version-rail">
+                <button type="button" className="nav" onClick={() => scrollVersions(-1)} aria-label="Versão anterior">
+                  ‹
+                </button>
+                <div className="invite-cover-version-track" ref={versionTrackRef}>
+                  {pendingUrls.map((url) => (
+                    <button
+                      key={url}
+                      type="button"
+                      className={`invite-cover-version-thumb${coverUrl === url ? " is-active" : ""}`}
+                      onClick={() => selectVersion(url)}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={url} alt="Versão do convite" />
+                    </button>
+                  ))}
+                </div>
+                <button type="button" className="nav" onClick={() => scrollVersions(1)} aria-label="Próxima versão">
+                  ›
+                </button>
+              </div>
+            ) : null}
+            <button
+              type="button"
+              className="btn btn-sm"
+              style={{ width: "100%", marginTop: 12 }}
+              onClick={downloadCover}
+              disabled={downloading}
+            >
+              <Icon name="download" size={15} />
+              {downloading ? "Baixando…" : "Baixar versão selecionada"}
+            </button>
+          </>
+        ) : null}
+        {quota.familyPoolTotal ? (
+          <div className="invite-ai-quota-note">
+            Cápsula Plus: {quota.familyPoolUsed ?? 0}/{quota.familyPoolTotal} versões usadas no ano · até {quota.familyPerEventMax} por evento.
+          </div>
         ) : null}
         {isAiMode && !includeInfo ? (
           <p style={{ margin: "10px 2px 0", fontSize: 11.5, color: "var(--muted)", lineHeight: 1.4 }}>
@@ -780,6 +858,14 @@ export function InviteArtStep({
         active={isAiMode && imgState === "loading"}
         capsuleActive={Boolean(event.capsuleActivatedAt)}
         composingWithBgRemoval={removeBackground && Boolean(photoUrl)}
+      />
+
+      <InviteAiUpgradeModal
+        open={showUpgradeModal}
+        eventId={event.id}
+        source={upgradeSource}
+        onClose={() => setShowUpgradeModal(false)}
+        onPurchased={(nextQuota) => setQuota(nextQuota)}
       />
     </div>
   );

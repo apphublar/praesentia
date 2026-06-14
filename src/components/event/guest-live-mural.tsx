@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { GuestContributionPanel } from "@/components/event/guest-contribution-panel";
 import { LikeButton } from "@/components/event/like-button";
+import { GuestPolaroidFrame } from "@/components/media/guest-polaroid-frame";
 import { resolveMediaItemUrl } from "@/lib/storage/media-url";
 import type { Event, MediaItem } from "@/types/domain";
 
@@ -95,26 +96,40 @@ export function GuestLiveMural({
       <div className="guest-live-mural-grid">
         {liveMedia.map((item) => {
           const imageUrl = resolveMediaItemUrl(event.id, item);
-          return (
-            <article key={item.id} className="guest-live-mural-card polaroid">
-              {item.type === "message" ? (
+          if (item.type === "message") {
+            return (
+              <article key={item.id} className="guest-live-mural-card guest-live-mural-card-message">
                 <div className="guest-live-mural-message">{item.text}</div>
-              ) : imageUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={imageUrl} alt={item.caption || `Memória de ${item.authorName}`} className="guest-live-mural-photo" />
-              ) : (
-                <div className="guest-live-mural-message">{item.caption || "Memória"}</div>
-              )}
-              {item.caption && item.type === "photo" ? <p className="guest-live-mural-caption">{item.caption}</p> : null}
-              <footer className="guest-live-mural-card-footer">
-                <span>{item.authorName}</span>
-                {readOnly ? (
-                  <span>{item.likesCount} curtidas</span>
-                ) : (
-                  <LikeButton eventId={event.id} mediaId={item.id} initialCount={item.likesCount} guestMural />
-                )}
-              </footer>
-            </article>
+                <footer className="guest-live-mural-card-footer">
+                  <span>{item.authorName}</span>
+                  {readOnly ? (
+                    <span>{item.likesCount} curtidas</span>
+                  ) : (
+                    <LikeButton eventId={event.id} mediaId={item.id} initialCount={item.likesCount} guestMural />
+                  )}
+                </footer>
+              </article>
+            );
+          }
+
+          return (
+            <GuestPolaroidFrame
+              key={item.id}
+              className="guest-live-mural-card"
+              src={imageUrl ?? undefined}
+              alt={item.caption || `Memória de ${item.authorName}`}
+              caption={item.caption && item.type === "photo" ? item.caption : undefined}
+              footer={
+                <footer className="guest-live-mural-card-footer">
+                  <span>{item.authorName}</span>
+                  {readOnly ? (
+                    <span>{item.likesCount} curtidas</span>
+                  ) : (
+                    <LikeButton eventId={event.id} mediaId={item.id} initialCount={item.likesCount} guestMural />
+                  )}
+                </footer>
+              }
+            />
           );
         })}
       </div>

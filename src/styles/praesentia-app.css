@@ -410,6 +410,14 @@
   align-items: center;
 }
 
+.praesentia-app .praesentia-logo-lockup {
+  gap: 4px;
+}
+
+.praesentia-app .praesentia-logo-lockup .praesentia-mark {
+  margin-right: -3px;
+}
+
 .app-rail-account {
   padding: 14px 16px 18px;
   border-top: 1px solid var(--line);

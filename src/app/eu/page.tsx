@@ -7,7 +7,7 @@ const years = [
   {
     year: "2026",
     events: [
-      ["14 mar", "Mavie - 1 aninho", "convidada", "247 fotos - 86 recados", marketingImages.featured.mavie],
+      ["14 mar", "Mavie Fontinhas - 1 aninho", "convidada", "247 fotos - 86 recados", marketingImages.featured.mavie],
       ["01 jan", "Reveillon na cobertura", "convidada", "94 fotos - 12 vídeos", marketingImages.featured.reveillon]
     ]
   },
@@ -15,25 +15,25 @@ const years = [
     year: "2025",
     events: [
       ["22 nov", "Casamento João & Ana", "convidada", "412 fotos - 38 vídeos", marketingImages.featured.wedding],
-      ["03 jun", "Aniversário da Lila - 30", "criadora", "92 fotos - 14 vídeos", marketingImages.timeline.garden2]
+      ["03 jun", "Aniversário da Lila - 30", "criadora", "92 fotos - 14 vídeos", marketingImages.featured.reveillon]
     ]
   },
   {
     year: "2024",
     events: [
-      ["14 dez", "Chá da Mavie", "convidada", "88 fotos - 4 vídeos", marketingImages.timeline.cha],
+      ["14 dez", "Chá da Mavie Fontinhas", "convidada", "88 fotos - 4 vídeos", marketingImages.timeline.cha],
       ["20 set", "Aniversário da vovó - 70", "criadora", "156 fotos - 18 vídeos", marketingImages.timeline.favorite]
     ]
   }
 ];
 
 const mavieTimeline = [
-  ["2025", "chá da Mavie", marketingImages.timeline.cha],
+  ["2025", "chá da Mavie Fontinhas", marketingImages.timeline.cha],
   ["2026", "1 aninho", marketingImages.timeline.mavie1],
-  ["2027", "2 anos", marketingImages.timeline.garden2],
-  ["2030", "primeira escola", marketingImages.timeline.school],
-  ["2038", "formatura", marketingImages.featured.graduation],
-  ["2044", "18 anos", null]
+  ["2028", "3 anos", marketingImages.timeline.years3],
+  ["2030", "5 anos", marketingImages.timeline.years5],
+  ["2032", "7 anos", marketingImages.timeline.years7],
+  ["2043", "18 anos", null]
 ] as const;
 
 export default function ProfilePage() {
@@ -47,7 +47,7 @@ export default function ProfilePage() {
             <div>
               <span className="pill" style={{ background: "rgba(247,238,219,.08)", color: "var(--gold)" }}>meu perfil</span>
               <h1 className="display-i" style={{ fontSize: "clamp(42px,6vw,78px)", lineHeight: .92, margin: "10px 0 4px" }}>Maria Silva</h1>
-              <p style={{ color: "rgba(247,238,219,.72)", margin: 0 }}>Dinda da Mavie, mae do Caio. Presente em 14 eventos.</p>
+              <p style={{ color: "rgba(247,238,219,.72)", margin: 0 }}>Dinda da Mavie Fontinhas, mae do Caio. Presente em 14 eventos.</p>
             </div>
             <Link className="btn" href="/evento/mavie-1-ano" style={{ marginLeft: "auto", background: "var(--gold)", color: "var(--ink)", boxShadow: "4px 5px 0 var(--coral)" }}>
               Abrir lembranca
@@ -107,7 +107,7 @@ export default function ProfilePage() {
                 {group.events.map(([date, title, role, stat, image]) => (
                   <Link
                     key={title}
-                    href={title.includes("Mavie") ? "/evento/mavie-1-ano" : "/eu"}
+                    href={title.includes("Mavie Fontinhas") ? "/evento/mavie-1-ano" : "/eu"}
                     className="polaroid"
                     style={{ transform: "rotate(-1deg)", color: "var(--ink)" }}
                   >
@@ -125,13 +125,14 @@ export default function ProfilePage() {
 
         <section className="card" style={{ marginTop: 44, padding: 0, background: "var(--ink)", color: "var(--bg)", overflow: "hidden" }}>
           <div style={{ padding: "26px 28px 12px", display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
-            <Avatar name="Mavie Andrade" tint="var(--coral)" size={44} />
+            <Avatar name="Mavie Fontinhas" tint="var(--coral)" size={44} />
             <div>
-              <h2 className="display-i" style={{ margin: 0, fontSize: 34 }}>Quando a Mavie tiver 18.</h2>
+              <h2 className="display-i" style={{ margin: 0, fontSize: 34 }}>Quando a Mavie Fontinhas tiver 18.</h2>
               <p style={{ color: "rgba(247,238,219,.72)", margin: "4px 0 0" }}>A família poderá entregar uma linha do tempo de presenças reais.</p>
             </div>
             <span className="pill" style={{ marginLeft: "auto", background: "var(--gold)", color: "var(--ink)" }}>privado da família</span>
           </div>
+          <p className="life-demo-banner life-demo-banner-dark">Exemplo fictício — perfil, eventos e números são apenas demonstração.</p>
           <div style={{ display: "flex", gap: 16, overflowX: "auto", padding: "18px 28px 28px" }}>
             {mavieTimeline.map(([year, label, image], index) => (
               <div key={year} style={{ minWidth: 170, textAlign: "center" }}>

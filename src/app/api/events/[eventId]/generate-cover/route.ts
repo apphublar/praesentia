@@ -15,9 +15,11 @@ import {
 } from "@/lib/openai/ai-cover-usage";
 import { isOpenAIConfigured } from "@/lib/openai/client";
 import { verifyPublicImageUrl } from "@/lib/openai/persist-image";
+import { loadAiCoverAccountContext } from "@/lib/plans/ai-cover-account";
 import { getAiCoverQuota } from "@/lib/plans/features";
 import { assertTrustedOrigin } from "@/lib/security/origin";
 import { sanitizeMultilineText, sanitizeText } from "@/lib/security/sanitize";
+import type { Event } from "@/types/domain";
 
 export const maxDuration = 300;
 export const runtime = "nodejs";
@@ -31,6 +33,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ eve
   let charged = false;
   let usageType: "generation" | "edit" = "generation";
   let sessionUserId = "";
+  let evt: Event | null = null;
 
   try {
     if (!isOpenAIConfigured()) {
@@ -70,42 +73,43 @@ export async function POST(request: Request, { params }: { params: Promise<{ eve
         ? sanitizeText(body.promptVersion, 80) || "cover-image-correction-v1"
         : sanitizeText(body.promptVersion, 80) || "cover-image-v1";
 
-    let event = await repositories.events.findById(eventId);
-    if (!event) return NextResponse.json({ error: "Evento não encontrado" }, { status: 404 });
+    evt = await repositories.events.findById(eventId);
+    if (!evt) return NextResponse.json({ error: "Evento não encontrado" }, { status: 404 });
 
     if (!(await canManageEventById(session.user, eventId))) {
       return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
     }
 
-    const quota = getAiCoverQuota(event);
-    const existingCoverOk = event.coverImageUrl ? await verifyPublicImageUrl(event.coverImageUrl) : false;
-    const replacingBrokenCover = Boolean(event.coverImageUrl) && !existingCoverOk;
+    const account = await loadAiCoverAccountContext(session.user.id);
+    const quota = getAiCoverQuota(evt, account);
+    const existingCoverOk = evt.coverImageUrl ? await verifyPublicImageUrl(evt.coverImageUrl) : false;
+    const replacingBrokenCover = Boolean(evt.coverImageUrl) && !existingCoverOk;
 
     if (mode === "select") {
       const selectedUrl = sanitizeText(body.coverImageUrl, 4000);
-      const pending = event.aiCoverPendingUrls ?? [];
+      const pending = evt.aiCoverPendingUrls ?? [];
       if (!pending.includes(selectedUrl)) {
         return NextResponse.json({ error: "Versão inválida." }, { status: 400 });
       }
-      event = await repositories.events.selectAiCoverVersion(eventId, session.user.id, selectedUrl);
-      return NextResponse.json({ coverImageUrl: event.coverImageUrl, pendingUrls: [] });
+      evt = await repositories.events.selectAiCoverVersion(eventId, session.user.id, selectedUrl);
+      return NextResponse.json({ coverImageUrl: evt.coverImageUrl, pendingUrls: [] });
     }
 
     if (mode === "edit") {
       if (!quota.canEdit) {
         return NextResponse.json({ allowed: false, error: "Limite de ajustes por IA atingido." }, { status: 402 });
       }
-      if (!event.coverImageUrl) {
+      if (!evt.coverImageUrl) {
         return NextResponse.json({ error: "Gere uma versão antes de pedir ajustes." }, { status: 400 });
       }
       usageType = "edit";
     } else if (!quota.canGenerate && !replacingBrokenCover) {
-      return NextResponse.json({ allowed: false, error: "Limite de gerações por IA atingido." }, { status: 402 });
+      return NextResponse.json({ allowed: false, error: "Limite de tentativas criativas atingido." }, { status: 402 });
     } else {
       usageType = "generation";
     }
 
-    const requestSummary = buildCoverRequestSummary(event, {
+    const requestSummary = buildCoverRequestSummary(evt, {
       orientation: orientation || undefined,
       photoInstructions: photoInstructions || undefined,
       editHint: mode === "edit" ? editHint : undefined,
@@ -113,7 +117,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ eve
     });
 
     const reservation = await reserveAiCoverUsage({
-      event,
+      event: evt,
       userId: session.user.id,
       usageType,
       promptVersion,
@@ -132,7 +136,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ eve
     charged = Boolean(reservation.charged);
 
     const generated = await generateEventCoverImage({
-      event,
+      event: evt,
       ownerId: session.user.id,
       artifactId,
       promptVersion,
@@ -160,9 +164,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ eve
     reservationCompleted = true;
 
     const imageUrl = generated.imageDataUrl;
+    const refreshedAccount = await loadAiCoverAccountContext(session.user.id);
 
     if (mode === "edit") {
-      event = await repositories.events.setCoverImage(eventId, session.user.id, {
+      evt = await repositories.events.setCoverImage(eventId, session.user.id, {
         coverImageUrl: imageUrl,
         coverSource: "ai"
       });
@@ -171,33 +176,34 @@ export async function POST(request: Request, { params }: { params: Promise<{ eve
         coverImageUrl: imageUrl,
         artifactId,
         model: generated.model,
-        quota: getAiCoverQuota(event)
+        quota: getAiCoverQuota(evt, refreshedAccount)
       });
     }
 
-    const updatedQuota = getAiCoverQuota(await repositories.events.findById(eventId) as typeof event);
-    const isPaidFlow = updatedQuota.maxGenerations > 1;
+    const refreshedEvent = await repositories.events.findById(eventId);
+    const updatedQuota = getAiCoverQuota(refreshedEvent as Event, refreshedAccount);
+    const usesVersionCarousel = Boolean(updatedQuota.showVersionCarousel && updatedQuota.perEventMax && updatedQuota.perEventMax > 1);
 
-    if (isPaidFlow) {
-      const pending = [...(event.aiCoverPendingUrls ?? []), imageUrl].slice(-updatedQuota.maxGenerations);
-      event = await repositories.events.setAiCoverPendingUrls(eventId, pending);
+    if (usesVersionCarousel) {
+      const pending = [...(evt.aiCoverPendingUrls ?? []), imageUrl].slice(-updatedQuota.maxGenerations);
+      evt = await repositories.events.setAiCoverPendingUrls(eventId, pending);
       if (pending.length === 1) {
-        event = await repositories.events.setCoverImage(eventId, session.user.id, {
+        evt = await repositories.events.setCoverImage(eventId, session.user.id, {
           coverImageUrl: pending[0],
           coverSource: "ai"
         });
       }
       return NextResponse.json({
         allowed: true,
-        coverImageUrl: event.coverImageUrl,
+        coverImageUrl: evt.coverImageUrl,
         pendingUrls: pending,
         artifactId,
         model: generated.model,
-        quota: getAiCoverQuota(event)
+        quota: getAiCoverQuota(evt, refreshedAccount)
       });
     }
 
-    event = await repositories.events.setCoverImage(eventId, session.user.id, {
+    evt = await repositories.events.setCoverImage(eventId, session.user.id, {
       coverImageUrl: imageUrl,
       coverSource: "ai"
     });
@@ -207,7 +213,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ eve
       coverImageUrl: imageUrl,
       artifactId,
       model: generated.model,
-      quota: getAiCoverQuota(event)
+      quota: getAiCoverQuota(evt, refreshedAccount)
     });
   } catch (err) {
     if (artifactId && !reservationCompleted && sessionUserId) {
@@ -218,7 +224,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ eve
         artifactId,
         usageType,
         charged,
-        reason: err instanceof Error ? err.message : "Falha na geração de imagem."
+        reason: err instanceof Error ? err.message : "Falha na geração de imagem.",
+        event: evt ?? undefined
       });
     }
 

@@ -8,6 +8,8 @@ import { canManageEvent } from "@/lib/auth/permissions";
 import { requirePageSession } from "@/lib/auth/session";
 import { repositories } from "@/lib/db";
 import { safeRepositoryCall } from "@/lib/db/safe";
+import { loadAiCoverAccountContext } from "@/lib/plans/ai-cover-account";
+import { getAiCoverQuota } from "@/lib/plans/features";
 import { getEventProfile } from "@/lib/events/event-profile";
 
 export default async function EventDashboardPage({ params }: { params: Promise<{ id: string }> }) {
@@ -17,15 +19,17 @@ export default async function EventDashboardPage({ params }: { params: Promise<{
   if (!event) notFound();
 
   const profile = getEventProfile(event.eventType);
-  const [media, eventMembers, guestRsvps, membership, ownerId, subscription] = await Promise.all([
+  const [media, eventMembers, guestRsvps, membership, ownerId, subscription, account] = await Promise.all([
     safeRepositoryCall(() => repositories.media.listPublishedByEvent(event.id), [], "media.listPublishedByEvent"),
     safeRepositoryCall(() => repositories.members.listByEvent(event.id), [], "members.listByEvent"),
     safeRepositoryCall(() => repositories.guestRsvps.listByEvent(event.id), [], "guestRsvps.listByEvent"),
     safeRepositoryCall(() => repositories.members.findMembership(event.id, session.user.id), null, "members.findMembership"),
     safeRepositoryCall(() => repositories.events.findOwnerId(event.id), null, "events.findOwnerId"),
-    safeRepositoryCall(() => repositories.subscriptions.findActiveByUser(session.user.id), null, "subscriptions.findActiveByUser")
+    safeRepositoryCall(() => repositories.subscriptions.findActiveByUser(session.user.id), null, "subscriptions.findActiveByUser"),
+    loadAiCoverAccountContext(session.user.id)
   ]);
   const allowed = canManageEvent(session.user, membership ?? undefined, ownerId);
+  const coverQuota = getAiCoverQuota(event, account);
 
   if (!allowed) {
     return (
@@ -42,6 +46,7 @@ export default async function EventDashboardPage({ params }: { params: Promise<{
     <EventAdminPanel
       event={event}
       subscription={subscription}
+      coverQuota={coverQuota}
       guestRsvps={guestRsvps}
       mediaCount={media.length}
       needsRsvp={profile.needsRsvp}

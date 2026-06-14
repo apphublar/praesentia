@@ -108,8 +108,8 @@ export function AppShell({ user, events, children }: { user: User; events: Event
         <PraesentiaLogo
           href="/dashboard"
           className="app-rail-brand"
-          markHeight={30}
-          wordmarkSize={17}
+          markHeight={32}
+          wordmarkSize={18}
           withTape
           withShadow={false}
         />

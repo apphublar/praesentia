@@ -29,7 +29,7 @@ export function DashboardTopbar({
         <PraesentiaLogo
           href="/dashboard"
           className="dashboard-topbar-brand"
-          markHeight={30}
+          markHeight={32}
           wordmarkSize={18}
           withTape
           withShadow={false}

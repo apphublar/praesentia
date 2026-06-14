@@ -7,6 +7,7 @@ import { Avatar, Mono, StripePhoto } from "@/components/app/ui/primitives";
 import { GuestContributionPanel } from "@/components/event/guest-contribution-panel";
 import { LikeButton } from "@/components/event/like-button";
 import { MuralAccessPanel } from "@/components/event/mural-access-panel";
+import { GuestPolaroidFrame } from "@/components/media/guest-polaroid-frame";
 import { resolveMediaItemUrl } from "@/lib/storage/media-url";
 
 function MuralPost({ eventId, item, fresh }: { eventId: string; item: MediaItem; fresh?: boolean }) {
@@ -175,16 +176,15 @@ function PrototypeCapsulaGallery({ event, media, guestName }: { event: Event; me
             const url = resolveMediaItemUrl(event.id, item);
             return (
               <div key={item.id} style={{ transform: `rotate(${[-3, 2, -1.5, 2.5][i % 4]}deg)` }}>
-                <div className="polaroid" style={{ width: "100%" }}>
-                  <div className="tape" style={{ background: i % 2 ? "var(--tape-c)" : "var(--tape-y)" }} />
-                  {url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={url} alt="" style={{ width: "100%", aspectRatio: "1/1.08", objectFit: "cover" }} />
-                  ) : (
-                    <StripePhoto color="var(--p-green)" ratio="1 / 1.08" />
-                  )}
-                  {item.caption ? <div className="cap">{item.caption}</div> : null}
-                </div>
+                <GuestPolaroidFrame
+                  src={url ?? undefined}
+                  alt={item.caption || `Memória de ${item.authorName}`}
+                  caption={item.caption || undefined}
+                  captionStyle="polaroid"
+                  withTape
+                  tapeColor={i % 2 ? "var(--tape-c)" : "var(--tape-y)"}
+                  style={{ width: "100%" }}
+                />
               </div>
             );
           })}

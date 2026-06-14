@@ -1,4 +1,5 @@
 import { repositories } from "@/lib/db";
+import { loadAiCoverAccountContext } from "@/lib/plans/ai-cover-account";
 import { getAiCoverQuota, isAiCoverTestingUnlimited } from "@/lib/plans/features";
 import type { Event } from "@/types/domain";
 
@@ -22,24 +23,23 @@ export type ReserveAiCoverUsageResult = {
 };
 
 export async function reserveAiCoverUsage(input: ReserveAiCoverUsageInput): Promise<ReserveAiCoverUsageResult> {
-  const quota = getAiCoverQuota(input.event);
+  const account = await loadAiCoverAccountContext(input.userId);
+  const quota = getAiCoverQuota(input.event, account);
   const skipCharge = input.skipCharge || isAiCoverTestingUnlimited();
 
   if (!skipCharge) {
     if (input.usageType === "generation" && !quota.canGenerate) {
       return {
         allowed: false,
-        message: quota.canPurchasePack
-          ? "Limite de gerações por IA atingido. Desbloqueie o pacote extra (R$ 4,90) para mais 2 versões."
-          : "Limite de gerações por IA atingido."
+        message: quota.canPurchaseUpgrade
+          ? "Sua versão gratuita já foi usada. Explore novos estilos com um pacote de versões."
+          : "Limite de tentativas criativas atingido neste evento."
       };
     }
     if (input.usageType === "edit" && !quota.canEdit) {
       return {
         allowed: false,
-        message: quota.canPurchasePack
-          ? "Ajustes com IA estão no pacote extra (R$ 4,90): +2 imagens e +2 ajustes."
-          : "Limite de ajustes por IA atingido."
+        message: "Limite de ajustes por IA atingido."
       };
     }
   }
@@ -65,20 +65,24 @@ export async function reserveAiCoverUsage(input: ReserveAiCoverUsageInput): Prom
       return {
         allowed: false,
         message: input.usageType === "generation"
-          ? "Limite de gerações por IA atingido."
+          ? "Limite de tentativas criativas atingido."
           : "Limite de ajustes por IA atingido."
       };
+    }
+    if (input.usageType === "generation") {
+      await repositories.users.consumeAiInviteGeneration(input.userId, input.event);
     }
     charged = true;
   }
 
   const updatedEvent = await repositories.events.findById(input.event.id);
+  const updatedAccount = await loadAiCoverAccountContext(input.userId);
   return {
     allowed: true,
     message: "Reserva confirmada.",
     artifactId,
     charged,
-    quota: updatedEvent ? getAiCoverQuota(updatedEvent) : quota
+    quota: updatedEvent ? getAiCoverQuota(updatedEvent, updatedAccount) : quota
   };
 }
 
@@ -109,6 +113,7 @@ export async function refundAiCoverUsageReservation(input: {
   usageType: AiCoverUsageType;
   charged: boolean;
   reason: string;
+  event?: Event;
 }) {
   if (input.artifactId) {
     try {
@@ -121,6 +126,9 @@ export async function refundAiCoverUsageReservation(input: {
   if (input.charged) {
     try {
       await repositories.events.refundAiCoverUsage(input.eventId, input.userId, input.usageType);
+      if (input.usageType === "generation" && input.event) {
+        await repositories.users.refundAiInviteGeneration(input.userId, input.event);
+      }
     } catch (error) {
       console.error("[ai-cover-usage] falha ao estornar cota", input.reason, error);
     }

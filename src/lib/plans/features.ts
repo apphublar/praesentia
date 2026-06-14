@@ -1,10 +1,17 @@
-import type { Event, PlanTier } from "@/types/domain";
+import type { Event } from "@/types/domain";
 import {
   AI_COVER_PACK_PRICE_LABEL,
   FREE_AI_COVER_EDITS,
   FREE_AI_COVER_GENERATIONS,
   FREE_AI_TEXT_GENERATIONS
 } from "@/lib/plans/ai-cover-pack";
+import {
+  AI_INVITE_PER_EVENT_MAX,
+  CAPSULE_AI_COVER_GENERATIONS,
+  FAMILY_AI_COVER_PER_EVENT_MAX,
+  FAMILY_AI_COVER_POOL_TOTAL,
+  type AiInviteUpgradePlan
+} from "@/lib/plans/ai-invite-plans";
 
 export type PlanFeatures = {
   mural: boolean;
@@ -18,6 +25,13 @@ export type PlanFeatures = {
   guestSelfDeleteHours: number;
   checkIn: boolean;
   guestListPrint: boolean;
+};
+
+export type AiCoverAccountContext = {
+  freeVersionUsed: boolean;
+  invitePoolRemaining: number;
+  invitePoolPlan?: AiInviteUpgradePlan;
+  familyGenerationsUsed: number;
 };
 
 export type AiCoverQuota = {
@@ -34,7 +48,15 @@ export type AiCoverQuota = {
   packBonusGenerations?: number;
   packBonusEdits?: number;
   canPurchasePack?: boolean;
+  canPurchaseUpgrade?: boolean;
   packPriceLabel?: string;
+  perEventMax?: number;
+  accountPoolRemaining?: number;
+  familyPoolTotal?: number;
+  familyPoolUsed?: number;
+  familyPerEventMax?: number;
+  showVersionCarousel?: boolean;
+  invitePoolPlan?: AiInviteUpgradePlan;
 };
 
 const TESTING_UNLIMITED_COVER = process.env.AI_COVER_TESTING_UNLIMITED === "true";
@@ -45,7 +67,7 @@ export function isAiCoverTestingUnlimited() {
   return TESTING_UNLIMITED_COVER;
 }
 
-export const PLAN_FEATURES: Record<PlanTier, PlanFeatures> = {
+export const PLAN_FEATURES: Record<import("@/types/domain").PlanTier, PlanFeatures> = {
   free: {
     mural: false,
     capsule: false,
@@ -63,7 +85,7 @@ export const PLAN_FEATURES: Record<PlanTier, PlanFeatures> = {
     mural: true,
     capsule: true,
     liveScreen: true,
-    aiCoverGenerations: 2,
+    aiCoverGenerations: CAPSULE_AI_COVER_GENERATIONS,
     aiCoverEdits: 3,
     aiTextGenerations: 1,
     aiTextEdits: 3,
@@ -76,7 +98,7 @@ export const PLAN_FEATURES: Record<PlanTier, PlanFeatures> = {
     mural: true,
     capsule: true,
     liveScreen: true,
-    aiCoverGenerations: 2,
+    aiCoverGenerations: FAMILY_AI_COVER_PER_EVENT_MAX,
     aiCoverEdits: 3,
     aiTextGenerations: 1,
     aiTextEdits: 3,
@@ -108,7 +130,7 @@ export function canAccessLiveScreen(event: Event) {
   return hasCapsuleAccess(event) && getEffectiveFeatures(event).liveScreen;
 }
 
-export function getAiCoverQuota(event: Event): AiCoverQuota {
+export function getAiCoverQuota(event: Event, account?: AiCoverAccountContext): AiCoverQuota {
   const features = getEffectiveFeatures(event);
   const usedGenerations = event.aiCoverGenerationsCount;
   const usedEdits = event.aiCoverEditsCount;
@@ -123,15 +145,79 @@ export function getAiCoverQuota(event: Event): AiCoverQuota {
       canGenerate: true,
       canEdit: true,
       allowsCustomUpload: features.customCoverUpload,
-      testingMode: true
+      testingMode: true,
+      showVersionCarousel: true
     };
   }
 
-  const packBonusGenerations = isFreeEvent ? event.aiCoverPackBonusGenerations : 0;
-  const packBonusEdits = isFreeEvent ? event.aiCoverPackBonusEdits : 0;
-  const maxGenerations = features.aiCoverGenerations + packBonusGenerations;
-  const maxEdits = features.aiCoverEdits + packBonusEdits;
+  if (isFreeEvent) {
+    const poolRemaining = account?.invitePoolRemaining ?? 0;
+    const freeUsed = account?.freeVersionUsed ?? usedGenerations >= 1;
+    const hasPool = poolRemaining > 0;
 
+    if (hasPool) {
+      const perEventMax = AI_INVITE_PER_EVENT_MAX;
+      const perEventRemaining = Math.max(0, perEventMax - usedGenerations);
+      const remainingGenerations = Math.min(perEventRemaining, poolRemaining);
+      return {
+        maxGenerations: perEventMax,
+        maxEdits: 0,
+        remainingGenerations,
+        remainingEdits: 0,
+        canGenerate: remainingGenerations > 0,
+        canEdit: false,
+        allowsCustomUpload: features.customCoverUpload,
+        freePlan: true,
+        canPurchaseUpgrade: remainingGenerations <= 0,
+        perEventMax,
+        accountPoolRemaining: poolRemaining,
+        showVersionCarousel: usedGenerations > 0 || remainingGenerations > 0,
+        invitePoolPlan: account?.invitePoolPlan
+      };
+    }
+
+    const canGenerate = !freeUsed && usedGenerations < 1;
+    return {
+      maxGenerations: 1,
+      maxEdits: 0,
+      remainingGenerations: canGenerate ? 1 : 0,
+      remainingEdits: 0,
+      canGenerate,
+      canEdit: false,
+      allowsCustomUpload: features.customCoverUpload,
+      freePlan: true,
+      freeIncludedGenerations: 1,
+      canPurchaseUpgrade: !canGenerate,
+      canPurchasePack: true,
+      packPriceLabel: AI_COVER_PACK_PRICE_LABEL,
+      perEventMax: 1,
+      showVersionCarousel: false
+    };
+  }
+
+  if (event.plan.tier === "family") {
+    const familyUsed = account?.familyGenerationsUsed ?? usedGenerations;
+    const familyRemaining = Math.max(0, FAMILY_AI_COVER_POOL_TOTAL - familyUsed);
+    const perEventRemaining = Math.max(0, FAMILY_AI_COVER_PER_EVENT_MAX - usedGenerations);
+    const remainingGenerations = Math.min(perEventRemaining, familyRemaining);
+    return {
+      maxGenerations: FAMILY_AI_COVER_PER_EVENT_MAX,
+      maxEdits: features.aiCoverEdits,
+      remainingGenerations,
+      remainingEdits: Math.max(0, features.aiCoverEdits - usedEdits),
+      canGenerate: remainingGenerations > 0,
+      canEdit: usedEdits < features.aiCoverEdits,
+      allowsCustomUpload: features.customCoverUpload,
+      perEventMax: FAMILY_AI_COVER_PER_EVENT_MAX,
+      familyPoolTotal: FAMILY_AI_COVER_POOL_TOTAL,
+      familyPoolUsed: familyUsed,
+      familyPerEventMax: FAMILY_AI_COVER_PER_EVENT_MAX,
+      showVersionCarousel: usedGenerations > 0
+    };
+  }
+
+  const maxGenerations = features.aiCoverGenerations;
+  const maxEdits = features.aiCoverEdits;
   return {
     maxGenerations,
     maxEdits,
@@ -140,12 +226,8 @@ export function getAiCoverQuota(event: Event): AiCoverQuota {
     canGenerate: usedGenerations < maxGenerations,
     canEdit: usedEdits < maxEdits,
     allowsCustomUpload: features.customCoverUpload,
-    freePlan: isFreeEvent || undefined,
-    freeIncludedGenerations: isFreeEvent ? features.aiCoverGenerations : undefined,
-    packBonusGenerations: isFreeEvent ? packBonusGenerations : undefined,
-    packBonusEdits: isFreeEvent ? packBonusEdits : undefined,
-    canPurchasePack: isFreeEvent || undefined,
-    packPriceLabel: isFreeEvent ? AI_COVER_PACK_PRICE_LABEL : undefined
+    perEventMax: maxGenerations,
+    showVersionCarousel: usedGenerations > 0
   };
 }
 

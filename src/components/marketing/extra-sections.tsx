@@ -1,10 +1,15 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { PraesentiaLogo } from "@/components/brand/praesentia-logo";
-import { marketingImages } from "@/lib/marketing/marketing-images";
+import { marketingImages, mavieJourneyDates } from "@/lib/marketing/marketing-images";
+import {
+  MarketingCapsulePreview,
+  MarketingInvitePreview,
+  MarketingMuralPreview
+} from "@/components/marketing/transformation-previews";
 
 const faqs = [
-  ["Quanto custa de verdade?", "O plano Gratuito inclui 1 convite com IA, texto do convite e assistente de prompt. Pacote extra de R$4,90 libera até mais 2 imagens e 2 ajustes. Cápsula custa R$59, com 5 GB e no mínimo 36 meses de armazenamento (ampliável depois). Cápsula Plus custa R$197/ano, com até 6 eventos e 20 GB compartilhados."],
+  ["Quanto custa de verdade?", "Gratuito: R$0 · Cápsula: R$59 (pagamento único) · Cápsula Plus: R$197/ano (até 6 eventos)."],
   ["O link realmente não expira?", "Cápsulas pagas têm no mínimo 36 meses garantidos — você pode ampliar o tempo e o espaço com pacotes extras. O plano gratuito fica ativo só até o fim do evento."],
   ["E a privacidade das crianças?", "Eventos nascem privados. O responsável controla convidados, conteúdos, bloqueios, telão e acesso à cápsula."],
   ["Como a IA cria o convite?", "O responsável informa tipo de festa, data, local, tema e tom. A Praesentia gera texto, paleta, capa e mensagens editáveis."],
@@ -91,14 +96,6 @@ function SectionLabel({ children }: { children: ReactNode }) {
   return <div className="mono section-label">{children}</div>;
 }
 
-function PhasePreview({ src, alt, tall }: { src: string; alt: string; tall?: boolean }) {
-  return (
-    <div className={`phase-preview${tall ? " is-tall" : ""}`}>
-      <img src={src} alt={alt} loading="lazy" decoding="async" />
-    </div>
-  );
-}
-
 function MarketingPhoto({ src, alt, height }: { src: string; alt: string; height?: number }) {
   return (
     <div className="marketing-photo" style={height ? { height } : undefined}>
@@ -164,34 +161,37 @@ export function TransformationSection() {
     {
       tag: "Antes",
       title: "Convite",
-      sub: "14 mar 2026 - 18 dias",
+      schedule: `criando em ${mavieJourneyDates.creating}`,
       color: "var(--coral)",
       bg: "#fbe3cc",
-      preview: { src: marketingImages.transformation.invite, alt: "Convite digital da Mavie com capa botânica", tall: true }
+      preview: <MarketingInvitePreview />
     },
     {
       tag: "Durante",
       title: "Mural ao vivo",
-      sub: "sab 14 mar - 15h às 19h",
+      schedule: `festa em ${mavieJourneyDates.event} · 30 dias depois de criar`,
       color: "var(--gold)",
       bg: "#ffe9bd",
-      preview: { src: marketingImages.transformation.mural, alt: "Mural ao vivo com várias fotos polaroid da festa da Mavie" }
+      preview: <MarketingMuralPreview />
     },
     {
       tag: "Depois - para sempre",
       title: "Cápsula",
-      sub: "aberta - 15 mar 2026",
+      schedule: `reaberta em ${mavieJourneyDates.capsule} · 1 ano depois da festa`,
       color: "var(--violet)",
       bg: "#e5d5f2",
-      preview: { src: marketingImages.transformation.capsule, alt: "Cápsula do tempo com memórias polaroid da festa da Mavie" }
+      preview: <MarketingCapsulePreview />
     }
-  ];
+  ] as const;
 
   return (
     <section id="diferencial" className="shell landing-section">
       <SectionLabel>o diferencial</SectionLabel>
       <h2 className="display-i feature-title">Não somos um app de <span className="strike">convite</span>.<br />Somos uma <span>cápsula do tempo</span>.</h2>
-      <p className="feature-copy">O convite é apenas a porta de entrada. O verdadeiro valor está em construir um arquivo digital que preserva fotos, vídeos e histórias de quem esteve lá.</p>
+      <p className="feature-copy">
+        O mesmo endereço vive três momentos: você cria o convite, os convidados alimentam o mural no dia da festa e,
+        um ano depois, a família reabre a cápsula para reviver os melhores instantes daquele dia.
+      </p>
       <div className="transform-strip">
         <div className="mono strip-url">praesentia.com/e/mavie-1-ano</div>
         <div className="transform-grid">
@@ -199,8 +199,8 @@ export function TransformationSection() {
             <article key={card.title} className="phase-card" style={{ background: card.bg }}>
               <div className="phase-dot"><span style={{ background: card.color }} /><small className="mono">{card.tag}</small></div>
               <h3 className="display-i">{card.title}</h3>
-              <p>{card.sub}</p>
-              <PhasePreview src={card.preview.src} alt={card.preview.alt} tall={card.preview.tall} />
+              <p className="phase-schedule">{card.schedule}</p>
+              {card.preview}
             </article>
           ))}
         </div>
@@ -213,7 +213,7 @@ export function FeaturedCapsulesSection() {
   const items = [
     ["2024", "Casamento João e Ana", "412 fotos - 38 vídeos", "-2deg", marketingImages.featured.wedding, "Casamento João e Ana"],
     ["2025", "Formatura Eng. UFMG", "186 fotos - 22 vídeos", "3deg", marketingImages.featured.graduation, "Formatura universitária"],
-    ["2026", "Mavie - 1 aninho", "247 fotos - 38 vídeos", "-3deg", marketingImages.featured.mavie, "Aniversário de 1 ano da Mavie"],
+    ["2026", "Mavie Fontinhas - 1 aninho", "247 fotos - 38 vídeos", "-3deg", marketingImages.featured.mavie, "Aniversário de 1 ano da Mavie Fontinhas"],
     ["2026", "Reveillon na cobertura", "94 fotos - 12 vídeos", "2deg", marketingImages.featured.reveillon, "Reveillon na cobertura"]
   ] as const;
 
@@ -239,23 +239,29 @@ export function FeaturedCapsulesSection() {
 
 export function LifeCapsulesSection() {
   const years = [
-    ["2025", "chá da Mavie - 11/2024", "88 fotos", marketingImages.timeline.cha, "Chá da Mavie"],
-    ["2026", "Mavie - 1 aninho", "247 fotos", marketingImages.timeline.mavie1, "Mavie comemorando 1 aninho"],
-    ["2027", "Mavie no jardim - 2 anos", "184 fotos", marketingImages.timeline.garden2, "Mavie brincando no jardim"],
-    ["2030", "primeiro dia de escola", "64 fotos", marketingImages.timeline.school, "Primeiro dia de escola da Mavie"],
-    ["2032", "aniversário - 7 anos", "203 fotos", marketingImages.timeline.years7, "Aniversário de 7 anos da Mavie"],
-    ["2044", "formatura - 18 anos", "aguardando", null, ""]
+    ["2025", "chá da Mavie Fontinhas", "88 fotos", marketingImages.timeline.cha, "Chá de bebê da Mavie Fontinhas"],
+    ["2026", "1 aninho", "247 fotos", marketingImages.timeline.mavie1, "Festa de 1 ano da Mavie Fontinhas"],
+    ["2028", "3 anos", "184 fotos", marketingImages.timeline.years3, "Aniversário de 3 anos da Mavie Fontinhas"],
+    ["2030", "5 anos", "203 fotos", marketingImages.timeline.years5, "Aniversário de 5 anos da Mavie Fontinhas"],
+    ["2032", "7 anos", "176 fotos", marketingImages.timeline.years7, "Aniversário de 7 anos da Mavie Fontinhas"],
+    ["2043", "18 anos", "aguardando", null, ""]
   ] as const;
 
   return (
     <section className="shell landing-section">
       <SectionLabel>a visao longa</SectionLabel>
-      <h2 className="display-i feature-title">Quando a Mavie tiver 18,<br />ela <span>abre tudo isso</span>.</h2>
-      <p className="feature-copy">Cada cápsula em que a Mavie aparece fica conectada num único lugar. Não é um app. É a coleção de presenças que formaram quem ela é.</p>
+      <h2 className="display-i feature-title">Quando a Mavie Fontinhas tiver 18,<br />ela <span>abre tudo isso</span>.</h2>
+      <p className="feature-copy">
+        Cada festa vira uma cápsula conectada na linha do tempo dela — aniversários, chás e celebrações em família,
+        guardados ano após ano.
+      </p>
+      <p className="life-demo-banner">
+        <strong>Exemplo fictício.</strong> A timeline abaixo ilustra como a família acompanha as cápsulas da Mavie Fontinhas ao longo dos anos — apenas para você entender o produto.
+      </p>
       <div className="life-timeline">
         <div className="life-header">
           <div className="avatar-mark">M</div>
-          <div><b className="display-i">Mavie Andrade</b><small>nascida em jan/2025 - 7 cápsulas até agora</small></div>
+          <div><b className="display-i">Mavie Fontinhas</b><small>nascida em jan/2025 · festas guardadas desde o chá de bebê</small></div>
           <span>visualização da família - privado</span>
         </div>
         <div className="timeline-row">
@@ -282,7 +288,10 @@ export function LifeCapsulesSection() {
         </div>
         <div className="life-footer">
           <em>"presença - do latim praesentia - o que está aqui, agora"</em>
-          <Link href="/eu">ver meu perfil de presença</Link>
+          <div className="life-footer-actions">
+            <span className="life-demo-note">Demonstração · perfil e números são fictícios</span>
+            <Link href="/eu">ver meu perfil de presença</Link>
+          </div>
         </div>
       </div>
     </section>
@@ -293,7 +302,7 @@ export function PrivacySection() {
   return (
     <section id="seguranca" className="shell landing-section">
       <SectionLabel>privacidade</SectionLabel>
-      <h2 className="display-i feature-title">Pensado pra Mavie.</h2>
+      <h2 className="display-i feature-title">Pensado pra Mavie Fontinhas.</h2>
       <p className="feature-copy">Mas cabe no churrasco dos amigos, no casamento, no aniversário e em qualquer evento particular.</p>
       <div className="privacy-grid">
         {privacyItems.map(([title, text], index) => (
@@ -321,9 +330,9 @@ export function PrintedAlbumSection() {
         </div>
         <div className="book-stage">
           <div className="book back" />
-          <div className="book front"><small className="mono">Praesentia — álbum</small><b className="display-i">Mavie,<br />1 ano.</b><span>2026</span></div>
+          <div className="book front"><small className="mono">Praesentia — álbum</small><b className="display-i">Mavie Fontinhas,<br />1 ano.</b><span>2026</span></div>
           <div className="polaroid mini">
-            <MarketingPhoto src={marketingImages.timeline.favorite} alt="Foto favorita da Mavie no álbum impresso" height={64} />
+            <MarketingPhoto src={marketingImages.timeline.favorite} alt="Foto favorita da Mavie Fontinhas no álbum impresso" height={64} />
           </div>
         </div>
       </div>
@@ -376,7 +385,7 @@ export function FinalCTASection() {
         <span className="pill">grátis — sem cartão</span>
         <h2 className="display-i">O próximo evento que você vai amar começa agora.</h2>
         <p>Crie o convite em minutos e transforme a noite em uma cápsula do tempo que você poderá revisitar.</p>
-        <div><Link className="btn" href="/criar">Criar meu evento</Link><Link className="btn secondary" href="/evento/mavie-1-ano">Ver demo da Mavie</Link></div>
+        <div><Link className="btn" href="/criar">Criar meu evento</Link><Link className="btn secondary" href="/evento/mavie-1-ano">Ver demo da Mavie Fontinhas</Link></div>
       </div>
     </section>
   );

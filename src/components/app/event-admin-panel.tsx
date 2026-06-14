@@ -8,6 +8,8 @@ import { PhaseLine } from "@/components/app/admin/phase-line";
 import { Icon, type IconName } from "@/components/app/ui/icon";
 import { Avatar, LockedCapsuleView, Mono, PASTELS, StripePhoto, Tag } from "@/components/app/ui/primitives";
 import { PlanUpgradePanel } from "@/components/dashboard/plan-upgrade-panel";
+import { InviteAiQuotaPanel } from "@/components/dashboard/invite-ai-quota-panel";
+import type { CoverQuota } from "@/components/dashboard/cover-generator";
 import { formatEventCardDate, getAdminPhaseLineCurrent } from "@/lib/app/event-display";
 import { hasCapsuleAccess } from "@/lib/plans/features";
 import { buildStorageSnapshot } from "@/lib/storage/quota";
@@ -39,6 +41,7 @@ function Stat({ n, l, sub, accent }: { n: string | number; l: string; sub: strin
 export function EventAdminPanel({
   event,
   subscription,
+  coverQuota,
   guestRsvps,
   mediaCount,
   needsRsvp,
@@ -49,6 +52,7 @@ export function EventAdminPanel({
 }: {
   event: Event;
   subscription: UserSubscription | null;
+  coverQuota?: CoverQuota;
   guestRsvps: GuestRsvp[];
   mediaCount: number;
   needsRsvp: boolean;
@@ -241,6 +245,7 @@ export function EventAdminPanel({
                 ) : (
                   <PlanUpgradePanel event={event} subscription={subscription} />
                 )}
+                {coverQuota ? <InviteAiQuotaPanel quota={coverQuota} eventUsed={event.aiCoverGenerationsCount} /> : null}
                 {needsRsvp && confirmed.length > 0 ? (
                   <div className="card" style={{ padding: 18 }}>
                     <Mono style={{ display: "block", marginBottom: 12 }}>Confirmações recentes</Mono>

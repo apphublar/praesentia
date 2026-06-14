@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { useId, type CSSProperties } from "react";
 import {
+  PRAESENTIA_MARK_LOCKUP_VIEWBOX,
   PRAESENTIA_MARK_VIEWBOX,
   praesentiaTapePath,
   resolvePraesentiaMarkColors,
@@ -28,15 +29,23 @@ function PraesentiaMark({
   withTape = true,
   withShadow = false,
   blurId,
-  markOptions
+  markOptions,
+  crop = "lockup"
 }: {
   height?: number;
   withTape?: boolean;
   withShadow?: boolean;
   blurId: string;
   markOptions?: PraesentiaMarkOptions;
+  crop?: "full" | "lockup";
 }) {
-  const width = (height * PRAESENTIA_MARK_VIEWBOX.width) / PRAESENTIA_MARK_VIEWBOX.height;
+  const isLockup = crop === "lockup";
+  const width = isLockup
+    ? (height * PRAESENTIA_MARK_LOCKUP_VIEWBOX.width) / PRAESENTIA_MARK_LOCKUP_VIEWBOX.height
+    : (height * PRAESENTIA_MARK_VIEWBOX.width) / PRAESENTIA_MARK_VIEWBOX.height;
+  const viewBox = isLockup
+    ? `${PRAESENTIA_MARK_LOCKUP_VIEWBOX.x} ${PRAESENTIA_MARK_LOCKUP_VIEWBOX.y} ${PRAESENTIA_MARK_LOCKUP_VIEWBOX.width} ${PRAESENTIA_MARK_LOCKUP_VIEWBOX.height}`
+    : `0 0 ${PRAESENTIA_MARK_VIEWBOX.width} ${PRAESENTIA_MARK_VIEWBOX.height}`;
   const tilt = markOptions?.tilt ?? -5;
   const geometry = resolvePraesentiaMarkGeometry();
   const colors = resolvePraesentiaMarkColors(markOptions);
@@ -62,11 +71,12 @@ function PraesentiaMark({
 
   return (
     <svg
-      viewBox={`0 0 ${PRAESENTIA_MARK_VIEWBOX.width} ${PRAESENTIA_MARK_VIEWBOX.height}`}
+      viewBox={viewBox}
       width={width}
       height={height}
       aria-hidden="true"
       focusable="false"
+      className="praesentia-mark"
       style={{ display: "block", flexShrink: 0 }}
     >
       <defs>
@@ -192,11 +202,11 @@ function PraesentiaLogoContent({
 
   return (
     <span
+      className={`praesentia-logo-lockup${isVertical ? " is-vertical" : ""}`}
       style={{
         display: "inline-flex",
         alignItems: "center",
-        flexDirection: isVertical ? "column" : "row",
-        gap: isVertical ? 8 : 10
+        flexDirection: isVertical ? "column" : "row"
       }}
     >
       <PraesentiaMark
@@ -205,6 +215,7 @@ function PraesentiaLogoContent({
         withShadow={withShadow}
         blurId={blurId}
         markOptions={markOptions}
+        crop="lockup"
       />
       {showWordmark ? <PraesentiaWordmark size={wordmarkSize} muted={muted} /> : null}
     </span>
@@ -301,7 +312,7 @@ export function PraesentiaMarkOnly({
 
   return (
     <span className={className} style={style}>
-      <PraesentiaMark height={height} withTape={withTape} withShadow={withShadow} blurId={blurId} markOptions={markOptions} />
+      <PraesentiaMark height={height} withTape={withTape} withShadow={withShadow} blurId={blurId} markOptions={markOptions} crop="full" />
     </span>
   );
 }

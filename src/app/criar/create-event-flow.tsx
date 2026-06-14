@@ -209,7 +209,7 @@ export function CreateEventFlow() {
                   <div className="create-form-fields">
                     <label className="field">
                       <span>Nome do evento *</span>
-                      <input name="title" required maxLength={120} placeholder="Ex: Aniversário de 1 ano da Mavie" />
+                      <input name="title" required maxLength={120} placeholder="Ex: Aniversário de 1 ano da Mavie Fontinhas" />
                     </label>
                     <label className="field">
                       <span>Nome do homenageado(a) *</span>

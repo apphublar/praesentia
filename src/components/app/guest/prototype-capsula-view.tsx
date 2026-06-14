@@ -7,6 +7,7 @@ import { Avatar, Confetti, Mono, Polaroid } from "@/components/app/ui/primitives
 import { RETENTION_CAPSULE_DESCRIPTION, RETENTION_MINIMUM_MONTHS } from "@/lib/copy/retention";
 import { formatEventDateLong } from "@/lib/events/format-event-date";
 import { resolveMediaItemUrl } from "@/lib/storage/media-url";
+import { GuestPolaroidFrame } from "@/components/media/guest-polaroid-frame";
 import { PraesentiaBrandFooter } from "@/components/brand/praesentia-logo";
 
 function CapsulaLock({
@@ -274,16 +275,15 @@ export function CapsulaOpen({
             const url = resolveMediaItemUrl(event.id, item);
             return (
               <div key={item.id} style={{ transform: `rotate(${[-3, 2, -1.5, 2.5, -2, 1.5][i % 6]}deg)` }}>
-                <div className="polaroid" style={{ width: "100%" }}>
-                  <div className="tape" style={{ background: i % 2 ? "var(--tape-c)" : "var(--tape-y)" }} />
-                  {url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={url} alt="" style={{ width: "100%", aspectRatio: "1/1.08", objectFit: "cover" }} />
-                  ) : (
-                    <div className="stripe" style={{ aspectRatio: "1/1.08", background: "var(--p-green)" }} />
-                  )}
-                  {item.caption ? <div className="cap">{item.caption}</div> : null}
-                </div>
+                <GuestPolaroidFrame
+                  src={url ?? undefined}
+                  alt={item.caption || `Memória de ${item.authorName}`}
+                  caption={item.caption || undefined}
+                  captionStyle="polaroid"
+                  withTape
+                  tapeColor={i % 2 ? "var(--tape-c)" : "var(--tape-y)"}
+                  style={{ width: "100%" }}
+                />
               </div>
             );
           })}
