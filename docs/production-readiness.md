@@ -80,12 +80,34 @@ Detailed auth setup is in `docs/supabase-auth.md`.
 
 ## Stripe Setup
 
-1. Configure products/prices for each Praesentia plan.
-2. Configure checkout success and cancel URLs.
-3. Create webhook endpoint in production.
-4. Store the webhook secret in `STRIPE_WEBHOOK_SECRET`.
-5. Verify webhook signatures before changing plans or storage limits.
-6. Test payment, failed payment, cancellation, upgrade and downgrade events.
+### Produtos e preços (BRL)
+
+| Variável | Produto | Valor | Modo checkout |
+|----------|---------|-------|---------------|
+| `STRIPE_PRICE_CAPSULE` | Cápsula Praesentia | R$ 59 | pagamento único |
+| `STRIPE_PRICE_PLUS_YEARLY` | Cápsula Plus | R$ 197/ano | assinatura anual |
+| `STRIPE_PRICE_STORAGE_5GB` | +5 GB | R$ 19 | pagamento único |
+| `STRIPE_PRICE_STORAGE_10GB` | +10 GB | R$ 29 | pagamento único |
+| `STRIPE_PRICE_STORAGE_25GB` | +25 GB | R$ 49 | pagamento único |
+| `STRIPE_PRICE_STORAGE_50GB` | +50 GB | R$ 89 | pagamento único |
+| `STRIPE_PRICE_AI_INSPIRACAO` | Convite IA Inspiração | R$ 9,90 | pagamento único |
+| `STRIPE_PRICE_AI_CRIATIVO` | Convite IA Criativo | R$ 29,90 | pagamento único |
+
+**Test mode (local):**
+
+1. Crie conta em [Stripe Dashboard](https://dashboard.stripe.com) e copie `sk_test_...` e `pk_test_...`.
+2. Rode `npm run stripe:bootstrap-prices` (lê `.env.local` ou variável `STRIPE_SECRET_KEY`).
+3. Cole os Price IDs retornados em `.env.local`.
+4. Webhook local: `stripe listen --forward-to localhost:3000/api/billing/webhook/stripe` → `STRIPE_WEBHOOK_SECRET=whsec_...`.
+5. Teste: upsell IA → Cápsula → ampliar storage; confirme liberação após `checkout.session.completed`.
+
+**Produção:**
+
+1. Recrie os mesmos produtos em **live mode** (ou duplique manualmente no Dashboard).
+2. Webhook: `https://your-domain/api/billing/webhook/stripe`, evento `checkout.session.completed`.
+3. URLs de sucesso/cancelamento são montadas em código (`/dashboard/pagamentos`, `/dashboard/eventos/:id`).
+4. Verifique assinatura do webhook antes de alterar planos ou storage.
+5. Teste pagamento ok, cancelado e webhook duplicado.
 
 ## Resend Setup
 

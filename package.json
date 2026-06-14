@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "stripe:bootstrap-prices": "node scripts/stripe-bootstrap-prices.mjs"
   },
   "dependencies": {
     "@imgly/background-removal": "^1.7.0",

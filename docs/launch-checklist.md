@@ -2,7 +2,7 @@
 
 Marque `[x]` conforme concluir. Ordem sugerida: Fase 1 → 2 → 3.
 
-**Última revisão:** jun/2026 · **Commit base:** `002144f`
+**Última revisão:** jun/2026 · **Commit base:** `5f9f547`
 
 ---
 
@@ -10,7 +10,7 @@ Marque `[x]` conforme concluir. Ordem sugerida: Fase 1 → 2 → 3.
 
 ### Pagamentos
 - [x] Pacote `stripe` instalado e variáveis documentadas em `.env.example`
-- [ ] Price IDs criados no Stripe Dashboard (Cápsula, Plus, GB extras, Inspiração, Criativo)
+- [ ] Price IDs criados no Stripe Dashboard (Cápsula, Plus, GB extras, Inspiração, Criativo) — `npm run stripe:bootstrap-prices` com `STRIPE_SECRET_KEY=sk_test_...`
 - [x] Rotas de billing retornam `checkoutUrl` quando Stripe configurado
 - [x] `POST /api/billing/webhook/stripe` valida assinatura e libera planos
 - [x] UI redireciona para Stripe (modals, upgrade, upsell IA)
