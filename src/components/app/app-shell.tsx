@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useMemo } from "react";
 import type { Event, User } from "@/types/domain";
 import { Icon } from "@/components/app/ui/icon";
-import { Mono } from "@/components/app/ui/primitives";
+import { Avatar, Mono } from "@/components/app/ui/primitives";
 import {
   buildAppNavGroups,
   isAppNavItemActive,
@@ -29,13 +29,14 @@ function NavLink({
   const locked = isAppNavItemLocked(item, event);
   const disabled = isAppNavItemDisabled(item, event);
   const href = disabled ? "#" : item.href;
+  const isLogout = item.id === "sair";
 
   const content = (
     <>
       <Icon
         name={item.icon}
         size={compact ? 20 : 17}
-        style={{ color: on ? "var(--coral)" : locked || disabled ? "var(--faint)" : "var(--muted)", flexShrink: 0 }}
+        style={{ color: on ? "var(--coral)" : isLogout ? "var(--coral-deep)" : locked || disabled ? "var(--faint)" : "var(--muted)", flexShrink: 0 }}
       />
       {!compact ? <span style={{ flex: 1, fontWeight: on ? 700 : 500, fontSize: 13.5 }}>{item.name}</span> : null}
       {locked ? <Icon name="lock" size={13} style={{ color: "var(--faint)" }} /> : null}
@@ -43,55 +44,36 @@ function NavLink({
     </>
   );
 
+  const baseStyle = {
+    display: "flex",
+    gap: compact ? 0 : 11,
+    alignItems: "center",
+    justifyContent: compact ? "center" : "flex-start",
+    flexDirection: compact ? "column" : "row",
+    width: "100%",
+    border: "none",
+    cursor: disabled ? "not-allowed" : "pointer",
+    borderRadius: 11,
+    padding: compact ? "6px 4px" : "10px 10px",
+    textAlign: compact ? "center" : "left",
+    marginBottom: compact ? 0 : 2,
+    background: on ? "var(--ink)" : "transparent",
+    color: on ? "var(--paper)" : isLogout ? "var(--coral-deep)" : locked ? "var(--faint)" : "var(--ink-2)",
+    textDecoration: "none",
+    fontSize: compact ? 11 : undefined,
+    fontWeight: compact ? (on ? 700 : 500) : undefined
+  } as const;
+
   if (disabled) {
     return (
-      <span
-        className="navitem"
-        aria-disabled="true"
-        title="Crie ou selecione um evento primeiro"
-        style={{
-          display: "flex",
-          gap: compact ? 0 : 11,
-          alignItems: "center",
-          justifyContent: compact ? "center" : "flex-start",
-          width: "100%",
-          borderRadius: 11,
-          padding: compact ? "6px 4px" : "10px 10px",
-          marginBottom: compact ? 0 : 2,
-          color: "var(--faint)",
-          opacity: 0.55,
-          cursor: "not-allowed"
-        }}
-      >
+      <span className="navitem" aria-disabled="true" title="Crie ou selecione um evento primeiro" style={{ ...baseStyle, opacity: 0.55 }}>
         {content}
       </span>
     );
   }
 
   return (
-    <Link
-      href={href}
-      className="navitem"
-      style={{
-        display: "flex",
-        gap: compact ? 0 : 11,
-        alignItems: "center",
-        justifyContent: compact ? "center" : "flex-start",
-        flexDirection: compact ? "column" : "row",
-        width: "100%",
-        border: "none",
-        cursor: "pointer",
-        borderRadius: 11,
-        padding: compact ? "6px 4px" : "10px 10px",
-        textAlign: compact ? "center" : "left",
-        marginBottom: compact ? 0 : 2,
-        background: on ? "var(--ink)" : "transparent",
-        color: on ? "var(--paper)" : locked ? "var(--faint)" : "var(--ink-2)",
-        textDecoration: "none",
-        fontSize: compact ? 11 : undefined,
-        fontWeight: compact ? (on ? 700 : 500) : undefined
-      }}
-    >
+    <Link href={href} className={`navitem${isLogout ? " is-logout" : ""}`} style={baseStyle}>
       {content}
       {compact ? <span style={{ fontSize: 10.5, lineHeight: 1.2 }}>{item.name.split(" ")[0]}</span> : null}
     </Link>
@@ -117,35 +99,26 @@ export function AppShell({ user, events, children }: { user: User; events: Event
   }, [events, pathname]);
 
   const navGroups = useMemo(() => buildAppNavGroups(activeEvent), [activeEvent]);
-  const mobileNav = navGroups.find((group) => group.label === "Organizador")?.items ?? [];
+  const organizerNav = navGroups.find((group) => group.label === "Organizador")?.items ?? [];
 
   return (
     <div className="app-shell">
       <aside className="app-rail">
-        <div style={{ padding: "20px 22px 16px", display: "flex", alignItems: "center", gap: 10 }}>
-          <span
-            style={{
-              width: 26,
-              height: 26,
-              borderRadius: 99,
-              border: "1.5px solid var(--ink)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center"
-            }}
-          >
-            <span style={{ width: 11, height: 11, borderRadius: 99, background: "var(--coral)" }} />
+        <Link href="/dashboard" className="app-rail-brand" style={{ textDecoration: "none", color: "inherit" }}>
+          <span className="app-rail-brand-mark">
+            <span />
           </span>
           <span style={{ fontWeight: 700, fontSize: 17, letterSpacing: "-.01em" }}>Praesentia</span>
-        </div>
+        </Link>
+
         <div style={{ padding: "0 22px 14px" }}>
-          <span className="pill" style={{ fontSize: 9 }}>
+          <span className="pill" style={{ fontSize: 9, maxWidth: "100%" }}>
             <span className="dot" />
             {activeEvent ? activeEvent.title : user.name.split(" ")[0]}
           </span>
         </div>
 
-        <div className="scroll" style={{ flex: 1, overflow: "auto", padding: "6px 14px 14px" }}>
+        <div className="scroll app-rail-nav" style={{ flex: 1, overflow: "auto", padding: "6px 14px 14px" }}>
           {navGroups.map((group) => (
             <div key={group.label} style={{ marginBottom: 18 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 7, padding: "0 8px 8px" }}>
@@ -159,16 +132,37 @@ export function AppShell({ user, events, children }: { user: User; events: Event
           ))}
         </div>
 
-        <div style={{ padding: 16, borderTop: "1px solid var(--line)" }}>
-          <Mono style={{ display: "block", marginBottom: 9, fontSize: 9 }}>Conta</Mono>
-          <p style={{ margin: 0, fontSize: 12, color: "var(--ink-2)", lineHeight: 1.4 }}>{user.email}</p>
+        <div className="app-rail-account">
+          <div className="app-rail-account-user">
+            <Avatar name={user.name} size={34} />
+            <div style={{ minWidth: 0 }}>
+              <strong style={{ display: "block", fontSize: 13, lineHeight: 1.3 }}>{user.name}</strong>
+              <span style={{ display: "block", fontSize: 11.5, color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {user.email}
+              </span>
+            </div>
+          </div>
+          <div className="app-rail-account-links">
+            <Link href="/dashboard/pagamentos" className={`app-rail-account-link${pathname === "/dashboard/pagamentos" ? " is-active" : ""}`}>
+              <Icon name="card" size={15} />
+              Pagamentos
+            </Link>
+            <Link href="/" className="app-rail-account-link">
+              <Icon name="home" size={15} />
+              Voltar ao site
+            </Link>
+            <Link href="/api/auth/logout" className="app-rail-account-link is-logout">
+              <Icon name="logout" size={15} />
+              Sair da conta
+            </Link>
+          </div>
         </div>
       </aside>
 
       <div className="app-main">{children}</div>
 
       <nav className="app-bottom-nav" aria-label="Navegação principal">
-        {mobileNav.map((item) => {
+        {organizerNav.map((item) => {
           const on = isAppNavItemActive(item, pathname, activeEvent);
           const disabled = isAppNavItemDisabled(item, activeEvent);
           if (disabled) {

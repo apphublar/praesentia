@@ -248,4 +248,16 @@ export interface AuditRepository {
     targetId?: string | null;
     metadata?: Record<string, unknown>;
   }): Promise<void>;
+  listBillingByActorUserId(userId: string, limit?: number): Promise<
+    {
+      id: string;
+      actorUserId: string | null;
+      eventId: string | null;
+      action: string;
+      targetType: string;
+      targetId: string | null;
+      metadata: Record<string, unknown>;
+      createdAt: string;
+    }[]
+  >;
 }

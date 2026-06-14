@@ -55,7 +55,7 @@ export async function POST(request: Request) {
         action: "subscription.storage_expanded",
         targetType: "subscription",
         targetId: updatedSubscription.id,
-        metadata: { gb: packageGb, priceBrl: getExtraStoragePriceBrl(packageGb), devMode: process.env.NODE_ENV !== "production" }
+        metadata: { gb: packageGb, priceBrl: getExtraStoragePriceBrl(packageGb), priceLabel: `R$ ${getExtraStoragePriceBrl(packageGb)}`, devMode: process.env.NODE_ENV !== "production" }
       });
       return NextResponse.json({
         scope,
@@ -72,7 +72,7 @@ export async function POST(request: Request) {
       action: "event.storage_expanded",
       targetType: "event",
       targetId: eventId,
-      metadata: { gb: packageGb, priceBrl: getExtraStoragePriceBrl(packageGb), devMode: process.env.NODE_ENV !== "production" }
+      metadata: { gb: packageGb, priceBrl: getExtraStoragePriceBrl(packageGb), priceLabel: `R$ ${getExtraStoragePriceBrl(packageGb)}`, devMode: process.env.NODE_ENV !== "production" }
     });
 
     return NextResponse.json({

@@ -1,3 +1,4 @@
+import { BILLING_AUDIT_ACTIONS } from "@/lib/billing/payment-history";
 import { events, mediaItems, members, users } from "@/lib/mock-data";
 import { randomUUID } from "node:crypto";
 import type {
@@ -494,9 +495,35 @@ export const inMemoryLikes: LikeRepository = {
   }
 };
 
+const auditLogStore: {
+  id: string;
+  actorUserId: string | null;
+  eventId: string | null;
+  action: string;
+  targetType: string;
+  targetId: string | null;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+}[] = [];
+
 export const inMemoryAudit: AuditRepository = {
   async record(input) {
+    auditLogStore.unshift({
+      id: createId("audit"),
+      actorUserId: input.actorUserId,
+      eventId: input.eventId,
+      action: input.action,
+      targetType: input.targetType,
+      targetId: input.targetId ?? null,
+      metadata: input.metadata ?? {},
+      createdAt: new Date().toISOString()
+    });
     console.info("[audit:mock]", input.action, input.eventId, input.targetType, input.targetId);
+  },
+  async listBillingByActorUserId(userId, limit = 50) {
+    return auditLogStore
+      .filter((row) => row.actorUserId === userId && BILLING_AUDIT_ACTIONS.includes(row.action as (typeof BILLING_AUDIT_ACTIONS)[number]))
+      .slice(0, limit);
   }
 };
 

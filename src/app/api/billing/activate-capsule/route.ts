@@ -64,7 +64,7 @@ export async function POST(request: Request) {
       action: "event.capsule_activated",
       targetType: "event",
       targetId: eventId,
-      metadata: { plan, devMode: process.env.NODE_ENV !== "production" }
+      metadata: { plan, priceBrl: plan === "capsule" ? 59 : 0, priceLabel: plan === "capsule" ? "R$ 59" : "Incluído no Plus", devMode: process.env.NODE_ENV !== "production" }
     });
 
     const updated = await repositories.events.findById(eventId);

@@ -404,6 +404,170 @@
   top: 0;
 }
 
+.app-rail-brand {
+  padding: 20px 22px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.app-rail-brand-mark {
+  width: 26px;
+  height: 26px;
+  border-radius: 99px;
+  border: 1.5px solid var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.app-rail-brand-mark span {
+  width: 11px;
+  height: 11px;
+  border-radius: 99px;
+  background: var(--coral);
+}
+
+.app-rail-account {
+  padding: 14px 16px 18px;
+  border-top: 1px solid var(--line);
+  background: var(--card-2);
+}
+
+.app-rail-account-user {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.app-rail-account-links {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.app-rail-account-link {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 10px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-2);
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s;
+}
+
+.app-rail-account-link:hover {
+  background: rgba(0, 0, 0, 0.04);
+  color: var(--ink);
+}
+
+.app-rail-account-link.is-active {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.app-rail-account-link.is-logout {
+  color: var(--coral-deep);
+}
+
+.app-rail-account-link.is-logout:hover {
+  background: rgba(242, 107, 90, 0.08);
+}
+
+.navitem.is-logout:hover {
+  background: rgba(242, 107, 90, 0.08);
+}
+
+.account-page {
+  padding: 28px 32px 48px;
+}
+
+.account-page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.payment-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.payment-history-item {
+  padding: 18px 20px;
+}
+
+.payment-history-item-main {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: flex-start;
+}
+
+.payment-history-item-side {
+  text-align: right;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-end;
+}
+
+.payment-amount {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.payment-status {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.payment-status.is-paid {
+  background: rgba(56, 130, 92, 0.12);
+  color: #1f6d45;
+}
+
+.payment-status.is-included {
+  background: rgba(242, 169, 60, 0.16);
+  color: #8a5b00;
+}
+
+.account-empty-state {
+  padding: 36px 28px;
+  text-align: center;
+}
+
+@media (max-width: 720px) {
+  .payment-history-item-main {
+    flex-direction: column;
+  }
+
+  .payment-history-item-side {
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .account-page {
+    padding: 20px 18px 40px;
+  }
+}
+
 .app-main {
   flex: 1;
   min-width: 0;

@@ -1255,6 +1255,8 @@ export const postgresAiCoverArtifacts: AiCoverArtifactRepository = {
   }
 };
 
+import { BILLING_AUDIT_ACTIONS } from "@/lib/billing/payment-history";
+
 export const postgresAudit: AuditRepository = {
   async record(input) {
     const sql = getSql();
@@ -1265,6 +1267,27 @@ export const postgresAudit: AuditRepository = {
         ${input.targetId ?? null}, ${sql.json(JSON.parse(JSON.stringify(input.metadata ?? {})))}
       )
     `;
+  },
+  async listBillingByActorUserId(userId, limit = 50) {
+    const sql = getSql();
+    const rows = await sql`
+      select id, actor_user_id, event_id, action, target_type, target_id, metadata, created_at
+      from audit_logs
+      where actor_user_id = ${userId}
+        and action in ${sql(BILLING_AUDIT_ACTIONS)}
+      order by created_at desc
+      limit ${limit}
+    `;
+    return rows.map((row) => ({
+      id: String(row.id),
+      actorUserId: row.actor_user_id ? String(row.actor_user_id) : null,
+      eventId: row.event_id ? String(row.event_id) : null,
+      action: String(row.action),
+      targetType: String(row.target_type),
+      targetId: row.target_id ? String(row.target_id) : null,
+      metadata: (row.metadata as Record<string, unknown>) ?? {},
+      createdAt: new Date(String(row.created_at)).toISOString()
+    }));
   }
 };
 

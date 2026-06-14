@@ -22,7 +22,7 @@ export async function POST(request: Request) {
       action: "subscription.activated",
       targetType: "subscription",
       targetId: subscription.id,
-      metadata: { plan: "family", devMode: process.env.NODE_ENV !== "production" }
+      metadata: { plan: "family", priceBrl: 197, priceLabel: "R$ 197/ano", devMode: process.env.NODE_ENV !== "production" }
     });
 
     return NextResponse.json({ subscription, message: "Cápsula Plus ativada por 12 meses." });

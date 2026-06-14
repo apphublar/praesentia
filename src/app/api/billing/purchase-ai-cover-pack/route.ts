@@ -50,6 +50,7 @@ export async function POST(request: Request) {
       targetId: eventId,
       metadata: {
         priceLabel: AI_COVER_PACK_PRICE_LABEL,
+        priceBrl: 4.9,
         bonusGenerations: AI_COVER_PACK_BONUS_GENERATIONS,
         bonusEdits: AI_COVER_PACK_BONUS_EDITS,
         devMode: process.env.NODE_ENV !== "production"

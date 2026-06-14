@@ -86,6 +86,14 @@ export function buildAppNavGroups(event: Event | null): AppNavGroup[] {
           capsuleOnly: true
         }
       ]
+    },
+    {
+      label: "Conta",
+      items: [
+        { id: "pagamentos", href: "/dashboard/pagamentos", name: "Pagamentos", icon: "card" },
+        { id: "site", href: "/", name: "Voltar ao site", icon: "home" },
+        { id: "sair", href: "/api/auth/logout", name: "Sair da conta", icon: "logout" }
+      ]
     }
   ];
 }
@@ -102,6 +110,9 @@ export function isAppNavItemActive(item: AppNavItem, pathname: string, event: Ev
   if (item.id === "mural" && event) return pathname === `/dashboard/eventos/${event.id}/mural`;
   if (item.id === "telao" && event) return pathname === `/dashboard/eventos/${event.id}/telao`;
   if (item.id === "capsula" && event) return pathname === `/dashboard/eventos/${event.id}/capsula`;
+  if (item.id === "pagamentos") return pathname === "/dashboard/pagamentos";
+  if (item.id === "site") return false;
+  if (item.id === "sair") return false;
   return false;
 }
 
