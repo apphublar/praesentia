@@ -32,8 +32,10 @@ export function LoginShowcase() {
         <span style={{ color: "var(--coral)" }}>memória guardada</span>.
       </h2>
       <p className="login-showcase-lead">
-        Praesentia reúne convite, confirmação de presença, mural ao vivo e cápsula do tempo em um só lugar —
-        pensado para aniversários, casamentos e celebrações em família.
+        Convite, RSVP, mural ao vivo e cápsula do tempo — tudo no mesmo lugar.
+      </p>
+      <p className="login-showcase-lead login-showcase-lead-sub">
+        Pensado para aniversários, casamentos e festas em família.
       </p>
 
       <ol className="login-showcase-phases">
@@ -51,12 +53,12 @@ export function LoginShowcase() {
 
       <div className="login-showcase-foot">
         <div className="login-showcase-stat">
-          <span className="display-i">36+</span>
-          <span>meses de guarda garantidos</span>
+          <span className="login-showcase-stat-value">36+</span>
+          <span className="login-showcase-stat-label">meses de guarda garantidos</span>
         </div>
         <div className="login-showcase-stat">
-          <span className="display-i">1</span>
-          <span>link para convite, mural e cápsula</span>
+          <span className="login-showcase-stat-value">1</span>
+          <span className="login-showcase-stat-label">link único do evento</span>
         </div>
       </div>
     </aside>
