@@ -2,20 +2,103 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect } from "react";
-import type { User } from "@/types/domain";
-import { Icon, type IconName } from "@/components/app/ui/icon";
+import { useEffect, useMemo } from "react";
+import type { Event, User } from "@/types/domain";
+import { Icon } from "@/components/app/ui/icon";
 import { Mono } from "@/components/app/ui/primitives";
-import { CREATE_EVENT_PATH } from "@/lib/auth/routes";
+import {
+  buildAppNavGroups,
+  isAppNavItemActive,
+  isAppNavItemDisabled,
+  isAppNavItemLocked,
+  type AppNavItem
+} from "@/lib/app/app-nav-config";
 
-type NavItem = { href: string; name: string; icon: IconName };
+function NavLink({
+  item,
+  event,
+  pathname,
+  compact
+}: {
+  item: AppNavItem;
+  event: Event | null;
+  pathname: string;
+  compact?: boolean;
+}) {
+  const on = isAppNavItemActive(item, pathname, event);
+  const locked = isAppNavItemLocked(item, event);
+  const disabled = isAppNavItemDisabled(item, event);
+  const href = disabled ? "#" : item.href;
 
-const ORGANIZER_NAV: NavItem[] = [
-  { href: "/dashboard", name: "Meus eventos", icon: "grid" },
-  { href: CREATE_EVENT_PATH, name: "Criar evento", icon: "plus" }
-];
+  const content = (
+    <>
+      <Icon
+        name={item.icon}
+        size={compact ? 20 : 17}
+        style={{ color: on ? "var(--coral)" : locked || disabled ? "var(--faint)" : "var(--muted)", flexShrink: 0 }}
+      />
+      {!compact ? <span style={{ flex: 1, fontWeight: on ? 700 : 500, fontSize: 13.5 }}>{item.name}</span> : null}
+      {locked ? <Icon name="lock" size={13} style={{ color: "var(--faint)" }} /> : null}
+      {on && !compact ? <span style={{ width: 5, height: 5, borderRadius: 99, background: "var(--coral)" }} /> : null}
+    </>
+  );
 
-export function AppShell({ user, children }: { user: User; children: React.ReactNode }) {
+  if (disabled) {
+    return (
+      <span
+        className="navitem"
+        aria-disabled="true"
+        title="Crie ou selecione um evento primeiro"
+        style={{
+          display: "flex",
+          gap: compact ? 0 : 11,
+          alignItems: "center",
+          justifyContent: compact ? "center" : "flex-start",
+          width: "100%",
+          borderRadius: 11,
+          padding: compact ? "6px 4px" : "10px 10px",
+          marginBottom: compact ? 0 : 2,
+          color: "var(--faint)",
+          opacity: 0.55,
+          cursor: "not-allowed"
+        }}
+      >
+        {content}
+      </span>
+    );
+  }
+
+  return (
+    <Link
+      href={href}
+      className="navitem"
+      style={{
+        display: "flex",
+        gap: compact ? 0 : 11,
+        alignItems: "center",
+        justifyContent: compact ? "center" : "flex-start",
+        flexDirection: compact ? "column" : "row",
+        width: "100%",
+        border: "none",
+        cursor: "pointer",
+        borderRadius: 11,
+        padding: compact ? "6px 4px" : "10px 10px",
+        textAlign: compact ? "center" : "left",
+        marginBottom: compact ? 0 : 2,
+        background: on ? "var(--ink)" : "transparent",
+        color: on ? "var(--paper)" : locked ? "var(--faint)" : "var(--ink-2)",
+        textDecoration: "none",
+        fontSize: compact ? 11 : undefined,
+        fontWeight: compact ? (on ? 700 : 500) : undefined
+      }}
+    >
+      {content}
+      {compact ? <span style={{ fontSize: 10.5, lineHeight: 1.2 }}>{item.name.split(" ")[0]}</span> : null}
+    </Link>
+  );
+}
+
+export function AppShell({ user, events, children }: { user: User; events: Event[]; children: React.ReactNode }) {
   const pathname = usePathname();
 
   useEffect(() => {
@@ -24,10 +107,17 @@ export function AppShell({ user, children }: { user: User; children: React.React
     }
   }, []);
 
-  function isActive(href: string) {
-    if (href === "/dashboard") return pathname === "/dashboard";
-    return pathname.startsWith(href);
-  }
+  const activeEvent = useMemo(() => {
+    const fromPath = pathname.match(/\/dashboard\/eventos\/([^/]+)/)?.[1];
+    if (fromPath) {
+      const match = events.find((event) => event.id === fromPath);
+      if (match) return match;
+    }
+    return events[0] ?? null;
+  }, [events, pathname]);
+
+  const navGroups = useMemo(() => buildAppNavGroups(activeEvent), [activeEvent]);
+  const mobileNav = navGroups.find((group) => group.label === "Organizador")?.items ?? [];
 
   return (
     <div className="app-shell">
@@ -51,49 +141,22 @@ export function AppShell({ user, children }: { user: User; children: React.React
         <div style={{ padding: "0 22px 14px" }}>
           <span className="pill" style={{ fontSize: 9 }}>
             <span className="dot" />
-            {user.name.split(" ")[0]}
+            {activeEvent ? activeEvent.title : user.name.split(" ")[0]}
           </span>
         </div>
 
         <div className="scroll" style={{ flex: 1, overflow: "auto", padding: "6px 14px 14px" }}>
-          <div style={{ marginBottom: 18 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 7, padding: "0 8px 8px" }}>
-              <Mono style={{ fontSize: 9.5 }}>Organizador</Mono>
+          {navGroups.map((group) => (
+            <div key={group.label} style={{ marginBottom: 18 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 7, padding: "0 8px 8px" }}>
+                <Mono style={{ fontSize: 9.5 }}>{group.label}</Mono>
+                {group.cap ? <Icon name="hourglass" size={11} style={{ color: "var(--coral-deep)" }} /> : null}
+              </div>
+              {group.items.map((item) => (
+                <NavLink key={item.id} item={item} event={activeEvent} pathname={pathname} />
+              ))}
             </div>
-            {ORGANIZER_NAV.map((item) => {
-              const on = isActive(item.href);
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="navitem"
-                  style={{
-                    display: "flex",
-                    gap: 11,
-                    alignItems: "center",
-                    width: "100%",
-                    border: "none",
-                    cursor: "pointer",
-                    borderRadius: 11,
-                    padding: "10px 10px",
-                    textAlign: "left",
-                    marginBottom: 2,
-                    background: on ? "var(--ink)" : "transparent",
-                    color: on ? "var(--paper)" : "var(--ink-2)",
-                    textDecoration: "none"
-                  }}
-                >
-                  <Icon
-                    name={item.icon}
-                    size={17}
-                    style={{ color: on ? "var(--coral)" : "var(--muted)", flexShrink: 0 }}
-                  />
-                  <span style={{ flex: 1, fontWeight: on ? 700 : 500, fontSize: 13.5 }}>{item.name}</span>
-                  {on ? <span style={{ width: 5, height: 5, borderRadius: 99, background: "var(--coral)" }} /> : null}
-                </Link>
-              );
-            })}
-          </div>
+          ))}
         </div>
 
         <div style={{ padding: 16, borderTop: "1px solid var(--line)" }}>
@@ -105,11 +168,20 @@ export function AppShell({ user, children }: { user: User; children: React.React
       <div className="app-main">{children}</div>
 
       <nav className="app-bottom-nav" aria-label="Navegação principal">
-        {ORGANIZER_NAV.map((item) => {
-          const on = isActive(item.href);
+        {mobileNav.map((item) => {
+          const on = isAppNavItemActive(item, pathname, activeEvent);
+          const disabled = isAppNavItemDisabled(item, activeEvent);
+          if (disabled) {
+            return (
+              <span key={item.id} style={{ flex: 1, textAlign: "center", opacity: 0.45, color: "var(--faint)", fontSize: 11 }}>
+                <Icon name={item.icon} size={20} />
+                {item.name.split(" ")[0]}
+              </span>
+            );
+          }
           return (
             <Link
-              key={item.href}
+              key={item.id}
               href={item.href}
               style={{
                 flex: 1,
@@ -125,7 +197,7 @@ export function AppShell({ user, children }: { user: User; children: React.React
               }}
             >
               <Icon name={item.icon} size={20} />
-              {item.name}
+              {item.name.split(" ")[0]}
             </Link>
           );
         })}
