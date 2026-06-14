@@ -1,4 +1,5 @@
 import { DevLoginForm } from "@/components/auth/dev-login-form";
+import { LoginShowcase } from "@/components/auth/login-showcase";
 import { SupabaseLoginForm } from "@/components/auth/supabase-login-form";
 import { AppNav } from "@/components/layout/app-nav";
 import { isDevelopmentBypassAllowed } from "@/lib/env";
@@ -21,21 +22,26 @@ export default async function LoginPage({
   return (
     <>
       <AppNav />
-      <main className="shell" style={{ padding: "48px 0 80px" }}>
-        <section className="card login-intro">
-          <span className="pill">acesso</span>
-          <h1 className="display-i">Login da Praesentia</h1>
-          {showDevLogin ? (
-            <p>
-              Este ambiente está com login de desenvolvimento habilitado explicitamente para testar o fluxo do responsável e do admin.
-            </p>
-          ) : (
-            <p>
-              Entre com uma conta Supabase Auth para acessar dashboard, administração e criação de eventos.
-            </p>
-          )}
-        </section>
-        {showDevLogin ? <DevLoginForm /> : <SupabaseLoginForm nextPath={nextPath} />}
+      <main className="shell login-page">
+        <div className="login-page-grid">
+          <div className="login-page-main">
+            <section className="card login-intro">
+              <span className="pill">acesso</span>
+              <h1 className="display-i">Sua conta Praesentia</h1>
+              {showDevLogin ? (
+                <p>
+                  Ambiente de desenvolvimento com login rápido para testar o fluxo do responsável e do admin.
+                </p>
+              ) : (
+                <p>
+                  Entre ou crie sua conta para organizar eventos, convidados e memórias — do convite à cápsula do tempo.
+                </p>
+              )}
+            </section>
+            {showDevLogin ? <DevLoginForm /> : <SupabaseLoginForm nextPath={nextPath} />}
+          </div>
+          <LoginShowcase />
+        </div>
       </main>
     </>
   );

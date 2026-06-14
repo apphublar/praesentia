@@ -1,8 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { PrototypeCapsulaView } from "@/components/app/guest/prototype-capsula-view";
-import { canManageEventById } from "@/lib/auth/event-access";
-import { getCurrentSession } from "@/lib/auth/session";
 import { repositories } from "@/lib/db";
 import { safeRepositoryCall } from "@/lib/db/safe";
 import { getMuralSession } from "@/lib/mural/session";
@@ -30,10 +28,7 @@ export default async function CapsulaPage({ params }: { params: Promise<{ slug: 
     );
   }
 
-  const session = await getCurrentSession();
-  const canManage = session ? await canManageEventById(session.user, event.id) : false;
-
-  if (getSchedulePhase(event) !== "after" && !canManage) {
+  if (getSchedulePhase(event) !== "after") {
     redirect(`/evento/${event.slug}`);
   }
 

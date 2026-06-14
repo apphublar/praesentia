@@ -1596,14 +1596,33 @@ p + a.btn,
   color: var(--coral);
 }
 
+.login-page {
+  padding: 48px 0 80px;
+}
+
+.login-page-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 440px) minmax(0, 1fr);
+  gap: 28px;
+  align-items: stretch;
+}
+
+.login-page-main {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+}
+
 .login-intro {
-  max-width: 720px;
+  max-width: none;
+  margin-top: 0;
   padding: 28px;
 }
 
 .login-intro h1 {
-  font-size: clamp(42px, 6vw, 68px);
-  line-height: 0.95;
+  font-size: clamp(34px, 4.5vw, 48px);
+  line-height: 1;
   margin: 16px 0 10px;
 }
 
@@ -1613,12 +1632,117 @@ p + a.btn,
   margin-bottom: 0;
 }
 
-.dev-login-actions {
+.login-showcase {
+  padding: 28px 30px 32px;
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.login-showcase-title {
+  font-size: clamp(34px, 3.8vw, 52px);
+  line-height: 0.98;
+  margin: 18px 0 12px;
+}
+
+.login-showcase-lead {
+  color: var(--ink-soft);
+  line-height: 1.6;
+  margin: 0 0 24px;
+  max-width: 52ch;
+}
+
+.login-showcase-phases {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 16px;
+  flex: 1;
+}
+
+.login-showcase-phases li {
+  display: grid;
+  grid-template-columns: 12px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--bg-soft);
+}
+
+.login-showcase-phase-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  margin-top: 5px;
+}
+
+.login-showcase-phase-label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin-bottom: 2px;
+}
+
+.login-showcase-phases strong {
+  display: block;
+  font-size: 15px;
+  margin-bottom: 4px;
+}
+
+.login-showcase-phases p {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--ink-soft);
+  line-height: 1.5;
+}
+
+.login-showcase-foot {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 24px;
+  padding-top: 22px;
+  border-top: 1px solid var(--line);
+}
+
+.login-showcase-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.login-showcase-stat .display-i {
+  font-size: 28px;
+  line-height: 1;
+}
+
+.login-showcase-stat span:last-child {
+  font-size: 12px;
+  color: var(--ink-soft);
+  line-height: 1.45;
+}
+
+@media (max-width: 960px) {
+  .login-page-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .login-showcase-foot {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dev-login-actions {
+  display: grid;
+  grid-template-columns: 1fr;
   gap: 18px;
-  margin-top: 22px;
-  max-width: 960px;
+  margin-top: 0;
+  max-width: none;
 }
 
 .dev-login-actions article {
@@ -1657,9 +1781,9 @@ p + a.btn,
 .auth-form-card {
   display: grid;
   gap: 18px;
-  margin-top: 22px;
-  max-width: 520px;
-  padding: 22px;
+  margin-top: 0;
+  max-width: none;
+  padding: 28px;
 }
 
 .auth-mode-tabs {

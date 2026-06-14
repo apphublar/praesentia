@@ -88,7 +88,7 @@ export function PrototypeMuralView({
   if (!guestRsvpId) {
     return (
       <div className="prototype-guest-scroll" style={{ minHeight: "100%", background: "var(--dark)", color: "var(--paper)" }}>
-        <MuralAccessPanel eventId={event.id} capsuleActive={capsuleActive} mode={readOnly ? "memory" : "live"} eventTitle={event.title} />
+        <MuralAccessPanel eventId={event.id} capsuleActive={capsuleActive} mode="live" eventTitle={event.title} />
       </div>
     );
   }

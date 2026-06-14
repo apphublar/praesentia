@@ -1,9 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import type { Event, EventMember } from "@/types/domain";
 import { ConfBlock, ConfigRow, Field2 } from "@/components/app/admin/conf-block";
-import { Segmented } from "@/components/app/ui/primitives";
 import { apiErrorMessage, dashboardFetchJson } from "@/lib/api/dashboard-fetch";
 
 type RequestState = { loading: boolean; message: string; tone: "ok" | "error" | "idle" };
@@ -34,12 +34,6 @@ export function AdminConfigPanel({
   const [pixKey, setPixKey] = useState(event.pix?.key ?? "");
   const [showGifts, setShowGifts] = useState(event.giftSuggestions.length > 0);
   const [pixState, setPixState] = useState<RequestState>(idle);
-
-  const [screenRefresh, setScreenRefresh] = useState<"Tempo real" | "A cada 30s" | "Curadoria">("Tempo real");
-  const [requireEmailCode, setRequireEmailCode] = useState(true);
-  const [screenEnabled, setScreenEnabled] = useState(event.screen.enabled);
-  const [showMessages, setShowMessages] = useState(event.screen.showMessages);
-  const [screenState, setScreenState] = useState<RequestState>(idle);
 
   const ownerCount = useMemo(() => members.filter((m) => m.role === "owner").length, [members]);
 
@@ -89,26 +83,6 @@ export function AdminConfigPanel({
     }
   }
 
-  async function saveScreen() {
-    if (!capsuleActive) return;
-    setScreenState({ loading: true, message: "", tone: "idle" });
-    try {
-      const { response, data } = await dashboardFetchJson(`/api/events/${event.id}/screen`, {
-        method: "PATCH",
-        body: JSON.stringify({
-          enabled: screenEnabled,
-          paused: screenRefresh === "Curadoria",
-          showQrCode: event.screen.showQrCode,
-          showVideos: event.screen.showVideos,
-          showMessages
-        })
-      });
-      if (!response.ok) throw new Error(String(data.error ?? "Erro ao salvar."));
-      setScreenState({ loading: false, message: "Telão e mural atualizados.", tone: "ok" });
-    } catch (error) {
-      setScreenState({ loading: false, message: apiErrorMessage(error, "Falha ao salvar."), tone: "error" });
-    }
-  }
 
   return (
     <div style={{ maxWidth: 680 }}>
@@ -137,25 +111,13 @@ export function AdminConfigPanel({
       </ConfBlock>
 
       {capsuleActive ? (
-        <ConfBlock title="Telão & mural" desc="Como os momentos aparecem na festa.">
-          <Field2 label="Atualização do telão">
-            <Segmented
-              options={[
-                { v: "Tempo real" as const, l: "Tempo real" },
-                { v: "A cada 30s" as const, l: "A cada 30s" },
-                { v: "Curadoria" as const, l: "Curadoria" }
-              ]}
-              value={screenRefresh}
-              onChange={setScreenRefresh}
-            />
-          </Field2>
-          <ConfigRow label="Telão ativo" on={screenEnabled} onChange={setScreenEnabled} />
-          <ConfigRow label="Recados no telão" on={showMessages} onChange={setShowMessages} />
-          <ConfigRow label="Exigir código por e-mail" on={requireEmailCode} onChange={setRequireEmailCode} />
-          <button type="button" className="btn btn-dark btn-sm" disabled={screenState.loading} onClick={saveScreen}>
-            {screenState.loading ? "Salvando…" : "Salvar telão"}
-          </button>
-          <Status state={screenState} />
+        <ConfBlock title="Telão & mural" desc="Projeção na festa e atualização do telão.">
+          <p style={{ margin: "0 0 14px", fontSize: 13.5, color: "var(--muted)", lineHeight: 1.55 }}>
+            Configure o telão, QR code e o que aparece na projeção na tela dedicada.
+          </p>
+          <Link className="btn btn-dark btn-sm" href={`/dashboard/eventos/${event.id}/telao`}>
+            Configurar telão
+          </Link>
         </ConfBlock>
       ) : null}
 

@@ -207,7 +207,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-function CapsulaOpen({
+export function CapsulaOpen({
   event,
   media,
   guestName,

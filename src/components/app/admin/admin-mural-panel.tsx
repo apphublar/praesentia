@@ -9,7 +9,17 @@ import { Avatar, Mono, StripePhoto } from "@/components/app/ui/primitives";
 import { apiErrorMessage, dashboardFetchJson } from "@/lib/api/dashboard-fetch";
 import { resolveMediaItemUrl } from "@/lib/storage/media-url";
 
-export function AdminMuralPanel({ event, items }: { event: Event; items: MediaItem[] }) {
+export function AdminMuralPanel({
+  event,
+  items,
+  layout = "split",
+  showTelaoLink = true
+}: {
+  event: Event;
+  items: MediaItem[];
+  layout?: "split" | "stack";
+  showTelaoLink?: boolean;
+}) {
   const [rows, setRows] = useState(items);
   const [accessRequests, setAccessRequests] = useState<MuralAccessRequest[]>([]);
   const [loadingRequestId, setLoadingRequestId] = useState<string | null>(null);
@@ -83,18 +93,19 @@ export function AdminMuralPanel({ event, items }: { event: Event; items: MediaIt
     }
   }
 
-  return (
-    <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(280px,340px)", gap: 24, alignItems: "start" }}>
-      <div>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 10 }}>
-          <h3 className="serif-i" style={{ fontSize: 20, margin: 0 }}>
-            Conteúdo do mural
-          </h3>
-          <Link className="btn btn-dark btn-sm" href={`/evento/${event.slug}/telao`} target="_blank">
+  const contentGrid = (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 10 }}>
+        <h3 className="serif-i" style={{ fontSize: 20, margin: 0 }}>
+          Conteúdo do mural
+        </h3>
+        {showTelaoLink ? (
+          <Link className="btn btn-dark btn-sm" href={`/dashboard/eventos/${event.id}/telao`}>
             <Icon name="proj" size={15} />
-            Abrir telão
+            Configurar telão
           </Link>
-        </div>
+        ) : null}
+      </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(140px,1fr))", gap: 12 }}>
           {photos.map((item) => {
             const url = resolveMediaItemUrl(event.id, item);
@@ -131,10 +142,12 @@ export function AdminMuralPanel({ event, items }: { event: Event; items: MediaIt
             );
           })}
         </div>
-      </div>
+    </div>
+  );
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        <div className="card" style={{ padding: 18 }}>
+  const sidebar = (
+    <>
+      <div className="card" style={{ padding: 18 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
             <Icon name="bell" size={16} style={{ color: "var(--coral)" }} />
             <strong style={{ fontSize: 14 }}>Pedidos de acesso</strong>
@@ -205,7 +218,22 @@ export function AdminMuralPanel({ event, items }: { event: Event; items: MediaIt
           />
           {screenError ? <p style={{ color: "var(--coral-deep)", fontSize: 12, margin: "8px 0 0" }}>{screenError}</p> : null}
         </div>
+    </>
+  );
+
+  if (layout === "stack") {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+        {contentGrid}
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>{sidebar}</div>
       </div>
+    );
+  }
+
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(280px,340px)", gap: 24, alignItems: "start" }}>
+      {contentGrid}
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>{sidebar}</div>
     </div>
   );
 }

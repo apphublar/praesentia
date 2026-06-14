@@ -57,21 +57,19 @@ export function buildAppNavGroups(event: Event | null): AppNavGroup[] {
       items: [
         {
           id: "mural",
-          href: slug ? `/evento/${slug}/mural` : "",
+          href: eventId ? `/dashboard/eventos/${eventId}/mural` : "",
           name: "Mural ao vivo",
           icon: "camera",
           requiresEvent: true,
-          capsuleOnly: true,
-          externalPreview: true
+          capsuleOnly: true
         },
         {
           id: "telao",
-          href: slug ? `/evento/${slug}/telao` : "",
+          href: eventId ? `/dashboard/eventos/${eventId}/telao` : "",
           name: "Telão",
           icon: "proj",
           requiresEvent: true,
-          capsuleOnly: true,
-          externalPreview: true
+          capsuleOnly: true
         }
       ]
     },
@@ -81,12 +79,11 @@ export function buildAppNavGroups(event: Event | null): AppNavGroup[] {
       items: [
         {
           id: "capsula",
-          href: slug ? `/evento/${slug}/capsula` : "",
+          href: eventId ? `/dashboard/eventos/${eventId}/capsula` : "",
           name: "Cápsula do tempo",
           icon: "hourglass",
           requiresEvent: true,
-          capsuleOnly: true,
-          externalPreview: true
+          capsuleOnly: true
         }
       ]
     }
@@ -96,13 +93,15 @@ export function buildAppNavGroups(event: Event | null): AppNavGroup[] {
 export function isAppNavItemActive(item: AppNavItem, pathname: string, event: Event | null) {
   if (item.id === "eventos") return pathname === "/dashboard";
   if (item.id === "criar") return pathname.startsWith(CREATE_EVENT_PATH);
-  if (item.id === "admin" && event) return pathname.startsWith(`/dashboard/eventos/${event.id}`);
+  if (item.id === "admin" && event) {
+    return pathname === `/dashboard/eventos/${event.id}`;
+  }
   if (item.id === "convite" && event) {
     return pathname === `/evento/${event.slug}` || pathname === `/evento/${event.freeCode}`;
   }
-  if (item.id === "mural" && event) return pathname.startsWith(`/evento/${event.slug}/mural`);
-  if (item.id === "telao" && event) return pathname.startsWith(`/evento/${event.slug}/telao`);
-  if (item.id === "capsula" && event) return pathname.startsWith(`/evento/${event.slug}/capsula`);
+  if (item.id === "mural" && event) return pathname === `/dashboard/eventos/${event.id}/mural`;
+  if (item.id === "telao" && event) return pathname === `/dashboard/eventos/${event.id}/telao`;
+  if (item.id === "capsula" && event) return pathname === `/dashboard/eventos/${event.id}/capsula`;
   return false;
 }
 

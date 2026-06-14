@@ -1,8 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { PrototypeMuralView } from "@/components/app/guest/prototype-mural-view";
-import { canManageEventById } from "@/lib/auth/event-access";
-import { getCurrentSession } from "@/lib/auth/session";
 import { repositories } from "@/lib/db";
 import { safeRepositoryCall } from "@/lib/db/safe";
 import { getMuralSession } from "@/lib/mural/session";
@@ -30,11 +28,7 @@ export default async function MuralPage({ params }: { params: Promise<{ slug: st
     );
   }
 
-  const session = await getCurrentSession();
-  const canManage = session ? await canManageEventById(session.user, event.id) : false;
-  const schedule = getSchedulePhase(event);
-
-  if (schedule !== "live" && !canManage) {
+  if (getSchedulePhase(event) !== "live") {
     redirect(`/evento/${event.slug}`);
   }
 
@@ -53,7 +47,6 @@ export default async function MuralPage({ params }: { params: Promise<{ slug: st
         guestRsvpId={muralSession?.guestRsvpId}
         guestName={muralSession?.guestName}
         capsuleActive
-        readOnly={canManage && schedule !== "live"}
       />
     </div>
   );

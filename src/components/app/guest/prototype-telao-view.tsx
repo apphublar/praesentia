@@ -6,7 +6,15 @@ import { Icon } from "@/components/app/ui/icon";
 import { Avatar, Mono, StripePhoto } from "@/components/app/ui/primitives";
 import { resolveMediaItemUrl } from "@/lib/storage/media-url";
 
-export function PrototypeTelaoView({ event, initialItems }: { event: Event; initialItems: MediaItem[] }) {
+export function PrototypeTelaoView({
+  event,
+  initialItems,
+  embedded = false
+}: {
+  event: Event;
+  initialItems: MediaItem[];
+  embedded?: boolean;
+}) {
   const [items, setItems] = useState(initialItems.filter((i) => i.type !== "message" || i.text));
   const photos = useMemo(() => items.filter((p) => p.type !== "message"), [items]);
   const recados = useMemo(() => items.filter((p) => p.type === "message"), [items]);
@@ -41,7 +49,8 @@ export function PrototypeTelaoView({ event, initialItems }: { event: Event; init
     <div
       style={{
         width: "100%",
-        minHeight: "100vh",
+        minHeight: embedded ? "100%" : "100vh",
+        height: embedded ? "100%" : undefined,
         background: "var(--dark)",
         color: "var(--paper)",
         display: "flex",
