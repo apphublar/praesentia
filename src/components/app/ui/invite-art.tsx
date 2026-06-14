@@ -3,10 +3,11 @@
 import type { CSSProperties } from "react";
 import { Confetti, StripePhoto } from "@/components/app/ui/primitives";
 import { photoSizePercent, type PhotoOverlayConfig, type PhotoSize } from "@/lib/images/photo-zone-instructions";
-import { artStyleTheme, type ArtStyle } from "@/lib/openai/art-styles";
 
-export type { PhotoOverlayConfig, PhotoSize, ArtStyle };
-export { artStyleTheme };
+export type { PhotoOverlayConfig, PhotoSize };
+
+/** Tema fixo da prévia placeholder — independente do estilo visual escolhido para o prompt. */
+const PLACEHOLDER_THEME = { t: "var(--p-sand)", a: "#8a8173" };
 
 function Leaf({ accent, style }: { accent: string; style?: CSSProperties }) {
   return (
@@ -22,7 +23,13 @@ function PhotoOverlay({ ph, compact }: { ph: PhotoOverlayConfig; compact?: boole
   const pH = ph.pos[1];
   const m = compact ? "8%" : "6%";
   const widthPct = `${photoSizePercent(ph.size) * 100}%`;
-  const st: CSSProperties = { position: "absolute", width: widthPct, aspectRatio: "1 / 1", zIndex: 4 };
+  const isOriginal = ph.shape === "original";
+  const st: CSSProperties = {
+    position: "absolute",
+    width: widthPct,
+    zIndex: 4,
+    ...(isOriginal ? {} : { aspectRatio: "1 / 1" })
+  };
   let tx = "0";
   let ty = "0";
   if (pH === "l") st.left = m;
@@ -38,20 +45,29 @@ function PhotoOverlay({ ph, compact }: { ph: PhotoOverlayConfig; compact?: boole
     ty = "-50%";
   }
   st.transform = `translate(${tx},${ty})`;
-  const ring = ph.shape !== "cutout";
-  const radius = ph.shape === "round" ? "50%" : ph.shape === "square" ? "12%" : "16%";
+  const ring = ph.shape !== "original";
+  const radius: CSSProperties["borderRadius"] = ph.shape === "round" ? "50%" : ph.shape === "square" ? "12%" : 8;
   const frame: CSSProperties = ring
-    ? { border: "3px solid rgba(255,255,255,.92)", boxShadow: "0 10px 22px -8px rgba(0,0,0,.5)" }
-    : { filter: "drop-shadow(0 10px 12px rgba(0,0,0,.32))" };
+    ? { border: "3px solid rgba(255,255,255,.92)", boxShadow: "0 10px 22px -8px rgba(0,0,0,.5)", overflow: "hidden", borderRadius: radius }
+    : { filter: "drop-shadow(0 8px 14px rgba(0,0,0,.28))", borderRadius: radius };
 
   return (
     <div style={st}>
-      <div style={{ width: "100%", height: "100%", overflow: "hidden", borderRadius: radius, ...frame }}>
+      <div style={{ width: "100%", ...frame }}>
         {ph.imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={ph.imageUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          <img
+            src={ph.imageUrl}
+            alt=""
+            style={{
+              width: "100%",
+              height: isOriginal ? "auto" : "100%",
+              display: "block",
+              objectFit: isOriginal ? "contain" : "cover"
+            }}
+          />
         ) : (
-          <StripePhoto color={ph.color} ratio="1 / 1" radius={0} style={{ height: "100%" }} />
+          <StripePhoto color={ph.color} ratio={isOriginal ? "4 / 5" : "1 / 1"} radius={0} style={{ height: isOriginal ? "auto" : "100%" }} />
         )}
       </div>
     </div>
@@ -64,7 +80,6 @@ export function InviteArt({
   dateShort,
   time,
   place,
-  artStyle = "Elegante",
   width = "100%",
   compact = false,
   info = true,
@@ -77,7 +92,6 @@ export function InviteArt({
   dateShort?: string;
   time?: string;
   place?: string;
-  artStyle?: ArtStyle;
   width?: string | number;
   compact?: boolean;
   info?: boolean;
@@ -85,14 +99,13 @@ export function InviteArt({
   coverUrl?: string;
   style?: CSSProperties;
 }) {
-  const { t: theme, a: accent } = artStyleTheme(artStyle);
+  const { t: theme, a: accent } = PLACEHOLDER_THEME;
 
   if (coverUrl) {
     return (
       <div style={{ width, position: "relative", ...style }}>
         <div
           style={{
-            aspectRatio: "9 / 16",
             borderRadius: 14,
             overflow: "hidden",
             boxShadow: "0 18px 40px -18px rgba(34,27,20,.45)",
@@ -101,7 +114,7 @@ export function InviteArt({
           }}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={coverUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }} />
+          <img src={coverUrl} alt="" style={{ width: "100%", height: "auto", display: "block", verticalAlign: "top" }} />
           {photo ? <PhotoOverlay ph={photo} compact={compact} /> : null}
         </div>
       </div>
@@ -112,7 +125,7 @@ export function InviteArt({
     <div
       style={{
         width,
-        aspectRatio: compact ? "1 / 1" : "4 / 5",
+        aspectRatio: compact ? "1 / 1" : "9 / 16",
         borderRadius: 14,
         overflow: "hidden",
         position: "relative",
@@ -136,7 +149,7 @@ export function InviteArt({
         style={{
           position: "absolute",
           inset: 0,
-          padding: compact ? "18px" : "7% 9%",
+          padding: compact ? "18px" : "6% 8%",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
@@ -153,7 +166,7 @@ export function InviteArt({
           </div>
           <div
             className="serif-i"
-            style={{ fontSize: compact ? 26 : "clamp(28px,4.6vw,46px)", color: "#2a241c", lineHeight: 1.02, fontWeight: 600 }}
+            style={{ fontSize: compact ? 26 : "clamp(22px,4vw,38px)", color: "#2a241c", lineHeight: 1.02, fontWeight: 600 }}
           >
             {title}
           </div>

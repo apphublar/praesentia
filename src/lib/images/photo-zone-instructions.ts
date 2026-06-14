@@ -1,16 +1,17 @@
 export type PhotoSize = "sm" | "md" | "lg" | "xl";
 
+export type PhotoShape = "original" | "round" | "square";
+
 export type PhotoOverlayConfig = {
   color?: string;
   imageUrl?: string;
-  shape: "round" | "square" | "cutout";
+  shape: PhotoShape;
   pos: string;
   size?: PhotoSize;
   removeBackground?: boolean;
+  /** Orientação livre do organizador sobre a foto (quem manter, o que remover, etc.). */
+  notes?: string;
 };
-
-/** Parte superior da foto que permanece livre (rosto) na composição em camadas. */
-export const PHOTO_FACE_CLEAR_RATIO = 0.36;
 
 const POS_LABEL: Record<string, string> = {
   tl: "top-left corner (upper left)",
@@ -31,10 +32,10 @@ const SIZE_LABEL: Record<PhotoSize, string> = {
   xl: "about 44% of image width"
 };
 
-const SHAPE_LABEL: Record<PhotoOverlayConfig["shape"], string> = {
+const SHAPE_LABEL: Record<PhotoShape, string> = {
+  original: "natural photo rectangle (original aspect ratio as uploaded)",
   round: "circular",
-  square: "rounded square",
-  cutout: "person cutout (no frame — the app overlays the real photo without background)"
+  square: "rounded square"
 };
 
 export function photoSizePercent(size: PhotoSize = "md") {
@@ -48,8 +49,18 @@ export function buildPhotoZoneInstructions(photo: PhotoOverlayConfig) {
   const size = SIZE_LABEL[photo.size ?? "md"];
   const shape = SHAPE_LABEL[photo.shape];
   const bgNote = photo.removeBackground
-    ? "The app will place a cutout photo with background removed."
-    : "The app will place the real uploaded photo with its background.";
+    ? "The app will cut out the selected people from their uploaded photo (remove the photo background) and place them onto the invitation artwork — the invitation design/background is never altered."
+    : "The app will place the real uploaded photo of the honoree with its original background.";
+
+  const notes = photo.notes?.trim();
+  const notesBlock = notes
+    ? [
+        "",
+        "ORGANIZER PHOTO NOTES (follow EXACTLY — in addition to the settings above):",
+        notes,
+        "Honor these notes when designing the photo zone and when the app overlays the real photo (who to keep, who to exclude, replacements, or special treatment)."
+      ]
+    : [];
 
   return [
     "CRITICAL — EXTERNAL PHOTO COMPOSITION:",
@@ -64,6 +75,7 @@ export function buildPhotoZoneInstructions(photo: PhotoOverlayConfig) {
     "Some elements should appear to pass in front of the body; others frame the person from behind or the sides.",
     "NEVER cover the face: keep the upper-center face oval of the photo zone completely clear — no text, logos, or heavy objects over the face.",
     "Fill the photo zone with rich themed decoration (not a blank void) so the app can layer the real photo with artwork crossing the body while the face stays visible.",
-    "Event details (date, time, location) stay in the bottom panel; large headline/title typography from the visual direction may sit in the upper or middle area and may touch the photo zone edges."
+    "Event details (date, time, location) stay in the bottom panel; large headline/title typography from the visual direction may sit in the upper or middle area and may touch the photo zone edges.",
+    ...notesBlock
   ].join("\n");
 }

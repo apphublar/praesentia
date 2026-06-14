@@ -44,7 +44,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ eve
     const mode = sanitizeText(body.mode, 20) || "generate";
     const editHint = sanitizeText(body.editHint, 400);
     const orientation = sanitizeText(body.orientation, 1000);
-    const photoInstructions = sanitizeText(body.photoInstructions, 900);
+    const photoInstructions = sanitizeText(body.photoInstructions, 1200);
     const coverFields = (body.coverFields ?? {}) as Record<string, string>;
     const sanitizedCoverFields = {
       eventTitle: sanitizeText(coverFields.eventTitle, 160),

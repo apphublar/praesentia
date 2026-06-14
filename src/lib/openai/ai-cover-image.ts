@@ -98,7 +98,7 @@ async function refineCoverImagePromptWithGpt(
             "You write ONE English prompt for OpenAI gpt-image models. " +
             "Rules: fixed 9:16 format; follow organizer visualDirection EXACTLY with zero extra clipart; " +
             "event texts only in bottomTexts at the bottom of the image; " +
-            "when reservePhotoZone is true, NEVER include faces or people — design themed elements that interact with the photo zone (overlap shoulders/body OK, face must stay clear); " +
+            "when reservePhotoZone is true, NEVER include faces or people — design themed elements that interact with the photo zone (overlap shoulders/body OK, face must stay clear); follow organizer photo notes in photoInstructions exactly; " +
             "follow photoInstructions exactly when withHostPhoto is true; " +
             "preserve Portuguese accents in bottomTexts character by character; " +
             "do not invent text. Return ONLY the final prompt."

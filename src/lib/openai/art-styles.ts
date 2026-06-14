@@ -80,3 +80,7 @@ export function artStyleTheme(style: ArtStyle) {
 export function artStylePrompt(style: ArtStyle) {
   return ART_STYLE_OPTIONS.find((opt) => opt.id === style)?.prompt ?? ART_STYLE_OPTIONS[0].prompt;
 }
+
+export function artStyleHint(style: ArtStyle) {
+  return ART_STYLE_OPTIONS.find((opt) => opt.id === style)?.hint ?? ART_STYLE_OPTIONS[0].hint;
+}

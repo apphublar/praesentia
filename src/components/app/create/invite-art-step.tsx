@@ -12,7 +12,7 @@ import type { TextQuota } from "@/components/dashboard/invite-text-editor";
 import { generateEventCoverImageClient } from "@/lib/api/generate-cover";
 import { apiErrorMessage, dashboardFetchJson } from "@/lib/api/dashboard-fetch";
 import { composeCoverWithHostPhoto, uploadComposedCover } from "@/lib/images/compose-cover-with-photo";
-import { buildPhotoZoneInstructions, type PhotoOverlayConfig, type PhotoSize } from "@/lib/images/photo-zone-instructions";
+import { buildPhotoZoneInstructions, type PhotoOverlayConfig, type PhotoShape, type PhotoSize } from "@/lib/images/photo-zone-instructions";
 import { formatEventDateLine } from "@/lib/events/format-event-date";
 import { resolveInviteCopy } from "@/lib/events/invite-copy";
 import { artStylePrompt, type ArtStyle } from "@/lib/openai/art-styles";
@@ -127,10 +127,11 @@ export function InviteArtStep({
   const [includeInfo, setIncludeInfo] = useState(true);
   const [photoUrl, setPhotoUrl] = useState(event.hostPhotoUrl ?? "");
   const [photoName, setPhotoName] = useState("");
-  const [photoShape, setPhotoShape] = useState<"round" | "square" | "cutout">("round");
+  const [photoShape, setPhotoShape] = useState<PhotoShape>("original");
   const [photoPos, setPhotoPos] = useState<(typeof PHOTO_POSITIONS)[number]>("br");
   const [photoSize, setPhotoSize] = useState<PhotoSize>("md");
   const [removeBackground, setRemoveBackground] = useState(false);
+  const [photoNotes, setPhotoNotes] = useState("");
   const [coverComposed, setCoverComposed] = useState(false);
   const [imgState, setImgState] = useState<"empty" | "loading" | "done">(event.coverImageUrl ? "done" : "empty");
   const [coverUrl, setCoverUrl] = useState(event.coverImageUrl ?? "");
@@ -161,7 +162,8 @@ export function InviteArtStep({
         shape: photoShape,
         pos: photoPos,
         size: photoSize,
-        removeBackground: removeBackground || photoShape === "cutout"
+        removeBackground,
+        notes: photoNotes.trim() || undefined
       }
     : null;
 
@@ -352,13 +354,12 @@ export function InviteArtStep({
                   value={photoShape}
                   onChange={(shape) => {
                     setPhotoShape(shape);
-                    if (shape === "cutout") setRemoveBackground(true);
                     setCoverComposed(false);
                   }}
                   options={[
+                    { v: "original" as const, l: "Original" },
                     { v: "round" as const, l: "Redonda" },
-                    { v: "square" as const, l: "Quadrada" },
-                    { v: "cutout" as const, l: "Recortada" }
+                    { v: "square" as const, l: "Quadrada" }
                   ]}
                 />
                 <span className="fl" style={{ marginTop: 14 }}>
@@ -380,23 +381,21 @@ export function InviteArtStep({
                 />
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 14, padding: "10px 12px", borderRadius: 10, background: "#fff", border: "1px solid var(--line)" }}>
                   <div>
-                    <div style={{ fontWeight: 600, fontSize: 12.5 }}>Remover fundo da foto</div>
-                    <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 2 }}>
-                      {photoShape === "cutout"
-                        ? "Obrigatório no formato recortado"
-                        : "A pessoa entra integrada à arte — sem fundo quadriculado no convite final"}
+                    <div style={{ fontWeight: 600, fontSize: 12.5 }}>Remover fundo da foto do homenageado</div>
+                    <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 2, lineHeight: 1.45 }}>
+                      Tira o fundo feio da foto enviada e deixa só a pessoa integrada à arte do convite. A arte gerada pela IA não é alterada.
                     </div>
                   </div>
                   <Toggle
-                    on={removeBackground || photoShape === "cutout"}
+                    on={removeBackground}
                     onChange={(on) => {
-                      if (photoShape !== "cutout") setRemoveBackground(on);
+                      setRemoveBackground(on);
                       setCoverComposed(false);
                     }}
                   />
                 </div>
                 <div style={{ display: "flex", gap: 16, alignItems: "flex-start", marginTop: 14 }}>
-                  <div>
+                  <div style={{ flexShrink: 0 }}>
                     <span className="fl">Posição na arte</span>
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 5, width: 104 }}>
                       {PHOTO_POSITIONS.map((p) => {
@@ -427,7 +426,7 @@ export function InviteArtStep({
                                 width: 9,
                                 height: 9,
                                 background: on ? "var(--coral)" : "var(--line-2)",
-                                borderRadius: photoShape === "square" ? 2 : photoShape === "cutout" ? "40%" : 99
+                                borderRadius: photoShape === "square" ? 2 : photoShape === "original" ? 1 : 99
                               }}
                             />
                           </button>
@@ -435,11 +434,22 @@ export function InviteArtStep({
                       })}
                     </div>
                   </div>
-                  <div style={{ flex: 1, paddingTop: 18 }}>
-                    <p style={{ margin: 0, fontSize: 12, color: "var(--ink-2)", lineHeight: 1.5 }}>
-                      <Icon name="spark" size={13} style={{ color: "var(--coral)", verticalAlign: "-2px", marginRight: 4 }} />
-                      A IA cria título e elementos integrados à foto — podem passar sobre o corpo, sem tampar o rosto.
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <span className="fl">Orientação sobre a foto</span>
+                    <p style={{ margin: "0 0 8px", fontSize: 11, color: "var(--muted)", lineHeight: 1.45 }}>
+                      Opcional. Se a foto tiver várias pessoas ou algo a ajustar, descreva o que manter ou remover — a IA segue junto com as configurações acima.
                     </p>
+                    <textarea
+                      className="input"
+                      rows={3}
+                      value={photoNotes}
+                      onChange={(e) => {
+                        setPhotoNotes(e.target.value);
+                        setCoverComposed(false);
+                      }}
+                      placeholder="Ex.: manter só a mãe e a filha, remover as outras pessoas e o fundo da parede…"
+                      style={{ fontSize: 12.5, lineHeight: 1.45, marginBottom: 0 }}
+                    />
                   </div>
                 </div>
               </div>
@@ -561,7 +571,6 @@ export function InviteArtStep({
             dateShort={formatEventDateLine(event.date) ?? event.date}
             time={formatTimeShort(event.startsAt)}
             place={placeLabel(event)}
-            artStyle={artStyle}
             info={includeInfo}
             photo={coverComposed ? null : photo}
             coverUrl={coverUrl || undefined}

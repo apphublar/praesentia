@@ -1,6 +1,8 @@
 import type { PhotoOverlayConfig } from "@/lib/images/photo-zone-instructions";
-import { PHOTO_FACE_CLEAR_RATIO, photoSizePercent } from "@/lib/images/photo-zone-instructions";
+import { photoSizePercent } from "@/lib/images/photo-zone-instructions";
 import { prepareHostPhotoForOverlay, shouldRemoveHostPhotoBackground } from "@/lib/images/prepare-host-photo";
+
+type PhotoPlacement = { x: number; y: number; drawW: number; drawH: number };
 
 function loadImage(src: string) {
   return new Promise<HTMLImageElement>((resolve, reject) => {
@@ -12,35 +14,58 @@ function loadImage(src: string) {
   });
 }
 
-function photoRect(width: number, height: number, photo: PhotoOverlayConfig) {
-  const size = width * photoSizePercent(photo.size);
-  const margin = width * 0.06;
+function computePhotoPlacement(
+  canvasW: number,
+  canvasH: number,
+  photo: PhotoOverlayConfig,
+  host: HTMLImageElement
+): PhotoPlacement {
+  const baseSize = canvasW * photoSizePercent(photo.size);
+  const margin = canvasW * 0.06;
+
+  let drawW = baseSize;
+  let drawH = baseSize;
+
+  if (photo.shape === "original") {
+    const ratio = host.naturalWidth / host.naturalHeight || 1;
+    drawW = baseSize;
+    drawH = baseSize / ratio;
+    const maxH = canvasH * 0.42;
+    if (drawH > maxH) {
+      drawH = maxH;
+      drawW = drawH * ratio;
+    }
+  }
+
   let x = margin;
   let y = margin;
 
-  if (photo.pos.endsWith("c")) x = (width - size) / 2;
-  else if (photo.pos.endsWith("r")) x = width - size - margin;
+  if (photo.pos.endsWith("c")) x = (canvasW - drawW) / 2;
+  else if (photo.pos.endsWith("r")) x = canvasW - drawW - margin;
 
-  if (photo.pos.startsWith("m")) y = (height - size) / 2;
-  else if (photo.pos.startsWith("b")) y = height - size - margin;
+  if (photo.pos.startsWith("m")) y = (canvasH - drawH) / 2;
+  else if (photo.pos.startsWith("b")) y = canvasH - drawH - margin;
 
-  return { x, y, size };
+  return { x, y, drawW, drawH };
 }
 
-function drawPhotoFrame(
+function clipPhotoFrame(
   ctx: CanvasRenderingContext2D,
   x: number,
   y: number,
-  size: number,
+  drawW: number,
+  drawH: number,
   shape: PhotoOverlayConfig["shape"]
 ) {
   ctx.beginPath();
-  const radius = shape === "round" ? size / 2 : shape === "square" ? size * 0.12 : size * 0.16;
   if (shape === "round") {
-    ctx.arc(x + size / 2, y + size / 2, size / 2, 0, Math.PI * 2);
+    const radius = Math.min(drawW, drawH) / 2;
+    ctx.arc(x + drawW / 2, y + drawH / 2, radius, 0, Math.PI * 2);
+  } else if (shape === "square") {
+    const r = Math.min(drawW, drawH) * 0.12;
+    ctx.roundRect(x, y, drawW, drawH, r);
   } else {
-    const r = Math.min(radius, size / 2);
-    ctx.roundRect(x, y, size, size, r);
+    ctx.rect(x, y, drawW, drawH);
   }
   ctx.clip();
 }
@@ -48,43 +73,22 @@ function drawPhotoFrame(
 function drawHostPhoto(
   ctx: CanvasRenderingContext2D,
   host: HTMLImageElement,
-  x: number,
-  y: number,
-  size: number,
+  placement: PhotoPlacement,
   shape: PhotoOverlayConfig["shape"]
 ) {
-  const scale = Math.max(size / host.naturalWidth, size / host.naturalHeight);
-  const drawW = host.naturalWidth * scale;
-  const drawH = host.naturalHeight * scale;
-  const dx = x + (size - drawW) / 2;
-  const dy = y + (size - drawH) / 2;
+  const { x, y, drawW, drawH } = placement;
 
-  if (shape === "cutout") {
-    ctx.drawImage(host, dx, dy, drawW, drawH);
+  if (shape === "original") {
+    ctx.drawImage(host, x, y, drawW, drawH);
     return;
   }
 
-  ctx.drawImage(host, dx, dy, drawW, drawH);
-}
-
-/** Repõe elementos da arte (fita, confete, título) sobre o corpo — rosto permanece livre. */
-function overlayArtworkOnBody(
-  ctx: CanvasRenderingContext2D,
-  cover: HTMLImageElement,
-  x: number,
-  y: number,
-  size: number
-) {
-  const bodyY = y + size * PHOTO_FACE_CLEAR_RATIO;
-  const bodyH = size * (1 - PHOTO_FACE_CLEAR_RATIO);
-  if (bodyH <= 0) return;
-
-  ctx.save();
-  ctx.beginPath();
-  ctx.rect(x, bodyY, size, bodyH);
-  ctx.clip();
-  ctx.drawImage(cover, x, bodyY, size, bodyH, x, bodyY, size, bodyH);
-  ctx.restore();
+  const scale = Math.max(drawW / host.naturalWidth, drawH / host.naturalHeight);
+  const scaledW = host.naturalWidth * scale;
+  const scaledH = host.naturalHeight * scale;
+  const dx = x + (drawW - scaledW) / 2;
+  const dy = y + (drawH - scaledH) / 2;
+  ctx.drawImage(host, dx, dy, scaledW, scaledH);
 }
 
 export async function composeCoverWithHostPhoto(coverUrl: string, photo: PhotoOverlayConfig): Promise<Blob> {
@@ -103,33 +107,45 @@ export async function composeCoverWithHostPhoto(coverUrl: string, photo: PhotoOv
 
     ctx.drawImage(cover, 0, 0, width, height);
 
-    const { x, y, size } = photoRect(width, height, photo);
-    const ring = photo.shape !== "cutout";
+    const placement = computePhotoPlacement(width, height, photo, host);
+    const { x, y, drawW, drawH } = placement;
+    const framed = photo.shape === "round" || photo.shape === "square";
 
-    if (ring) {
+    if (framed) {
       ctx.save();
       ctx.shadowColor = "rgba(0,0,0,.45)";
       ctx.shadowBlur = 18;
       ctx.shadowOffsetY = 8;
       ctx.beginPath();
-      const radius = photo.shape === "round" ? size / 2 : size * 0.12;
-      if (photo.shape === "round") ctx.arc(x + size / 2, y + size / 2, size / 2 + 3, 0, Math.PI * 2);
-      else ctx.roundRect(x - 3, y - 3, size + 6, size + 6, radius);
+      if (photo.shape === "round") {
+        const radius = Math.min(drawW, drawH) / 2;
+        ctx.arc(x + drawW / 2, y + drawH / 2, radius + 3, 0, Math.PI * 2);
+      } else {
+        const r = Math.min(drawW, drawH) * 0.12;
+        ctx.roundRect(x - 3, y - 3, drawW + 6, drawH + 6, r);
+      }
       ctx.fillStyle = "rgba(255,255,255,.92)";
       ctx.fill();
+      ctx.restore();
+    } else {
+      ctx.save();
+      ctx.shadowColor = "rgba(0,0,0,.28)";
+      ctx.shadowBlur = 14;
+      ctx.shadowOffsetY = 6;
+      ctx.fillStyle = "rgba(0,0,0,.01)";
+      ctx.fillRect(x, y, drawW, drawH);
       ctx.restore();
     }
 
     ctx.save();
-    if (ring) drawPhotoFrame(ctx, x, y, size, photo.shape);
-    drawHostPhoto(ctx, host, x, y, size, photo.shape);
+    if (framed) clipPhotoFrame(ctx, x, y, drawW, drawH, photo.shape);
+    drawHostPhoto(ctx, host, placement, photo.shape);
     ctx.restore();
 
-    if (shouldRemoveHostPhotoBackground(photo)) {
-      overlayArtworkOnBody(ctx, cover, x, y, size);
-    }
-
-    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.92));
+    const usePng = shouldRemoveHostPhotoBackground(photo);
+    const blob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob(resolve, usePng ? "image/png" : "image/jpeg", usePng ? undefined : 0.92)
+    );
     if (!blob) throw new Error("Falha ao compor a capa.");
     return blob;
   } finally {
@@ -138,8 +154,9 @@ export async function composeCoverWithHostPhoto(coverUrl: string, photo: PhotoOv
 }
 
 export async function uploadComposedCover(eventId: string, blob: Blob) {
+  const ext = blob.type.includes("png") ? "png" : "jpg";
   const formData = new FormData();
-  formData.append("file", blob, "cover-composed.jpg");
+  formData.append("file", blob, `cover-composed.${ext}`);
   const res = await fetch(`/api/events/${eventId}/cover/compose`, {
     method: "POST",
     body: formData,
