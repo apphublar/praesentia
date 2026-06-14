@@ -2,13 +2,9 @@
 
 import type { CSSProperties } from "react";
 import { Confetti, StripePhoto } from "@/components/app/ui/primitives";
+import { photoSizePercent, type PhotoOverlayConfig, type PhotoSize } from "@/lib/images/photo-zone-instructions";
 
-export type PhotoOverlayConfig = {
-  color?: string;
-  imageUrl?: string;
-  shape: "round" | "square" | "cutout";
-  pos: string;
-};
+export type { PhotoOverlayConfig, PhotoSize };
 
 const STYLE_MAP = {
   Jardim: { t: "var(--p-green)", a: "#7d9a6f" },
@@ -36,7 +32,8 @@ function PhotoOverlay({ ph, compact }: { ph: PhotoOverlayConfig; compact?: boole
   const pv = ph.pos[0];
   const pH = ph.pos[1];
   const m = compact ? "8%" : "6%";
-  const st: CSSProperties = { position: "absolute", width: compact ? "34%" : "29%", aspectRatio: "1 / 1", zIndex: 4 };
+  const widthPct = `${photoSizePercent(ph.size) * 100}%`;
+  const st: CSSProperties = { position: "absolute", width: widthPct, aspectRatio: "1 / 1", zIndex: 4 };
   let tx = "0";
   let ty = "0";
   if (pH === "l") st.left = m;
@@ -104,11 +101,20 @@ export function InviteArt({
   if (coverUrl) {
     return (
       <div style={{ width, position: "relative", ...style }}>
-        <div style={{ aspectRatio: compact ? "1 / 1" : "4 / 5", borderRadius: 14, overflow: "hidden", boxShadow: "0 18px 40px -18px rgba(34,27,20,.45)" }}>
+        <div
+          style={{
+            aspectRatio: "9 / 16",
+            borderRadius: 14,
+            overflow: "hidden",
+            boxShadow: "0 18px 40px -18px rgba(34,27,20,.45)",
+            background: "var(--card-2)",
+            position: "relative"
+          }}
+        >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={coverUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          <img src={coverUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }} />
+          {photo ? <PhotoOverlay ph={photo} compact={compact} /> : null}
         </div>
-        {photo ? <PhotoOverlay ph={photo} compact={compact} /> : null}
       </div>
     );
   }

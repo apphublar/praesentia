@@ -44,7 +44,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ eve
     const mode = sanitizeText(body.mode, 20) || "generate";
     const editHint = sanitizeText(body.editHint, 400);
     const orientation = sanitizeText(body.orientation, 1000);
-    const photoInstructions = sanitizeText(body.photoInstructions, 400);
+    const photoInstructions = sanitizeText(body.photoInstructions, 900);
     const coverFields = (body.coverFields ?? {}) as Record<string, string>;
     const sanitizedCoverFields = {
       eventTitle: sanitizeText(coverFields.eventTitle, 160),
@@ -60,8 +60,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ eve
       city: sanitizeText(coverFields.city, 120),
       onlineMeetingUrl: sanitizeText(coverFields.onlineMeetingUrl, 400)
     };
+    const externalPhotoCompose = body.externalPhotoCompose === true;
     const primaryPhotoDataUrl =
-      typeof body.primaryPhotoDataUrl === "string" && body.primaryPhotoDataUrl.startsWith("data:image/")
+      !externalPhotoCompose &&
+      typeof body.primaryPhotoDataUrl === "string" &&
+      body.primaryPhotoDataUrl.startsWith("data:image/")
         ? body.primaryPhotoDataUrl
         : null;
     const promptVersion =
@@ -137,7 +140,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ eve
       promptVersion,
       mode: mode === "edit" ? "edit" : "generate",
       requestSummary,
-      hostPhotoDataUrl: primaryPhotoDataUrl
+      hostPhotoDataUrl: primaryPhotoDataUrl,
+      externalPhotoCompose
     });
 
     await completeAiCoverUsageReservation({

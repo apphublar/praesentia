@@ -54,6 +54,7 @@ export type CoverInvitationSpec = {
   visualDirection: string;
   photoInstructions: string | null;
   withHostPhoto: boolean;
+  reservePhotoZone?: boolean;
   bottomTexts: string[];
 };
 
@@ -80,7 +81,7 @@ export const COVER_IMAGE_FORMAT = {
 } as const;
 
 export const DEFAULT_PHOTO_INSTRUCTIONS =
-  "Use a foto real do homenageado. Recorte a pessoa, remova o fundo original e coloque no centro do convite em moldura circular, com borda dourada suave.";
+  "Use a foto real do homenageado enviada como referência. Preserve o rosto e a pose originais.";
 
 export function formatCoverDateLine(date: string) {
   return formatEventDateLine(date);
@@ -159,13 +160,16 @@ export function buildCoverBottomTexts(summary: CoverRequestSummary) {
 
 export function buildCoverInvitationSpec(
   summary: CoverRequestSummary,
-  options: { withHostPhoto: boolean; size?: string }
+  options: { withHostPhoto: boolean; reservePhotoZone?: boolean; size?: string }
 ): CoverInvitationSpec {
   const visualDirection = [summary.orientation?.trim(), summary.editHint?.trim()].filter(Boolean).join("\n\n");
 
+  const reservePhotoZone = options.reservePhotoZone && Boolean(summary.photoInstructions?.trim());
   const photoInstructions = options.withHostPhoto
     ? summary.photoInstructions?.trim() || DEFAULT_PHOTO_INSTRUCTIONS
-    : null;
+    : reservePhotoZone
+      ? summary.photoInstructions?.trim() ?? null
+      : null;
 
   return {
     imageSize: options.size ?? COVER_IMAGE_FORMAT.apiSize,
@@ -173,6 +177,7 @@ export function buildCoverInvitationSpec(
     visualDirection,
     photoInstructions,
     withHostPhoto: options.withHostPhoto,
+    reservePhotoZone,
     bottomTexts: buildCoverBottomTexts(summary)
   };
 }
@@ -188,7 +193,25 @@ export function buildPremiumCoverPrompt(spec: CoverInvitationSpec) {
 ${spec.photoInstructions}
 
 Use the REAL person from the uploaded reference photo.`
-    : "No reference photo — do not add a person photo.";
+    : spec.reservePhotoZone
+      ? `RESERVED PHOTO ZONE — CRITICAL (follow EXACTLY):
+${spec.photoInstructions}
+
+Do NOT draw, generate, or include ANY person, face, portrait, human figure, or photo anywhere in the artwork.
+The real photo is added by the app after generation.`
+      : "No reference photo — do not add a person photo.";
+
+  const layoutPhotoRule = spec.reservePhotoZone
+    ? "1. Top and middle area: full visual design with themed elements that interact with the reserved honoree photo zone (see photo instructions). Headlines and decorations may overlap shoulders/body — never the face."
+    : "1. Top and middle area: visual design and photo treatment exactly as described above.";
+
+  const layoutTextRule = spec.reservePhotoZone
+    ? "2. Bottom panel: render the Portuguese event-detail lines from bottomTexts (date, time, location, etc.) legibly with icons. Headline/title typography from visualDirection may also appear in upper/middle areas and integrate with the photo zone."
+    : "2. Bottom area ONLY: render the Portuguese text lines listed below, legibly, with icons if appropriate.";
+
+  const layoutExtraRules = spec.reservePhotoZone
+    ? "3. Do NOT invent extra event fields the client left empty.\n4. Layer depth: artwork and honoree photo must feel like one integrated composition."
+    : "3. Do NOT place event information (date, time, location, names) outside the bottom area.\n4. Do NOT add any text that is not listed in the bottom section below.";
 
   return `Create a premium vertical party invitation in Brazilian Portuguese.
 
@@ -201,10 +224,9 @@ ${spec.visualDirection || "Clean elegant invitation background. No extra decorat
 ${photoBlock}
 
 LAYOUT (mandatory):
-1. Top and middle area: visual design and photo treatment exactly as described above.
-2. Bottom area ONLY: render the Portuguese text lines listed below, legibly, with icons if appropriate.
-3. Do NOT place event information (date, time, location, names) outside the bottom area.
-4. Do NOT add any text that is not listed in the bottom section below.
+${layoutPhotoRule}
+${layoutTextRule}
+${layoutExtraRules}
 
 BOTTOM TEXT LINES (Portuguese — copy character by character, preserve accents é á ã ç ô):
 ${bottomBlock}

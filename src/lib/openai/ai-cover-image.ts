@@ -23,6 +23,8 @@ export type GenerateEventCoverImageInput = {
   mode: "generate" | "edit";
   requestSummary: CoverRequestSummary;
   hostPhotoDataUrl?: string | null;
+  /** Quando true, a foto real é composta pelo app — a IA só gera fundo + textos. */
+  externalPhotoCompose?: boolean;
 };
 
 export type GenerateEventCoverImageResult = {
@@ -96,6 +98,7 @@ async function refineCoverImagePromptWithGpt(
             "You write ONE English prompt for OpenAI gpt-image models. " +
             "Rules: fixed 9:16 format; follow organizer visualDirection EXACTLY with zero extra clipart; " +
             "event texts only in bottomTexts at the bottom of the image; " +
+            "when reservePhotoZone is true, NEVER include faces or people — design themed elements that interact with the photo zone (overlap shoulders/body OK, face must stay clear); " +
             "follow photoInstructions exactly when withHostPhoto is true; " +
             "preserve Portuguese accents in bottomTexts character by character; " +
             "do not invent text. Return ONLY the final prompt."
@@ -383,6 +386,7 @@ async function persistGeneratedCover(eventId: string, imageDataUrl: string) {
 }
 
 function resolveHostPhotoDataUrl(input: GenerateEventCoverImageInput) {
+  if (input.externalPhotoCompose) return null;
   if (input.hostPhotoDataUrl?.startsWith("data:image/")) return input.hostPhotoDataUrl;
   if (input.event.hostPhotoUrl?.startsWith("data:image/")) return input.event.hostPhotoUrl;
   return null;
@@ -394,10 +398,13 @@ export async function generateEventCoverImage(
   const model = process.env.OPENAI_IMAGE_MODEL?.trim() || DEFAULT_IMAGE_MODEL;
   const size = resolveCoverImageSize();
   const quality = resolveCoverImageQuality();
+  const externalPhotoCompose = Boolean(input.externalPhotoCompose);
   const hostPhotoDataUrl = resolveHostPhotoDataUrl(input);
   const withHostPhoto = Boolean(hostPhotoDataUrl);
+  const reservePhotoZone =
+    externalPhotoCompose && Boolean(input.requestSummary.photoInstructions?.trim());
 
-  const spec = buildCoverInvitationSpec(input.requestSummary, { withHostPhoto, size });
+  const spec = buildCoverInvitationSpec(input.requestSummary, { withHostPhoto, reservePhotoZone, size });
   const basePrompt = buildPremiumCoverPrompt(spec);
   const visualDirection = spec.visualDirection.trim();
   const shouldRefine = visualDirection.length < SKIP_REFINE_MIN_VISUAL_CHARS;

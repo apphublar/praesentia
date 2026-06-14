@@ -11,6 +11,8 @@ export type GenerateCoverInput = {
   photoInstructions?: string;
   coverFields?: Record<string, string>;
   primaryPhotoDataUrl?: string | null;
+  /** IA gera só fundo; foto real composta pelo app depois. */
+  externalPhotoCompose?: boolean;
   coverImageUrl?: string;
   promptVersion?: string;
 };
@@ -40,6 +42,7 @@ export async function generateEventCoverImageClient(input: GenerateCoverInput): 
         photoInstructions: input.photoInstructions,
         coverFields: input.coverFields,
         primaryPhotoDataUrl: input.primaryPhotoDataUrl,
+        externalPhotoCompose: input.externalPhotoCompose,
         coverImageUrl: input.coverImageUrl,
         promptVersion: input.promptVersion
       }),

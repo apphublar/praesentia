@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { Event, InviteCopy } from "@/types/domain";
 import { Icon } from "@/components/app/ui/icon";
-import { InviteArt, type ArtStyle, type PhotoOverlayConfig } from "@/components/app/ui/invite-art";
+import { InviteArt, type ArtStyle } from "@/components/app/ui/invite-art";
 import { Mono, Segmented, Shimmer, Tag, Toggle } from "@/components/app/ui/primitives";
 import { Spinner } from "@/components/app/ui/spinner";
 import type { CoverQuota } from "@/components/dashboard/cover-generator";
@@ -11,6 +11,7 @@ import type { TextQuota } from "@/components/dashboard/invite-text-editor";
 import { generateEventCoverImageClient } from "@/lib/api/generate-cover";
 import { apiErrorMessage, dashboardFetchJson } from "@/lib/api/dashboard-fetch";
 import { composeCoverWithHostPhoto, uploadComposedCover } from "@/lib/images/compose-cover-with-photo";
+import { buildPhotoZoneInstructions, type PhotoOverlayConfig, type PhotoSize } from "@/lib/images/photo-zone-instructions";
 import { formatEventDateLine } from "@/lib/events/format-event-date";
 import { resolveInviteCopy } from "@/lib/events/invite-copy";
 import { buildInitialCoverEditableFields, coverEditableFieldsToOverride, toCoverFormEventInput } from "@/lib/openai/cover-invitation-spec";
@@ -53,7 +54,10 @@ export function InviteArtStep({
   const [photoUrl, setPhotoUrl] = useState(event.hostPhotoUrl ?? "");
   const [photoName, setPhotoName] = useState("");
   const [photoShape, setPhotoShape] = useState<"round" | "square" | "cutout">("round");
-  const [photoPos, setPhotoPos] = useState<(typeof PHOTO_POSITIONS)[number]>("tc");
+  const [photoPos, setPhotoPos] = useState<(typeof PHOTO_POSITIONS)[number]>("br");
+  const [photoSize, setPhotoSize] = useState<PhotoSize>("md");
+  const [removeBackground, setRemoveBackground] = useState(false);
+  const [coverComposed, setCoverComposed] = useState(false);
   const [imgState, setImgState] = useState<"empty" | "loading" | "done">(event.coverImageUrl ? "done" : "empty");
   const [coverUrl, setCoverUrl] = useState(event.coverImageUrl ?? "");
   const [error, setError] = useState("");
@@ -78,7 +82,13 @@ export function InviteArtStep({
   );
 
   const photo: PhotoOverlayConfig | null = photoUrl
-    ? { imageUrl: photoUrl, shape: photoShape, pos: photoPos }
+    ? {
+        imageUrl: photoUrl,
+        shape: photoShape,
+        pos: photoPos,
+        size: photoSize,
+        removeBackground: removeBackground || photoShape === "cutout"
+      }
     : null;
 
   async function generateText() {
@@ -111,8 +121,8 @@ export function InviteArtStep({
         method: "POST",
         body: JSON.stringify({
           draftOrientation: `${artDesc}. Estilo ${artStyle}. ${tone}`,
-          draftPhotoInstructions: photoUrl ? `Foto do homenageado posição ${photoPos}, formato ${photoShape}` : "",
-          withHostPhoto: Boolean(photoUrl),
+          draftPhotoInstructions: photo ? buildPhotoZoneInstructions(photo) : "",
+          withHostPhoto: false,
           coverFields: coverEditableFieldsToOverride(coverFields)
         })
       });
@@ -130,6 +140,7 @@ export function InviteArtStep({
 
   async function generateImage() {
     setImgState("loading");
+    setCoverComposed(false);
     setError("");
     try {
       const fields = { ...coverFields };
@@ -139,13 +150,13 @@ export function InviteArtStep({
         fields.venueName = "";
         fields.city = "";
       }
+      const hasPhoto = Boolean(photoUrl);
       const result = await generateEventCoverImageClient({
         eventId: event.id,
         mode: "generate",
         orientation: proPrompt || `${artDesc}. Estilo ${artStyle} em tons pastel.`,
-        photoInstructions: photoUrl
-          ? `Área livre para medalhão na posição ${photoPos}. Formato ${photoShape}. Não inserir rosto na ilustração.`
-          : undefined,
+        photoInstructions: photo ? buildPhotoZoneInstructions(photo) : undefined,
+        externalPhotoCompose: hasPhoto,
         coverFields: coverEditableFieldsToOverride(fields)
       });
       if (result.error) {
@@ -158,8 +169,10 @@ export function InviteArtStep({
         try {
           const blob = await composeCoverWithHostPhoto(finalUrl, photo);
           finalUrl = await uploadComposedCover(event.id, blob);
+          setCoverComposed(true);
         } catch (composeError) {
           console.warn("[invite-art] compose cover", composeError);
+          setError("Arte gerada, mas não foi possível aplicar a foto. Tente gerar novamente.");
         }
       }
       if (finalUrl) {
@@ -293,13 +306,51 @@ export function InviteArtStep({
                 <Segmented
                   full
                   value={photoShape}
-                  onChange={setPhotoShape}
+                  onChange={(shape) => {
+                    setPhotoShape(shape);
+                    if (shape === "cutout") setRemoveBackground(true);
+                    setCoverComposed(false);
+                  }}
                   options={[
                     { v: "round" as const, l: "Redonda" },
                     { v: "square" as const, l: "Quadrada" },
                     { v: "cutout" as const, l: "Recortada" }
                   ]}
                 />
+                <span className="fl" style={{ marginTop: 14 }}>
+                  Tamanho da foto
+                </span>
+                <Segmented
+                  full
+                  value={photoSize}
+                  onChange={(size) => {
+                    setPhotoSize(size);
+                    setCoverComposed(false);
+                  }}
+                  options={[
+                    { v: "sm" as const, l: "Pequena" },
+                    { v: "md" as const, l: "Média" },
+                    { v: "lg" as const, l: "Grande" },
+                    { v: "xl" as const, l: "Extra" }
+                  ]}
+                />
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 14, padding: "10px 12px", borderRadius: 10, background: "#fff", border: "1px solid var(--line)" }}>
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: 12.5 }}>Remover fundo da foto</div>
+                    <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 2 }}>
+                      {photoShape === "cutout"
+                        ? "Obrigatório no formato recortado"
+                        : "A pessoa entra integrada à arte — sem fundo quadriculado no convite final"}
+                    </div>
+                  </div>
+                  <Toggle
+                    on={removeBackground || photoShape === "cutout"}
+                    onChange={(on) => {
+                      if (photoShape !== "cutout") setRemoveBackground(on);
+                      setCoverComposed(false);
+                    }}
+                  />
+                </div>
                 <div style={{ display: "flex", gap: 16, alignItems: "flex-start", marginTop: 14 }}>
                   <div>
                     <span className="fl">Posição na arte</span>
@@ -310,7 +361,10 @@ export function InviteArtStep({
                           <button
                             key={p}
                             type="button"
-                            onClick={() => setPhotoPos(p)}
+                            onClick={() => {
+                              setPhotoPos(p);
+                              setCoverComposed(false);
+                            }}
                             aria-label={p}
                             style={{
                               aspectRatio: "1 / 1",
@@ -339,7 +393,8 @@ export function InviteArtStep({
                   </div>
                   <div style={{ flex: 1, paddingTop: 18 }}>
                     <p style={{ margin: 0, fontSize: 12, color: "var(--ink-2)", lineHeight: 1.5 }}>
-                      <Icon name="spark" size={13} style={{ color: "var(--coral)", verticalAlign: "-2px", marginRight: 4 }} />A IA gera o fundo; a foto real é sobreposta pelo app exatamente nessa posição.
+                      <Icon name="spark" size={13} style={{ color: "var(--coral)", verticalAlign: "-2px", marginRight: 4 }} />
+                      A IA cria título e elementos integrados à foto — podem passar sobre o corpo, sem tampar o rosto.
                     </p>
                   </div>
                 </div>
@@ -430,7 +485,7 @@ export function InviteArtStep({
       <div style={{ position: "sticky", top: 0 }}>
         <Mono style={{ display: "block", marginBottom: 10 }}>Prévia do convite</Mono>
         {imgState === "loading" ? (
-          <div className="stripe" style={{ aspectRatio: "4/5", borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div className="stripe" style={{ aspectRatio: "9 / 16", borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center" }}>
             <Spinner />
           </div>
         ) : (
@@ -442,7 +497,7 @@ export function InviteArtStep({
             place={placeLabel(event)}
             artStyle={artStyle}
             info={includeInfo}
-            photo={photo}
+            photo={coverComposed ? null : photo}
             coverUrl={coverUrl || undefined}
           />
         )}
