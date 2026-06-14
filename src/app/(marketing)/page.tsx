@@ -101,39 +101,15 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div style={{ position: "relative", minHeight: 500 }}>
-            <div className="polaroid float" style={{ position: "absolute", top: 8, left: "8%", width: 230, transform: "rotate(-7deg)" }}>
-              <div className="placeholder" style={{ height: 230, backgroundColor: "var(--bg-soft)" }}>
-                ensaio - mavie
-              </div>
-              <div className="display-i" style={{ fontSize: 14, textAlign: "center", marginTop: 8 }}>
-                1 ano da Mavie
-              </div>
-            </div>
-            <div
-              className="polaroid float"
-              style={{ position: "absolute", top: 62, right: "4%", width: 250, zIndex: 2, transform: "rotate(6deg)", animationDelay: ".4s" }}
-            >
-              <div className="placeholder" style={{ height: 260, backgroundColor: "#f1d8c9" }}>
-                bolo - 17h12
-              </div>
-              <div className="display-i" style={{ fontSize: 14, textAlign: "center", marginTop: 8 }}>
-                parabéns da vovó
-              </div>
-            </div>
-            <div
-              className="polaroid float"
-              style={{ position: "absolute", bottom: 26, left: "20%", width: 210, transform: "rotate(-3deg)", animationDelay: ".9s" }}
-            >
-              <div className="placeholder" style={{ height: 170, backgroundColor: "#d9e8f4" }}>
-                vídeo - 02:14
-              </div>
-              <div className="display-i" style={{ fontSize: 14, textAlign: "center", marginTop: 8 }}>
-                primeiros passos
-              </div>
-            </div>
-            <span className="tape" style={{ top: 4, left: "32%", transform: "rotate(-4deg)" }} />
-            <span className="tape" style={{ top: 44, right: "32%", transform: "rotate(7deg)", background: "rgba(255,107,92,.7)" }} />
+          <div className="home-hero-visual">
+            <img
+              src="/marketing/hero-polaroids.png"
+              alt="Memórias de festa em família — fotos polaroid de aniversário, jantar e abraços"
+              width={682}
+              height={1024}
+              className="home-hero-polaroids float"
+              fetchPriority="high"
+            />
           </div>
         </section>
 

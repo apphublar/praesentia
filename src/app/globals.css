@@ -208,6 +208,22 @@ p + a.btn,
   animation: float 4s ease-in-out infinite;
 }
 
+.home-hero-visual {
+  position: relative;
+  min-height: 500px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 0 24px;
+}
+
+.home-hero-polaroids {
+  width: min(100%, 430px);
+  height: auto;
+  display: block;
+  filter: drop-shadow(0 16px 28px rgba(34, 27, 20, 0.14));
+}
+
 .live-dot {
   animation: blink 1.4s ease-in-out infinite;
 }
