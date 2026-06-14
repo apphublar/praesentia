@@ -210,18 +210,30 @@ p + a.btn,
 
 .home-hero-visual {
   position: relative;
-  min-height: 500px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 8px 0 24px;
+  min-height: 520px;
 }
 
-.home-hero-polaroids {
-  width: min(100%, 430px);
-  height: auto;
+.home-hero-polaroid {
+  z-index: 1;
+}
+
+.home-hero-polaroid-caption {
+  font-size: 14px;
+  text-align: center;
+  margin-top: 8px;
+}
+
+.polaroid-photo {
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--bg-soft);
+}
+
+.polaroid-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
   display: block;
-  filter: drop-shadow(0 16px 28px rgba(34, 27, 20, 0.14));
 }
 
 .live-dot {

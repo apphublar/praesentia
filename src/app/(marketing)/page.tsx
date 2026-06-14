@@ -14,6 +14,7 @@ import {
 } from "@/components/marketing/extra-sections";
 import { AvatarStack } from "@/components/visual/avatar";
 import { Confetti } from "@/components/visual/confetti";
+import { HeroPolaroidStack } from "@/components/marketing/hero-polaroid-stack";
 
 const phases = [
   {
@@ -101,16 +102,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="home-hero-visual">
-            <img
-              src="/marketing/hero-polaroids.png"
-              alt="Memórias de festa em família — fotos polaroid de aniversário, jantar e abraços"
-              width={682}
-              height={1024}
-              className="home-hero-polaroids float"
-              fetchPriority="high"
-            />
-          </div>
+          <HeroPolaroidStack />
         </section>
 
         <section className="shell" style={{ padding: "36px 0" }}>
