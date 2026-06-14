@@ -55,6 +55,25 @@ function parseGiftSuggestions(raw: unknown): GiftSuggestion[] {
   return items;
 }
 
+function slugifyEventTitle(title: string) {
+  const base = title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+  return base || "evento";
+}
+
+function isPostgresUniqueViolation(error: unknown) {
+  return Boolean(error && typeof error === "object" && "code" in error && (error as { code: string }).code === "23505");
+}
+
+async function allocateEventSlug(sql: ReturnType<typeof getSql>, title: string) {
+  const base = slugifyEventTitle(title);
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    const candidate = attempt === 0 ? base : `${base}-${Math.random().toString(36).slice(2, 6)}`;
+    const rows = await sql`select 1 from events where slug = ${candidate} limit 1`;
+    if (!rows.length) return candidate;
+  }
+  return `${base}-${Date.now().toString(36)}`;
+}
+
 function parseCompanionsDetail(raw: unknown): GuestCompanionDetail[] {
   if (!Array.isArray(raw)) return [];
   const items: GuestCompanionDetail[] = [];
@@ -297,30 +316,44 @@ export const postgresEvents: EventRepository = {
   async create(input: CreateEventInput) {
     const sql = getSql();
     const plan = PLANS.free;
-    const slug = input.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-    const rows = await sql`
-      insert into events (
-        owner_id, slug, free_code, title, theme, event_type, host_name, organizer_name, date, starts_at, ends_at,
-        venue_name, venue_address, venue_zip, venue_complement, city, event_format, online_meeting_url,
-        rsvp_enabled, rsvp_deadline, gift_suggestions, plan_tier, storage_limit_bytes, retention_until
-      )
-      values (
-        ${input.ownerId}, ${slug}, ${Math.random().toString(36).slice(2, 8)}, ${input.title},
-        ${input.theme}, ${input.eventType}, ${input.hostName}, ${input.organizerName ?? null},
-        ${input.date}, ${input.startsAt}, ${input.endsAt}, ${input.venueName}, ${input.venueAddress},
-        ${input.venueZip ?? null}, ${input.venueComplement ?? null}, ${input.city},
-        ${input.eventFormat}, ${input.onlineMeetingUrl ?? null},
-        ${input.rsvpEnabled !== false}, ${input.rsvpDeadline ?? null},
-        ${sql.json(JSON.parse(JSON.stringify(input.giftSuggestions ?? [])))},
-        ${plan.tier}, ${bytesFromGb(plan.storageGb)}, now() + interval '36 months'
-      )
-      returning *
-    `;
-    await sql`
-      insert into event_members (event_id, user_id, role, rsvp_status)
-      values (${rows[0].id}, ${input.ownerId}, 'owner', 'confirmed')
-    `;
-    return (await this.findById(String(rows[0].id))) as Event;
+    let slug = await allocateEventSlug(sql, input.title);
+
+    for (let attempt = 0; attempt < 6; attempt += 1) {
+      const freeCode = Math.random().toString(36).slice(2, 8);
+      try {
+        const rows = await sql`
+          insert into events (
+            owner_id, slug, free_code, title, theme, event_type, host_name, organizer_name, date, starts_at, ends_at,
+            venue_name, venue_address, venue_zip, venue_complement, city, event_format, online_meeting_url,
+            rsvp_enabled, rsvp_deadline, gift_suggestions, plan_tier, storage_limit_bytes, retention_until
+          )
+          values (
+            ${input.ownerId}, ${slug}, ${freeCode}, ${input.title},
+            ${input.theme}, ${input.eventType}, ${input.hostName}, ${input.organizerName ?? null},
+            ${input.date}, ${input.startsAt}, ${input.endsAt}, ${input.venueName}, ${input.venueAddress},
+            ${input.venueZip ?? null}, ${input.venueComplement ?? null}, ${input.city},
+            ${input.eventFormat}, ${input.onlineMeetingUrl ?? null},
+            ${input.rsvpEnabled !== false}, ${input.rsvpDeadline ?? null},
+            ${sql.json(JSON.parse(JSON.stringify(input.giftSuggestions ?? [])))},
+            ${plan.tier}, ${bytesFromGb(plan.storageGb)}, now() + interval '36 months'
+          )
+          returning *
+        `;
+        await sql`
+          insert into event_members (event_id, user_id, role, rsvp_status)
+          values (${rows[0].id}, ${input.ownerId}, 'owner', 'confirmed')
+        `;
+        return (await this.findById(String(rows[0].id))) as Event;
+      } catch (error) {
+        if (isPostgresUniqueViolation(error) && attempt < 5) {
+          slug = await allocateEventSlug(sql, input.title);
+          continue;
+        }
+        throw error;
+      }
+    }
+
+    throw new Error("EVENT_CREATE_UNIQUE_EXHAUSTED");
   },
   async patchCreationFields(eventId, _actorUserId, input) {
     const sql = getSql();

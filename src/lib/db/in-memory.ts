@@ -98,9 +98,18 @@ export const inMemoryEvents: EventRepository = {
   },
   async create(input: CreateEventInput) {
     const eventId = createId("evt");
+    const baseSlug = input.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "evento";
+    let slug = baseSlug;
+    for (let attempt = 0; attempt < 10; attempt += 1) {
+      const candidate = attempt === 0 ? baseSlug : `${baseSlug}-${Math.random().toString(36).slice(2, 6)}`;
+      if (!events.some((event) => event.slug === candidate)) {
+        slug = candidate;
+        break;
+      }
+    }
     const event: Event = {
       id: eventId,
-      slug: input.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, ""),
+      slug,
       freeCode: Math.random().toString(36).slice(2, 8),
       title: input.title,
       theme: input.theme,

@@ -1,12 +1,12 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useState } from "react";
 import type { Event, InviteCopy, UserSubscription } from "@/types/domain";
 import { createEventAction } from "@/app/criar/actions";
 import { createEventFieldErrorMessage, type CreateEventState } from "@/app/criar/create-event-state";
 import { CreateEventPronto } from "@/components/app/create/create-event-pronto";
-import { InviteArtStep } from "@/components/app/create/invite-art-step";
 import { CREATE_PLANS, PlanCard, type PlanId } from "@/components/app/plans/plan-cards";
 import { Icon, type IconName } from "@/components/app/ui/icon";
 import { Field, Mono, Segmented } from "@/components/app/ui/primitives";
@@ -16,6 +16,13 @@ import type { TextQuota } from "@/components/dashboard/invite-text-editor";
 import type { EventType } from "@/types/domain";
 
 const STEPS = ["Detalhes", "Convite", "Plano", "Pronto"] as const;
+
+const InviteArtStep = dynamic(
+  () => import("@/components/app/create/invite-art-step").then((mod) => ({ default: mod.InviteArtStep })),
+  {
+    loading: () => <p style={{ color: "var(--muted)", fontSize: 14, margin: 0 }}>Carregando editor do convite…</p>
+  }
+);
 
 const CREATE_TYPES: { label: string; value: EventType; icon: IconName }[] = [
   { label: "Aniversário", value: "aniversario", icon: "gift" },
@@ -238,13 +245,11 @@ export function CreateEventWizard({
                 <input type="hidden" name="startsAt" value={form.time} />
                 <input type="hidden" name="endsAt" value={form.endTime} />
                 <input type="hidden" name="theme" value={form.theme || "Celebração"} />
-                <input type="hidden" name="hostName" value={form.honoree} />
-                <input type="hidden" name="organizerName" value={form.host} />
                 <Field label="Nome do evento" span={2}>
                   <input className="input" name="title" required value={form.title} onChange={(e) => setF("title", e.target.value)} />
                 </Field>
                 <Field label="Homenageado(a)">
-                  <input className="input" required value={form.honoree} onChange={(e) => setF("honoree", e.target.value)} />
+                  <input className="input" name="hostName" required value={form.honoree} onChange={(e) => setF("honoree", e.target.value)} />
                 </Field>
                 <Field label="Tema (opcional)">
                   <input className="input" value={form.theme} onChange={(e) => setF("theme", e.target.value)} />
@@ -286,7 +291,7 @@ export function CreateEventWizard({
                   )}
                 </div>
                 <Field label="Organizador(a)" span={2}>
-                  <input className="input" required value={form.host} onChange={(e) => setF("host", e.target.value)} />
+                  <input className="input" name="organizerName" required value={form.host} onChange={(e) => setF("host", e.target.value)} />
                 </Field>
                 <div style={{ gridColumn: "1 / -1", marginTop: 8 }}>
                   <button type="submit" className="btn btn-coral" disabled={pending}>

@@ -55,6 +55,25 @@ function validationError(fieldError: string): CreateEventState {
   return { fieldError };
 }
 
+function createEventFailureMessage(error: unknown): string {
+  if (error && typeof error === "object" && "code" in error) {
+    const code = String((error as { code: string }).code);
+    if (code === "23505") {
+      return "Já existe um evento com esse nome. Tente um título um pouco diferente.";
+    }
+    if (code === "23503") {
+      return "Sua conta ainda não está sincronizada. Faça logout e entre novamente.";
+    }
+    if (code === "28P01") {
+      return "Não foi possível conectar ao banco de dados. Tente novamente em instantes.";
+    }
+  }
+  if (error instanceof Error && error.message === "DATABASE_URL is not configured.") {
+    return "Banco de dados não configurado neste ambiente.";
+  }
+  return "Não foi possível criar o evento agora. Tente novamente em instantes.";
+}
+
 export async function createEventAction(_prev: CreateEventState, formData: FormData): Promise<CreateEventState> {
   const session = await getCurrentSession();
   if (!session) {
@@ -199,6 +218,6 @@ export async function createEventAction(_prev: CreateEventState, formData: FormD
     return { eventId: event.id };
   } catch (error) {
     console.error("[createEventAction] failed", error);
-    return { error: "Não foi possível criar o evento agora. Tente novamente em instantes." };
+    return { error: createEventFailureMessage(error) };
   }
 }
