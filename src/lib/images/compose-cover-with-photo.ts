@@ -21,7 +21,9 @@ function computePhotoPlacement(
     const ratio = host.naturalWidth / host.naturalHeight || 1;
     drawW = baseSize;
     drawH = baseSize / ratio;
-    const maxH = canvasH * 0.42;
+    let maxH = canvasH * 0.42;
+    if (photo.pos.startsWith("t")) maxH = canvasH * 0.3;
+    else if (photo.pos.startsWith("b")) maxH = canvasH * 0.36;
     if (drawH > maxH) {
       drawH = maxH;
       drawW = drawH * ratio;
@@ -102,32 +104,11 @@ export async function composeCoverWithHostPhoto(coverUrl: string, photo: PhotoOv
     ctx.drawImage(cover, 0, 0, width, height);
 
     const placement = computePhotoPlacement(width, height, photo, host);
-    const { x, y, drawW, drawH } = placement;
-    const framed = photo.shape === "round" || photo.shape === "square";
-
     const bgRemoved = shouldRemoveHostPhotoBackground(photo);
 
-    if (framed) {
-      ctx.save();
-      ctx.shadowColor = "rgba(0,0,0,.45)";
-      ctx.shadowBlur = 18;
-      ctx.shadowOffsetY = 8;
-      ctx.beginPath();
-      if (photo.shape === "round") {
-        const radius = Math.min(drawW, drawH) / 2;
-        ctx.arc(x + drawW / 2, y + drawH / 2, radius + 3, 0, Math.PI * 2);
-      } else {
-        const r = Math.min(drawW, drawH) * 0.12;
-        ctx.roundRect(x - 3, y - 3, drawW + 6, drawH + 6, r);
-      }
-      ctx.fillStyle = "rgba(255,255,255,.92)";
-      ctx.fill();
-      ctx.restore();
-    }
-
     ctx.save();
-    if (framed) clipPhotoFrame(ctx, x, y, drawW, drawH, photo.shape);
-    if (bgRemoved || !framed) {
+    clipPhotoFrame(ctx, placement.x, placement.y, placement.drawW, placement.drawH, photo.shape);
+    if (bgRemoved || photo.shape === "original") {
       ctx.shadowColor = "rgba(0,0,0,.28)";
       ctx.shadowBlur = 14;
       ctx.shadowOffsetY = 6;

@@ -3248,6 +3248,19 @@ p + a.btn,
   }
 }
 
+.cover-gen-story-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: rgba(255, 107, 74, 0.1);
+  border: 1px solid rgba(255, 107, 74, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--coral);
+}
+
 .cover-gen-story-emoji {
   font-size: 28px;
   line-height: 1;

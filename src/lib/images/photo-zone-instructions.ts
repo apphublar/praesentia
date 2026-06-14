@@ -64,18 +64,21 @@ export function buildPhotoZoneInstructions(photo: PhotoOverlayConfig) {
 
   return [
     "CRITICAL — EXTERNAL PHOTO COMPOSITION:",
-    "Do NOT generate, draw, paint, or include ANY person, face, portrait, human figure, or photo frame anywhere in the artwork.",
-    "The real honoree photo is added by the app AFTER generation — never by the AI.",
+    "Do NOT generate, draw, paint, or include ANY person, face, portrait, human figure, or photo anywhere in the artwork.",
+    "The real honoree photo is inserted BEHIND the invitation artwork by the app AFTER generation — never by the AI.",
     `Honoree photo placement: ${shape} zone in the ${pos}, ${size}.`,
     bgNote,
     "",
+    "PHOTO ZONE — NO PLACEHOLDER (mandatory):",
+    "NEVER draw a solid white, gray, cream, or empty rectangular block, polaroid card, mock photo, or picture frame fill in the photo zone.",
+    "The photo zone must continue the same background, scenery, colors, and atmosphere as the surrounding invitation — as if the person will step into the scene.",
+    "Paint decorative borders, ribbons, confetti, flowers, and themed props AROUND and ON TOP of the zone edges so they can overlap the honoree's shoulders and body after the app inserts the real photo.",
+    "",
     "LAYERED INTERACTION WITH HONOREE (mandatory):",
-    "Design the invitation so typography and themed elements interact naturally with where the honoree will appear — like a professional party poster.",
-    "You MAY place titles, ribbons, confetti, streamers, balls, flowers, borders, and themed props overlapping the photo zone — especially shoulders, arms, sides, and lower body — for depth and integration.",
-    "Some elements should appear to pass in front of the body; others frame the person from behind or the sides.",
-    "NEVER cover the face: keep the upper-center face oval of the photo zone completely clear — no text, logos, or heavy objects over the face.",
-    "Fill the photo zone with rich themed decoration (not a blank void) so the app can layer the real photo with artwork crossing the body while the face stays visible.",
-    "Event details (date, time, location) stay in the bottom panel; large headline/title typography from the visual direction may sit in the upper or middle area and may touch the photo zone edges.",
+    "Design like a professional party poster: foreground decorations and typography may overlap the photo zone — especially shoulders, arms, sides, and lower body.",
+    "Some elements must appear IN FRONT of the body; others frame the person from behind or the sides.",
+    "NEVER cover the face: keep the upper-center face oval of the photo zone clear — no text, logos, or heavy objects over the face.",
+    "Event details (date, time, location) stay in the bottom panel; headline/title typography may sit in upper/middle areas and touch the photo zone edges.",
     ...notesBlock
   ].join("\n");
 }

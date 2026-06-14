@@ -198,7 +198,8 @@ Use the REAL person from the uploaded reference photo.`
 ${spec.photoInstructions}
 
 Do NOT draw, generate, or include ANY person, face, portrait, human figure, or photo anywhere in the artwork.
-The real photo is added by the app after generation.`
+The real photo is inserted BEHIND the artwork by the app after generation.
+Never use a solid white/gray rectangular placeholder or empty frame fill in the photo zone — continue the scene background seamlessly.`
       : "No reference photo — do not add a person photo.";
 
   const layoutPhotoRule = spec.reservePhotoZone

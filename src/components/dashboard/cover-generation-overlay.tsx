@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Icon, type IconName } from "@/components/app/ui/icon";
 
 const CREATION_STEPS = [
   { label: "Analisando os dados do seu convite…", weight: 12 },
@@ -11,38 +12,38 @@ const CREATION_STEPS = [
   { label: "Refinando cores, tipografia e detalhes…", weight: 10 }
 ] as const;
 
-const STORY_SLIDES = [
+const STORY_SLIDES: ReadonlyArray<{ icon: IconName; title: string; text: string }> = [
   {
-    emoji: "✨",
+    icon: "image",
     title: "Convite feito para WhatsApp e Stories",
     text: "A Praesentia gera convites verticais prontos para compartilhar — bonitos, legíveis e alinhados ao que você descreveu."
   },
   {
-    emoji: "📺",
+    icon: "proj",
     title: "Mural ao vivo durante a festa",
     text: "Convidados confirmados enviam fotos, vídeos e recados. Tudo aparece no mural e no telão em tempo real, sem precisar recarregar a página."
   },
   {
-    emoji: "⏳",
+    icon: "hourglass",
     title: "Cápsula do tempo — vale a pena ativar",
     text: "Depois da festa, o mesmo link vira cápsula do tempo com no mínimo 36 meses garantidos — amplie o armazenamento quando quiser."
   },
   {
-    emoji: "🎉",
+    icon: "gift",
     title: "Do convite à memória, em um só lugar",
     text: "RSVP, lista de convidados, Pix opcional, telão ao vivo e cápsula: tudo pensado para eventos particulares de verdade."
   },
   {
-    emoji: "🔒",
+    icon: "lock",
     title: "Privacidade em primeiro lugar",
     text: "Só quem confirma presença participa da cápsula. Você modera, bloqueia e decide o que fica visível no telão."
   },
   {
-    emoji: "💡",
+    icon: "spark",
     title: "Dica enquanto a IA trabalha",
     text: "Ative a Cápsula Praesentia antes do evento para liberar mural, telão e moderação — seus convidados vão aproveitar muito mais a festa."
   }
-] as const;
+];
 
 const TOTAL_WEIGHT = CREATION_STEPS.reduce((sum, step) => sum + step.weight, 0);
 const ESTIMATED_MS = 240_000;
@@ -114,7 +115,7 @@ export function CoverGenerationOverlay({
 
   const rawProgress =
     phase === "composing"
-      ? Math.min(0.98, 0.88 + Math.min(elapsedMs, 12_000) / 12_000 * 0.1)
+      ? Math.min(0.98, 0.88 + (Math.min(elapsedMs, 12_000) / 12_000) * 0.1)
       : Math.min(0.87, elapsedMs / ESTIMATED_MS);
   const progressPercent = Math.round(rawProgress * 100);
   const stepIndex = phase === "composing" ? CREATION_STEPS.length - 1 : stepIndexForProgress(rawProgress);
@@ -143,8 +144,8 @@ export function CoverGenerationOverlay({
         </p>
 
         <article className="cover-gen-story" key={slide.title}>
-          <span className="cover-gen-story-emoji" aria-hidden="true">
-            {slide.emoji}
+          <span className="cover-gen-story-icon" aria-hidden="true">
+            <Icon name={slide.icon} size={22} sw={1.8} />
           </span>
           <div>
             <h4 className="cover-gen-story-title">{slide.title}</h4>
