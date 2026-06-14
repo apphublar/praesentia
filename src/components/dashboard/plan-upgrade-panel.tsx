@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { Event, UserSubscription } from "@/types/domain";
+import { handleBillingApiResponse } from "@/lib/billing/checkout-client";
 import { RETENTION_CAPSULE_DESCRIPTION, RETENTION_FREE_DESCRIPTION, RETENTION_MINIMUM_LABEL } from "@/lib/copy/retention";
 import { canActivateCapsuleForEvent } from "@/lib/mural/timeline";
 
@@ -46,8 +47,13 @@ export function PlanUpgradePanel({
       if (plan === "family" && !subscription) {
         const plusRes = await fetch("/api/billing/activate-plus", { method: "POST" });
         const plusData = await plusRes.json();
-        if (!plusRes.ok) {
-          setMessage(plusData.error ?? "Erro ao ativar Cápsula Plus.");
+        const plusHandled = handleBillingApiResponse(plusData);
+        if (plusHandled.redirected) {
+          setLoading(null);
+          return;
+        }
+        if (!plusRes.ok || !plusHandled.ok) {
+          setMessage(plusHandled.error ?? plusData.error ?? "Erro ao ativar Cápsula Plus.");
           setLoading(null);
           return;
         }
@@ -59,8 +65,13 @@ export function PlanUpgradePanel({
         body: JSON.stringify({ eventId: event.id, plan })
       });
       const data = await res.json();
-      if (!res.ok) {
-        setMessage(data.error ?? "Erro ao ativar cápsula.");
+      const handled = handleBillingApiResponse(data);
+      if (handled.redirected) {
+        setLoading(null);
+        return;
+      }
+      if (!res.ok || !handled.ok) {
+        setMessage(handled.error ?? data.error ?? "Erro ao ativar cápsula.");
         setLoading(null);
         return;
       }
@@ -133,8 +144,8 @@ export function PlanUpgradePanel({
       </div>
 
       <p className="plan-upgrade-footnote">
-        Enquanto o pagamento online não estiver configurado, o botão ativa a cápsula imediatamente para você testar
-        mural, telão e link dos convidados. Com Stripe ativo, a liberação ocorre após confirmação do pagamento.
+        Com Stripe configurado, você será redirecionado ao checkout seguro e a cápsula libera após a confirmação do
+        pagamento. Sem Stripe (ambiente de testes), a ativação é imediata.
       </p>
       {message ? <p className="settings-status is-ok">{message}</p> : null}
     </article>

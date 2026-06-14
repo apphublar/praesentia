@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { apiAuthErrorResponse } from "@/lib/auth/api";
 import { requireSession } from "@/lib/auth/session";
-import { repositories } from "@/lib/db";
+import { resolveBillingAction } from "@/lib/billing/billing-action";
+import { fulfillPlusSubscription } from "@/lib/billing/fulfill-checkout";
 import { assertTrustedOrigin } from "@/lib/security/origin";
 
 export async function POST(request: Request) {
@@ -10,22 +11,38 @@ export async function POST(request: Request) {
 
   try {
     const session = await requireSession();
+    const { repositories } = await import("@/lib/db");
     const existing = await repositories.subscriptions.findActiveByUser(session.user.id);
     if (existing) {
-      return NextResponse.json({ subscription: existing, message: "Assinatura já ativa." });
+      return NextResponse.json({
+        mode: "fulfilled",
+        subscription: existing,
+        message: "Assinatura já ativa."
+      });
     }
 
-    const subscription = await repositories.subscriptions.activateFamilyPlan(session.user.id);
-    await repositories.audit.record({
-      actorUserId: session.user.id,
-      eventId: null,
-      action: "subscription.activated",
-      targetType: "subscription",
-      targetId: subscription.id,
-      metadata: { plan: "family", priceBrl: 197, priceLabel: "R$ 197/ano", devMode: process.env.NODE_ENV !== "production" }
+    const resolution = await resolveBillingAction({
+      checkout: {
+        kind: "plus",
+        userId: session.user.id,
+        userEmail: session.user.email
+      },
+      fulfill: () => fulfillPlusSubscription(session.user.id)
     });
 
-    return NextResponse.json({ subscription, message: "Cápsula Plus ativada por 12 meses." });
+    if (resolution.mode === "checkout") {
+      return NextResponse.json({ mode: "checkout", checkoutUrl: resolution.checkoutUrl });
+    }
+    if (resolution.mode === "unavailable") {
+      return NextResponse.json({ error: resolution.error }, { status: 503 });
+    }
+
+    const subscription = resolution.result;
+    return NextResponse.json({
+      mode: "fulfilled",
+      subscription,
+      message: "Cápsula Plus ativada por 12 meses."
+    });
   } catch (err) {
     const authError = apiAuthErrorResponse(err);
     if (authError) return authError;

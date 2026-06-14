@@ -3,7 +3,8 @@ export const BILLING_AUDIT_ACTIONS = [
   "subscription.activated",
   "subscription.storage_expanded",
   "event.storage_expanded",
-  "event.ai_cover_pack_purchased"
+  "event.ai_cover_pack_purchased",
+  "event.ai_invite_plan_purchased"
 ] as const;
 
 export type BillingAuditAction = (typeof BILLING_AUDIT_ACTIONS)[number];
@@ -115,6 +116,20 @@ export function mapAuditLogToPayment(row: AuditLogRow, eventTitle?: string | nul
         eventTitle: eventTitle ?? null,
         createdAt: row.createdAt
       };
+    case "event.ai_invite_plan_purchased": {
+      const plan = metadata.plan === "criativo" ? "Criativo" : "Inspiração";
+      return {
+        id: row.id,
+        action: row.action,
+        title: `Pacote ${plan} · versões de convite`,
+        description: devMode ? "Ativação em ambiente de teste" : "Versões extras para explorar estilos de convite",
+        amountLabel: typeof metadata.priceLabel === "string" ? metadata.priceLabel : formatBrl(priceFromMetadata(metadata, 9.9)),
+        status: "paid",
+        eventId: row.eventId,
+        eventTitle: eventTitle ?? null,
+        createdAt: row.createdAt
+      };
+    }
     default:
       return null;
   }

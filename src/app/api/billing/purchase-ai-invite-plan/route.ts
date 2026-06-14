@@ -2,12 +2,12 @@ import { NextResponse } from "next/server";
 import { apiAuthErrorResponse } from "@/lib/auth/api";
 import { canManageEventById } from "@/lib/auth/event-access";
 import { requireSession } from "@/lib/auth/session";
-import { repositories } from "@/lib/db";
-import { loadAiCoverAccountContext } from "@/lib/plans/ai-cover-account";
-import { AI_INVITE_UPGRADE_PLANS, type AiInviteUpgradePlan } from "@/lib/plans/ai-invite-plans";
-import { getAiCoverQuota, hasCapsuleAccess } from "@/lib/plans/features";
+import { resolveBillingAction } from "@/lib/billing/billing-action";
+import { fulfillAiInvitePlan } from "@/lib/billing/fulfill-checkout";
+import { hasCapsuleAccess } from "@/lib/plans/features";
 import { assertTrustedOrigin } from "@/lib/security/origin";
 import { sanitizeText } from "@/lib/security/sanitize";
+import type { AiInviteUpgradePlan } from "@/lib/plans/ai-invite-plans";
 
 export async function POST(request: Request) {
   const originError = assertTrustedOrigin(request);
@@ -22,18 +22,15 @@ export async function POST(request: Request) {
     if (!eventId) {
       return NextResponse.json({ error: "Evento não informado." }, { status: 400 });
     }
-
     if (plan !== "inspiracao" && plan !== "criativo") {
       return NextResponse.json({ error: "Plano inválido." }, { status: 400 });
     }
 
-    const event = await repositories.events.findById(eventId);
+    const event = await (await import("@/lib/db")).repositories.events.findById(eventId);
     if (!event) return NextResponse.json({ error: "Evento não encontrado." }, { status: 404 });
-
     if (!(await canManageEventById(session.user, eventId))) {
       return NextResponse.json({ error: "Sem permissão." }, { status: 403 });
     }
-
     if (hasCapsuleAccess(event)) {
       return NextResponse.json(
         { error: "Pacotes de versões extras são para eventos no plano gratuito." },
@@ -41,29 +38,25 @@ export async function POST(request: Request) {
       );
     }
 
-    const planInfo = AI_INVITE_UPGRADE_PLANS[plan];
-    await repositories.users.purchaseAiInvitePlan(session.user.id, plan);
-
-    await repositories.audit.record({
-      actorUserId: session.user.id,
-      eventId,
-      action: "event.ai_invite_plan_purchased",
-      targetType: "user",
-      targetId: session.user.id,
-      metadata: {
-        plan,
-        priceLabel: planInfo.priceLabel,
-        priceBrl: planInfo.priceBrl,
-        versions: planInfo.versions,
-        devMode: process.env.NODE_ENV !== "production"
-      }
+    const resolution = await resolveBillingAction({
+      checkout: {
+        kind: "ai_invite_plan",
+        userId: session.user.id,
+        userEmail: session.user.email,
+        eventId,
+        plan
+      },
+      fulfill: () => fulfillAiInvitePlan(eventId, session.user.id, plan)
     });
 
-    const account = await loadAiCoverAccountContext(session.user.id);
-    return NextResponse.json({
-      message: `${planInfo.versions} versões adicionadas à sua conta.`,
-      quota: getAiCoverQuota(event, account)
-    });
+    if (resolution.mode === "checkout") {
+      return NextResponse.json({ mode: "checkout", checkoutUrl: resolution.checkoutUrl });
+    }
+    if (resolution.mode === "unavailable") {
+      return NextResponse.json({ error: resolution.error }, { status: 503 });
+    }
+
+    return NextResponse.json({ mode: "fulfilled", ...((resolution.result as object) ?? {}) });
   } catch (err) {
     const authError = apiAuthErrorResponse(err);
     if (authError) return authError;

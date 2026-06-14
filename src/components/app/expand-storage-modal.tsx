@@ -7,6 +7,7 @@ import {
   EXTRA_STORAGE_PACKAGES_GB,
   getExtraStoragePriceBrl
 } from "@/lib/storage/quota";
+import { handleBillingApiResponse } from "@/lib/billing/checkout-client";
 
 const VIOLET = "#BBA7E8";
 
@@ -43,8 +44,10 @@ export function ExpandStorageModal({
         body: JSON.stringify({ eventId, gb: opt.gb })
       });
       const data = await res.json();
-      if (!res.ok) {
-        setError(data.error ?? "Não foi possível ampliar o espaço.");
+      const handled = handleBillingApiResponse(data);
+      if (handled.redirected) return;
+      if (!res.ok || !handled.ok) {
+        setError(handled.error ?? data.error ?? "Não foi possível ampliar o espaço.");
         setPaying(false);
         return;
       }

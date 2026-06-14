@@ -29,6 +29,7 @@ export function InviteAiUpgradeModal({
     setError("");
     const result = await openCheckout(plan, eventId, source);
     setLoadingPlan(null);
+    if (result.redirected) return;
     if (result.error) {
       setError(result.error);
       return;

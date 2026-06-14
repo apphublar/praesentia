@@ -5421,3 +5421,34 @@ p + a.btn,
     grid-template-columns: 1fr;
   }
 }
+
+.legal-prose {
+  color: var(--ink-2);
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+.legal-prose h2 {
+  font-family: var(--font-serif);
+  font-size: 22px;
+  margin: 28px 0 10px;
+  color: var(--ink);
+}
+
+.legal-prose p {
+  margin: 0 0 14px;
+}
+
+.legal-prose ul {
+  margin: 0 0 14px;
+  padding-left: 1.25rem;
+}
+
+.legal-prose li {
+  margin-bottom: 6px;
+}
+
+.legal-prose a {
+  color: var(--coral-deep);
+  text-decoration: underline;
+}
