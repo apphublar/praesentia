@@ -56,7 +56,19 @@ function stepIndexForProgress(progress: number) {
   return CREATION_STEPS.length - 1;
 }
 
-export function CoverGenerationOverlay({ active, capsuleActive }: { active: boolean; capsuleActive: boolean }) {
+export type CoverGenerationPhase = "generating" | "composing";
+
+export function CoverGenerationOverlay({
+  active,
+  capsuleActive,
+  phase = "generating",
+  composingWithBgRemoval = false
+}: {
+  active: boolean;
+  capsuleActive: boolean;
+  phase?: CoverGenerationPhase;
+  composingWithBgRemoval?: boolean;
+}) {
   const [elapsedMs, setElapsedMs] = useState(0);
   const [slideIndex, setSlideIndex] = useState(0);
 
@@ -82,11 +94,31 @@ export function CoverGenerationOverlay({ active, capsuleActive }: { active: bool
     };
   }, [active]);
 
+  useEffect(() => {
+    if (!active) return;
+
+    const warnBeforeLeave = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+
+    window.addEventListener("beforeunload", warnBeforeLeave);
+    return () => window.removeEventListener("beforeunload", warnBeforeLeave);
+  }, [active]);
+
   if (!active) return null;
 
-  const rawProgress = Math.min(0.96, elapsedMs / ESTIMATED_MS);
+  const composeLabel = composingWithBgRemoval
+    ? "Removendo o fundo da foto e posicionando na arte…"
+    : "Posicionando a foto do homenageado na arte…";
+
+  const rawProgress =
+    phase === "composing"
+      ? Math.min(0.98, 0.88 + Math.min(elapsedMs, 12_000) / 12_000 * 0.1)
+      : Math.min(0.87, elapsedMs / ESTIMATED_MS);
   const progressPercent = Math.round(rawProgress * 100);
-  const stepIndex = stepIndexForProgress(rawProgress);
+  const stepIndex = phase === "composing" ? CREATION_STEPS.length - 1 : stepIndexForProgress(rawProgress);
+  const stepLabel = phase === "composing" ? composeLabel : CREATION_STEPS[stepIndex].label;
   const slide = STORY_SLIDES[slideIndex];
 
   return (
@@ -96,7 +128,9 @@ export function CoverGenerationOverlay({ active, capsuleActive }: { active: bool
           <span className="cover-gen-overlay-spinner" aria-hidden="true" />
           <div>
             <p className="cover-gen-overlay-kicker">Criando seu convite</p>
-            <h3 className="cover-gen-overlay-title">A IA está trabalhando na sua arte</h3>
+            <h3 className="cover-gen-overlay-title">
+              {phase === "composing" ? "Quase pronto — finalizando a capa" : "A IA está trabalhando na sua arte"}
+            </h3>
           </div>
         </div>
 
@@ -104,7 +138,7 @@ export function CoverGenerationOverlay({ active, capsuleActive }: { active: bool
           <div className="cover-gen-progress-fill" style={{ width: `${progressPercent}%` }} />
         </div>
         <p className="cover-gen-progress-label">
-          {CREATION_STEPS[stepIndex].label}
+          {stepLabel}
           <span className="cover-gen-progress-pct">{progressPercent}%</span>
         </p>
 

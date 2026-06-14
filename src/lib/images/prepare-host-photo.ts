@@ -1,4 +1,5 @@
 import type { PhotoOverlayConfig } from "@/lib/images/photo-zone-instructions";
+import { fetchImageBlob } from "@/lib/images/load-image-for-canvas";
 
 let bgRemovalModule: Promise<typeof import("@imgly/background-removal")> | null = null;
 
@@ -7,6 +8,13 @@ function loadBackgroundRemoval() {
     bgRemovalModule = import("@imgly/background-removal");
   }
   return bgRemovalModule;
+}
+
+export class BackgroundRemovalError extends Error {
+  constructor(message = "Não foi possível remover o fundo da foto. Verifique sua conexão e tente novamente.") {
+    super(message);
+    this.name = "BackgroundRemovalError";
+  }
 }
 
 export function shouldRemoveHostPhotoBackground(photo: Pick<PhotoOverlayConfig, "removeBackground">) {
@@ -23,15 +31,16 @@ export async function prepareHostPhotoForOverlay(
   }
 
   try {
+    const source = await fetchImageBlob(imageUrl);
     const { removeBackground } = await loadBackgroundRemoval();
-    const blob = await removeBackground(imageUrl, {
+    const blob = await removeBackground(source, {
       model: "isnet",
       output: { format: "image/png", quality: 0.92 }
     });
     const src = URL.createObjectURL(blob);
     return { src, revoke: () => URL.revokeObjectURL(src) };
   } catch (error) {
-    console.warn("[prepareHostPhotoForOverlay] remoção de fundo indisponível", error);
-    return { src: imageUrl };
+    console.warn("[prepareHostPhotoForOverlay] remoção de fundo falhou", error);
+    throw new BackgroundRemovalError();
   }
 }

@@ -1,18 +1,9 @@
+import { loadImageForCanvas } from "@/lib/images/load-image-for-canvas";
 import type { PhotoOverlayConfig } from "@/lib/images/photo-zone-instructions";
 import { photoSizePercent } from "@/lib/images/photo-zone-instructions";
 import { prepareHostPhotoForOverlay, shouldRemoveHostPhotoBackground } from "@/lib/images/prepare-host-photo";
 
 type PhotoPlacement = { x: number; y: number; drawW: number; drawH: number };
-
-function loadImage(src: string) {
-  return new Promise<HTMLImageElement>((resolve, reject) => {
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error("Não foi possível carregar a imagem."));
-    img.src = src;
-  });
-}
 
 function computePhotoPlacement(
   canvasW: number,
@@ -95,8 +86,11 @@ export async function composeCoverWithHostPhoto(coverUrl: string, photo: PhotoOv
   if (!photo.imageUrl) throw new Error("Foto do homenageado ausente.");
 
   const prepared = await prepareHostPhotoForOverlay(photo.imageUrl, photo);
+  const coverLoaded = await loadImageForCanvas(coverUrl);
+  const hostLoaded = await loadImageForCanvas(prepared.src);
   try {
-    const [cover, host] = await Promise.all([loadImage(coverUrl), loadImage(prepared.src)]);
+    const cover = coverLoaded.img;
+    const host = hostLoaded.img;
     const width = cover.naturalWidth || 1024;
     const height = cover.naturalHeight || Math.round((width * 16) / 9);
     const canvas = document.createElement("canvas");
@@ -110,6 +104,8 @@ export async function composeCoverWithHostPhoto(coverUrl: string, photo: PhotoOv
     const placement = computePhotoPlacement(width, height, photo, host);
     const { x, y, drawW, drawH } = placement;
     const framed = photo.shape === "round" || photo.shape === "square";
+
+    const bgRemoved = shouldRemoveHostPhotoBackground(photo);
 
     if (framed) {
       ctx.save();
@@ -127,18 +123,15 @@ export async function composeCoverWithHostPhoto(coverUrl: string, photo: PhotoOv
       ctx.fillStyle = "rgba(255,255,255,.92)";
       ctx.fill();
       ctx.restore();
-    } else {
-      ctx.save();
-      ctx.shadowColor = "rgba(0,0,0,.28)";
-      ctx.shadowBlur = 14;
-      ctx.shadowOffsetY = 6;
-      ctx.fillStyle = "rgba(0,0,0,.01)";
-      ctx.fillRect(x, y, drawW, drawH);
-      ctx.restore();
     }
 
     ctx.save();
     if (framed) clipPhotoFrame(ctx, x, y, drawW, drawH, photo.shape);
+    if (bgRemoved || !framed) {
+      ctx.shadowColor = "rgba(0,0,0,.28)";
+      ctx.shadowBlur = 14;
+      ctx.shadowOffsetY = 6;
+    }
     drawHostPhoto(ctx, host, placement, photo.shape);
     ctx.restore();
 
@@ -150,6 +143,8 @@ export async function composeCoverWithHostPhoto(coverUrl: string, photo: PhotoOv
     return blob;
   } finally {
     prepared.revoke?.();
+    coverLoaded.revoke?.();
+    hostLoaded.revoke?.();
   }
 }
 

@@ -1,18 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Event, InviteCopy } from "@/types/domain";
 import { ArtStylePicker } from "@/components/app/ui/art-style-picker";
 import { Icon } from "@/components/app/ui/icon";
 import { InviteArt } from "@/components/app/ui/invite-art";
 import { Mono, Segmented, Shimmer, Tag, Toggle } from "@/components/app/ui/primitives";
-import { Spinner } from "@/components/app/ui/spinner";
+import { CoverGenerationOverlay, type CoverGenerationPhase } from "@/components/dashboard/cover-generation-overlay";
 import type { CoverQuota } from "@/components/dashboard/cover-generator";
 import type { TextQuota } from "@/components/dashboard/invite-text-editor";
 import { generateEventCoverImageClient } from "@/lib/api/generate-cover";
 import { apiErrorMessage, dashboardFetchJson } from "@/lib/api/dashboard-fetch";
 import { composeCoverWithHostPhoto, uploadComposedCover } from "@/lib/images/compose-cover-with-photo";
+import { downloadCoverImage } from "@/lib/images/download-cover-image";
 import { buildPhotoZoneInstructions, type PhotoOverlayConfig, type PhotoShape, type PhotoSize } from "@/lib/images/photo-zone-instructions";
+import { BackgroundRemovalError } from "@/lib/images/prepare-host-photo";
 import { formatEventDateLine } from "@/lib/events/format-event-date";
 import { resolveInviteCopy } from "@/lib/events/invite-copy";
 import { artStylePrompt, type ArtStyle } from "@/lib/openai/art-styles";
@@ -132,10 +134,15 @@ export function InviteArtStep({
   const [photoSize, setPhotoSize] = useState<PhotoSize>("md");
   const [removeBackground, setRemoveBackground] = useState(false);
   const [photoNotes, setPhotoNotes] = useState("");
-  const [coverComposed, setCoverComposed] = useState(false);
+  const [aiCoverBaseUrl, setAiCoverBaseUrl] = useState<string | null>(null);
+  const [coverComposed, setCoverComposed] = useState(Boolean(event.coverImageUrl));
   const [imgState, setImgState] = useState<"empty" | "loading" | "done">(event.coverImageUrl ? "done" : "empty");
+  const [coverGenPhase, setCoverGenPhase] = useState<CoverGenerationPhase>("generating");
   const [coverUrl, setCoverUrl] = useState(event.coverImageUrl ?? "");
+  const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState("");
+  const recomposeRequestRef = useRef(0);
+  const skipRecomposeRef = useRef(true);
 
   const coverFields = buildInitialCoverEditableFields(
     toCoverFormEventInput({
@@ -166,6 +173,71 @@ export function InviteArtStep({
         notes: photoNotes.trim() || undefined
       }
     : null;
+
+  async function applyPhotoToCover(baseUrl: string, photoConfig: PhotoOverlayConfig) {
+    setCoverGenPhase("composing");
+    const blob = await composeCoverWithHostPhoto(baseUrl, photoConfig);
+    return uploadComposedCover(event.id, blob);
+  }
+
+  useEffect(() => {
+    if (skipRecomposeRef.current) {
+      skipRecomposeRef.current = false;
+      return;
+    }
+    if (!aiCoverBaseUrl || !photoUrl || imgState === "loading") return;
+
+    const photoConfig: PhotoOverlayConfig = {
+      imageUrl: photoUrl,
+      shape: photoShape,
+      pos: photoPos,
+      size: photoSize,
+      removeBackground,
+      notes: photoNotes.trim() || undefined
+    };
+
+    const requestId = ++recomposeRequestRef.current;
+    const timer = window.setTimeout(async () => {
+      setCoverGenPhase("composing");
+      setError("");
+      try {
+        const composedUrl = await applyPhotoToCover(aiCoverBaseUrl, photoConfig);
+        if (requestId !== recomposeRequestRef.current) return;
+        setCoverUrl(composedUrl);
+        onCoverChange(composedUrl);
+        setCoverComposed(true);
+      } catch (composeError) {
+        if (requestId !== recomposeRequestRef.current) return;
+        console.warn("[invite-art] recompose cover", composeError);
+        setCoverComposed(false);
+        setCoverUrl(aiCoverBaseUrl);
+        setError(
+          composeError instanceof BackgroundRemovalError
+            ? composeError.message
+            : "Não foi possível aplicar a foto na arte. Tente gerar novamente."
+        );
+      }
+    }, 650);
+
+    return () => window.clearTimeout(timer);
+  }, [photoShape, photoPos, photoSize, removeBackground, photoUrl, photoNotes, aiCoverBaseUrl, imgState, event.id]);
+
+  async function downloadCover() {
+    if (!coverUrl) return;
+    setDownloading(true);
+    setError("");
+    try {
+      const ext = coverUrl.includes("image/png") || coverUrl.endsWith(".png") ? "png" : "jpg";
+      await downloadCoverImage(coverUrl, `convite-${event.slug || event.id}.${ext}`);
+    } catch (err) {
+      setError(apiErrorMessage(err, "Não foi possível baixar a imagem."));
+    } finally {
+      setDownloading(false);
+    }
+  }
+
+  const previewCoverUrl = coverComposed || !aiCoverBaseUrl ? coverUrl : aiCoverBaseUrl;
+  const previewPhoto = photo && aiCoverBaseUrl && !coverComposed ? photo : null;
 
   async function generateText() {
     setGenText(true);
@@ -223,7 +295,11 @@ export function InviteArtStep({
 
   async function generateImage() {
     setImgState("loading");
+    setCoverGenPhase("generating");
     setCoverComposed(false);
+    setAiCoverBaseUrl(null);
+    recomposeRequestRef.current += 1;
+    skipRecomposeRef.current = true;
     setError("");
     try {
       const fields = { ...coverFields };
@@ -251,21 +327,34 @@ export function InviteArtStep({
         return;
       }
       let finalUrl = result.coverImageUrl;
-      if (finalUrl && photo) {
+      if (!finalUrl) return;
+
+      setAiCoverBaseUrl(finalUrl);
+      skipRecomposeRef.current = true;
+
+      if (photo) {
         try {
-          const blob = await composeCoverWithHostPhoto(finalUrl, photo);
-          finalUrl = await uploadComposedCover(event.id, blob);
+          finalUrl = await applyPhotoToCover(finalUrl, photo);
           setCoverComposed(true);
         } catch (composeError) {
           console.warn("[invite-art] compose cover", composeError);
-          setError("Arte gerada, mas não foi possível aplicar a foto. Tente gerar novamente.");
+          setCoverComposed(false);
+          setCoverUrl(finalUrl);
+          setError(
+            composeError instanceof BackgroundRemovalError
+              ? composeError.message
+              : "Arte gerada, mas não foi possível aplicar a foto. Tente gerar novamente."
+          );
+          setImgState("done");
+          return;
         }
+      } else {
+        setCoverComposed(true);
       }
-      if (finalUrl) {
-        setCoverUrl(finalUrl);
-        onCoverChange(finalUrl);
-        setImgState("done");
-      }
+
+      setCoverUrl(finalUrl);
+      onCoverChange(finalUrl);
+      setImgState("done");
     } catch (err) {
       setError(apiErrorMessage(err, "Erro de conexão."));
       setImgState(coverUrl ? "done" : "empty");
@@ -289,7 +378,7 @@ export function InviteArtStep({
       if (typeof data.hostPhotoUrl === "string") {
         setPhotoUrl(data.hostPhotoUrl);
         setPhotoName(file.name);
-        setCoverComposed(false);
+        setCoverComposed(Boolean(aiCoverBaseUrl) ? false : coverComposed);
       }
     } catch (err) {
       setError(apiErrorMessage(err, "Erro de conexão."));
@@ -354,7 +443,7 @@ export function InviteArtStep({
                   value={photoShape}
                   onChange={(shape) => {
                     setPhotoShape(shape);
-                    setCoverComposed(false);
+                    if (aiCoverBaseUrl) setCoverComposed(false);
                   }}
                   options={[
                     { v: "original" as const, l: "Original" },
@@ -370,7 +459,7 @@ export function InviteArtStep({
                   value={photoSize}
                   onChange={(size) => {
                     setPhotoSize(size);
-                    setCoverComposed(false);
+                    if (aiCoverBaseUrl) setCoverComposed(false);
                   }}
                   options={[
                     { v: "sm" as const, l: "Pequena" },
@@ -390,7 +479,7 @@ export function InviteArtStep({
                     on={removeBackground}
                     onChange={(on) => {
                       setRemoveBackground(on);
-                      setCoverComposed(false);
+                      if (aiCoverBaseUrl) setCoverComposed(false);
                     }}
                   />
                 </div>
@@ -406,7 +495,7 @@ export function InviteArtStep({
                             type="button"
                             onClick={() => {
                               setPhotoPos(p);
-                              setCoverComposed(false);
+                              if (aiCoverBaseUrl) setCoverComposed(false);
                             }}
                             aria-label={p}
                             style={{
@@ -561,8 +650,37 @@ export function InviteArtStep({
       <div style={{ position: "sticky", top: 0 }}>
         <Mono style={{ display: "block", marginBottom: 10 }}>Prévia do convite</Mono>
         {imgState === "loading" ? (
-          <div className="stripe" style={{ aspectRatio: "9 / 16", borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <Spinner />
+          <div
+            className="stripe"
+            style={{
+              aspectRatio: "9 / 16",
+              borderRadius: 14,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 12,
+              padding: 24,
+              textAlign: "center"
+            }}
+          >
+            <span
+              aria-hidden="true"
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: "50%",
+                border: "3px solid var(--line)",
+                borderTopColor: "var(--coral)",
+                animation: "cover-gen-spin 0.9s linear infinite"
+              }}
+            />
+            <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>
+              {coverGenPhase === "composing" ? "Finalizando a capa…" : "Criando sua arte com IA…"}
+            </p>
+            <p style={{ margin: 0, fontSize: 11.5, color: "var(--muted)", lineHeight: 1.45, maxWidth: 220 }}>
+              Pode levar até 4 minutos. Veja o painel de progresso — não feche nem atualize a página.
+            </p>
           </div>
         ) : (
           <InviteArt
@@ -572,16 +690,35 @@ export function InviteArtStep({
             time={formatTimeShort(event.startsAt)}
             place={placeLabel(event)}
             info={includeInfo}
-            photo={coverComposed ? null : photo}
-            coverUrl={coverUrl || undefined}
+            photo={previewPhoto}
+            coverUrl={previewCoverUrl || undefined}
           />
         )}
+        {coverUrl && imgState === "done" ? (
+          <button
+            type="button"
+            className="btn btn-sm"
+            style={{ width: "100%", marginTop: 12 }}
+            onClick={downloadCover}
+            disabled={downloading}
+          >
+            <Icon name="download" size={15} />
+            {downloading ? "Baixando…" : "Baixar imagem do convite"}
+          </button>
+        ) : null}
         {!includeInfo ? (
           <p style={{ margin: "10px 2px 0", fontSize: 11.5, color: "var(--muted)", lineHeight: 1.4 }}>
             Sem os detalhes na arte — data, horário e local aparecem na página do convite.
           </p>
         ) : null}
       </div>
+
+      <CoverGenerationOverlay
+        active={imgState === "loading"}
+        capsuleActive={Boolean(event.capsuleActivatedAt)}
+        phase={coverGenPhase}
+        composingWithBgRemoval={removeBackground && Boolean(photoUrl)}
+      />
     </div>
   );
 }
