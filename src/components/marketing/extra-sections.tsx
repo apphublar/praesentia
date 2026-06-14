@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { PraesentiaLogo } from "@/components/brand/praesentia-logo";
+import { marketingImages } from "@/lib/marketing/marketing-images";
 
 const faqs = [
   ["Quanto custa de verdade?", "O plano Gratuito inclui 1 convite com IA, texto do convite e assistente de prompt. Pacote extra de R$4,90 libera até mais 2 imagens e 2 ajustes. Cápsula custa R$59, com 5 GB e no mínimo 36 meses de armazenamento (ampliável depois). Cápsula Plus custa R$197/ano, com até 6 eventos e 20 GB compartilhados."],
@@ -90,12 +91,18 @@ function SectionLabel({ children }: { children: ReactNode }) {
   return <div className="mono section-label">{children}</div>;
 }
 
-function MiniGrid({ colors }: { colors: string[] }) {
+function PhasePreview({ src, alt, tall }: { src: string; alt: string; tall?: boolean }) {
   return (
-    <div className="mini-grid">
-      {colors.map((color, index) => (
-        <span key={`${color}-${index}`} style={{ background: color }} />
-      ))}
+    <div className={`phase-preview${tall ? " is-tall" : ""}`}>
+      <img src={src} alt={alt} loading="lazy" decoding="async" />
+    </div>
+  );
+}
+
+function MarketingPhoto({ src, alt, height }: { src: string; alt: string; height?: number }) {
+  return (
+    <div className="marketing-photo" style={height ? { height } : undefined}>
+      <img src={src} alt={alt} loading="lazy" decoding="async" />
     </div>
   );
 }
@@ -154,9 +161,30 @@ export function StorageSection() {
 
 export function TransformationSection() {
   const cards = [
-    ["Antes", "Convite", "14 mar 2026 - 18 dias", "var(--coral)", "#fbe3cc"],
-    ["Durante", "Mural ao vivo", "sab 14 mar - 15h às 19h", "var(--gold)", "#ffe9bd"],
-    ["Depois - para sempre", "Cápsula", "aberta - 15 mar 2026", "var(--violet)", "#e5d5f2"]
+    {
+      tag: "Antes",
+      title: "Convite",
+      sub: "14 mar 2026 - 18 dias",
+      color: "var(--coral)",
+      bg: "#fbe3cc",
+      preview: { src: marketingImages.transformation.invite, alt: "Convite digital da Mavie com capa botânica", tall: true }
+    },
+    {
+      tag: "Durante",
+      title: "Mural ao vivo",
+      sub: "sab 14 mar - 15h às 19h",
+      color: "var(--gold)",
+      bg: "#ffe9bd",
+      preview: { src: marketingImages.transformation.mural, alt: "Mural ao vivo com várias fotos polaroid da festa da Mavie" }
+    },
+    {
+      tag: "Depois - para sempre",
+      title: "Cápsula",
+      sub: "aberta - 15 mar 2026",
+      color: "var(--violet)",
+      bg: "#e5d5f2",
+      preview: { src: marketingImages.transformation.capsule, alt: "Cápsula do tempo com memórias polaroid da festa da Mavie" }
+    }
   ];
 
   return (
@@ -167,14 +195,12 @@ export function TransformationSection() {
       <div className="transform-strip">
         <div className="mono strip-url">praesentia.com/e/mavie-1-ano</div>
         <div className="transform-grid">
-          {cards.map(([tag, title, sub, color, bg], index) => (
-            <article key={title} className="phase-card" style={{ background: bg }}>
-              <div className="phase-dot"><span style={{ background: color }} /><small className="mono">{tag}</small></div>
-              <h3 className="display-i">{title}</h3>
-              <p>{sub}</p>
-              {index === 0 && <div className="invite-mini"><b className="display-i">Mavie, 1.</b><small>14 MAR - 15H</small><button>confirmar</button></div>}
-              {index === 1 && <MiniGrid colors={["#fbe3cc", "#d9e8f4", "#d7edd9", "#f1d8c9", "#b69ae8", "#ffe9bd"]} />}
-              {index === 2 && <MiniGrid colors={["#f1d8c9", "#d9e8f4", "#d7edd9", "#fbe3cc", "#e5d5f2", "#ffe9bd", "#f4d5ba", "#d8e7f4"]} />}
+          {cards.map((card) => (
+            <article key={card.title} className="phase-card" style={{ background: card.bg }}>
+              <div className="phase-dot"><span style={{ background: card.color }} /><small className="mono">{card.tag}</small></div>
+              <h3 className="display-i">{card.title}</h3>
+              <p>{card.sub}</p>
+              <PhasePreview src={card.preview.src} alt={card.preview.alt} tall={card.preview.tall} />
             </article>
           ))}
         </div>
@@ -185,11 +211,11 @@ export function TransformationSection() {
 
 export function FeaturedCapsulesSection() {
   const items = [
-    ["2024", "Casamento João e Ana", "412 fotos - 38 vídeos", "#f1d8c9", "-2deg"],
-    ["2025", "Formatura Eng. UFMG", "186 fotos - 22 vídeos", "#d9e8f4", "3deg"],
-    ["2026", "Mavie - 1 aninho", "247 fotos - 38 vídeos", "#fbe3cc", "-3deg"],
-    ["2026", "Reveillon na cobertura", "94 fotos - 12 vídeos", "#e5d5f2", "2deg"]
-  ];
+    ["2024", "Casamento João e Ana", "412 fotos - 38 vídeos", "-2deg", marketingImages.featured.wedding, "Casamento João e Ana"],
+    ["2025", "Formatura Eng. UFMG", "186 fotos - 22 vídeos", "3deg", marketingImages.featured.graduation, "Formatura universitária"],
+    ["2026", "Mavie - 1 aninho", "247 fotos - 38 vídeos", "-3deg", marketingImages.featured.mavie, "Aniversário de 1 ano da Mavie"],
+    ["2026", "Reveillon na cobertura", "94 fotos - 12 vídeos", "2deg", marketingImages.featured.reveillon, "Reveillon na cobertura"]
+  ] as const;
 
   return (
     <section className="shell landing-section">
@@ -198,9 +224,9 @@ export function FeaturedCapsulesSection() {
         <p>memórias compartilhadas pelos próprios anfitriões</p>
       </div>
       <div className="featured-grid">
-        {items.map(([year, title, stat, color, rotate], index) => (
+        {items.map(([year, title, stat, rotate, image, alt], index) => (
           <article key={title} className="polaroid featured-polaroid" style={{ transform: `rotate(${rotate})` }}>
-            <div className="placeholder" style={{ height: 170, backgroundColor: color }}>{title}</div>
+            <MarketingPhoto src={image} alt={alt} height={170} />
             <div className="featured-meta"><span className="mono">{year}</span>{index === 2 && <b>destaque</b>}</div>
             <h3 className="display-i">{title}</h3>
             <p>{stat}</p>
@@ -213,13 +239,13 @@ export function FeaturedCapsulesSection() {
 
 export function LifeCapsulesSection() {
   const years = [
-    ["2025", "chá da Mavie - 11/2024", "88 fotos", "#fbe3cc"],
-    ["2026", "Mavie - 1 aninho", "247 fotos", "#f1d8c9"],
-    ["2027", "Mavie no jardim - 2 anos", "184 fotos", "#d9e8dc"],
-    ["2030", "primeiro dia de escola", "64 fotos", "#d9e8f4"],
-    ["2032", "aniversário - 7 anos", "203 fotos", "#e5d5f2"],
-    ["2044", "formatura - 18 anos", "aguardando", "transparent"]
-  ];
+    ["2025", "chá da Mavie - 11/2024", "88 fotos", marketingImages.timeline.cha, "Chá da Mavie"],
+    ["2026", "Mavie - 1 aninho", "247 fotos", marketingImages.timeline.mavie1, "Mavie comemorando 1 aninho"],
+    ["2027", "Mavie no jardim - 2 anos", "184 fotos", marketingImages.timeline.garden2, "Mavie brincando no jardim"],
+    ["2030", "primeiro dia de escola", "64 fotos", marketingImages.timeline.school, "Primeiro dia de escola da Mavie"],
+    ["2032", "aniversário - 7 anos", "203 fotos", marketingImages.timeline.years7, "Aniversário de 7 anos da Mavie"],
+    ["2044", "formatura - 18 anos", "aguardando", null, ""]
+  ] as const;
 
   return (
     <section className="shell landing-section">
@@ -233,11 +259,20 @@ export function LifeCapsulesSection() {
           <span>visualização da família - privado</span>
         </div>
         <div className="timeline-row">
-          {years.map(([year, label, stat, color], index) => (
+          {years.map(([year, label, stat, image, alt], index) => (
             <article key={year + label}>
-              <div className={`timeline-photo ${color === "transparent" ? "empty" : ""}`}>
-                {color === "transparent" ? <span>aguardando<br />nova cápsula</span> : <div className="placeholder" style={{ height: 90, backgroundColor: color }}>{label.split(" - ")[0]}</div>}
-                <small>{stat}</small>
+              <div className={`timeline-photo ${image ? "" : "empty"}`}>
+                {image ? (
+                  <>
+                    <MarketingPhoto src={image} alt={alt} height={90} />
+                    <small>{stat}</small>
+                  </>
+                ) : (
+                  <>
+                    <span>aguardando<br />nova cápsula</span>
+                    <small>{stat}</small>
+                  </>
+                )}
               </div>
               <i className={index === 1 ? "hot" : ""} />
               <b className="display">{year}</b>
@@ -287,7 +322,9 @@ export function PrintedAlbumSection() {
         <div className="book-stage">
           <div className="book back" />
           <div className="book front"><small className="mono">Praesentia — álbum</small><b className="display-i">Mavie,<br />1 ano.</b><span>2026</span></div>
-          <div className="polaroid mini"><div className="placeholder" style={{ height: 64, backgroundColor: "#f1d8c9" }}>foto favorita</div></div>
+          <div className="polaroid mini">
+            <MarketingPhoto src={marketingImages.timeline.favorite} alt="Foto favorita da Mavie no álbum impresso" height={64} />
+          </div>
         </div>
       </div>
     </section>

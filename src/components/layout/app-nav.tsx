@@ -16,13 +16,13 @@ export function AppNav() {
       <div
         className="shell"
         style={{
-          minHeight: 64,
+          minHeight: 68,
           display: "flex",
           alignItems: "center",
           gap: 18
         }}
       >
-        <PraesentiaLogo href="/" markHeight={36} wordmarkSize={20} withTape withShadow={false} />
+        <PraesentiaLogo href="/" markHeight={42} wordmarkSize={23} withTape withShadow={false} />
         <nav className="nav-links" style={{ display: "flex", gap: 16, marginLeft: "auto", fontSize: 14, alignItems: "center" }}>
           <Link href="/#como-funciona">como funciona</Link>
           <Link href="/#diferencial">histórias</Link>

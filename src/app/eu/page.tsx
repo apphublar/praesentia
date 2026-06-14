@@ -1,30 +1,40 @@
 import Link from "next/link";
 import { AppNav } from "@/components/layout/app-nav";
 import { Avatar } from "@/components/visual/avatar";
+import { marketingImages } from "@/lib/marketing/marketing-images";
 
 const years = [
   {
     year: "2026",
     events: [
-      ["14 mar", "Mavie - 1 aninho", "convidada", "247 fotos - 86 recados", "#fbe3cc"],
-      ["01 jan", "Reveillon na cobertura", "convidada", "94 fotos - 12 vídeos", "#e5d5f2"]
+      ["14 mar", "Mavie - 1 aninho", "convidada", "247 fotos - 86 recados", marketingImages.featured.mavie],
+      ["01 jan", "Reveillon na cobertura", "convidada", "94 fotos - 12 vídeos", marketingImages.featured.reveillon]
     ]
   },
   {
     year: "2025",
     events: [
-      ["22 nov", "Casamento João & Ana", "convidada", "412 fotos - 38 vídeos", "#f1d8c9"],
-      ["03 jun", "Aniversário da Lila - 30", "criadora", "92 fotos - 14 vídeos", "#d9e8dc"]
+      ["22 nov", "Casamento João & Ana", "convidada", "412 fotos - 38 vídeos", marketingImages.featured.wedding],
+      ["03 jun", "Aniversário da Lila - 30", "criadora", "92 fotos - 14 vídeos", marketingImages.timeline.garden2]
     ]
   },
   {
     year: "2024",
     events: [
-      ["14 dez", "Chá da Mavie", "convidada", "88 fotos - 4 vídeos", "#fbe3cc"],
-      ["20 set", "Aniversário da vovó - 70", "criadora", "156 fotos - 18 vídeos", "#f1d8c9"]
+      ["14 dez", "Chá da Mavie", "convidada", "88 fotos - 4 vídeos", marketingImages.timeline.cha],
+      ["20 set", "Aniversário da vovó - 70", "criadora", "156 fotos - 18 vídeos", marketingImages.timeline.favorite]
     ]
   }
 ];
+
+const mavieTimeline = [
+  ["2025", "chá da Mavie", marketingImages.timeline.cha],
+  ["2026", "1 aninho", marketingImages.timeline.mavie1],
+  ["2027", "2 anos", marketingImages.timeline.garden2],
+  ["2030", "primeira escola", marketingImages.timeline.school],
+  ["2038", "formatura", marketingImages.featured.graduation],
+  ["2044", "18 anos", null]
+] as const;
 
 export default function ProfilePage() {
   return (
@@ -94,16 +104,18 @@ export default function ProfilePage() {
                 <span style={{ flex: 1, height: 1, background: "var(--line)" }} />
               </div>
               <div className="grid-collapse-4" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14 }}>
-                {group.events.map(([date, title, role, stat, color]) => (
+                {group.events.map(([date, title, role, stat, image]) => (
                   <Link
                     key={title}
                     href={title.includes("Mavie") ? "/evento/mavie-1-ano" : "/eu"}
                     className="polaroid"
                     style={{ transform: "rotate(-1deg)", color: "var(--ink)" }}
                   >
-                    <div className="placeholder" style={{ height: 150, backgroundColor: color }}>{date}</div>
+                    <div className="marketing-photo" style={{ height: 150 }}>
+                      <img src={image} alt={title} loading="lazy" decoding="async" />
+                    </div>
                     <div className="display-i" style={{ fontSize: 18, marginTop: 8 }}>{title}</div>
-                    <div style={{ color: "var(--ink-soft)", fontSize: 12 }}>{role} - {stat}</div>
+                    <div style={{ color: "var(--ink-soft)", fontSize: 12 }}>{date} · {role} · {stat}</div>
                   </Link>
                 ))}
               </div>
@@ -121,19 +133,18 @@ export default function ProfilePage() {
             <span className="pill" style={{ marginLeft: "auto", background: "var(--gold)", color: "var(--ink)" }}>privado da família</span>
           </div>
           <div style={{ display: "flex", gap: 16, overflowX: "auto", padding: "18px 28px 28px" }}>
-            {[
-              ["2025", "chá da Mavie", "#fbe3cc"],
-              ["2026", "1 aninho", "#f1d8c9"],
-              ["2027", "2 anos", "#d9e8dc"],
-              ["2030", "primeira escola", "#d9e8f4"],
-              ["2038", "formatura", "#e5d5f2"],
-              ["2044", "18 anos", "transparent"]
-            ].map(([year, label, color], index) => (
+            {mavieTimeline.map(([year, label, image], index) => (
               <div key={year} style={{ minWidth: 170, textAlign: "center" }}>
-                <div className="polaroid" style={{ background: color === "transparent" ? "rgba(247,238,219,.05)" : "#fff", border: color === "transparent" ? "1.5px dashed rgba(247,238,219,.35)" : "none" }}>
-                  <div className="placeholder" style={{ height: 100, backgroundColor: color === "transparent" ? "transparent" : color, color: color === "transparent" ? "rgba(247,238,219,.55)" : undefined }}>
-                    {index === 5 ? "aguardando" : label}
-                  </div>
+                <div className="polaroid" style={{ background: image ? "#fff" : "rgba(247,238,219,.05)", border: image ? "none" : "1.5px dashed rgba(247,238,219,.35)" }}>
+                  {image ? (
+                    <div className="marketing-photo" style={{ height: 100 }}>
+                      <img src={image} alt={label} loading="lazy" decoding="async" />
+                    </div>
+                  ) : (
+                    <div className="placeholder" style={{ height: 100, backgroundColor: "transparent", color: "rgba(247,238,219,.55)" }}>
+                      aguardando
+                    </div>
+                  )}
                 </div>
                 <div className="display" style={{ color: index === 1 ? "var(--coral)" : "var(--gold)", fontSize: 28, marginTop: 8 }}>{year}</div>
                 <p style={{ color: "rgba(247,238,219,.72)", fontSize: 12, lineHeight: 1.4 }}>{label}</p>

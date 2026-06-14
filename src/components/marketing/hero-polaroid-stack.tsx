@@ -26,18 +26,8 @@ const heroPolaroids = [
     caption: "mesa da família",
     width: 204,
     photoHeight: 168,
-    style: { bottom: 34, left: "16%", transform: "rotate(-3deg)" },
+    style: { bottom: 34, left: "22%", transform: "rotate(-3deg)" },
     animationDelay: ".9s"
-  },
-  {
-    id: "hug",
-    src: "/marketing/hero/family-hug.jpg",
-    alt: "Mãe abraçando filha em momento afetivo",
-    caption: "abraço da vovó",
-    width: 198,
-    photoHeight: 198,
-    style: { bottom: 18, right: "10%", zIndex: 1, transform: "rotate(4deg)" },
-    animationDelay: "1.2s"
   }
 ] as const;
 
