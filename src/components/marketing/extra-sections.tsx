@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { PraesentiaLogo } from "@/components/brand/praesentia-logo";
+import { LEGAL_PAGES } from "@/lib/legal/constants";
 import { marketingImages, mavieJourneyDates } from "@/lib/marketing/marketing-images";
 import {
   MarketingCapsulePreview,
@@ -418,7 +419,16 @@ export function SiteFooter() {
         </div>
         <nav><b>Produto</b><Link href="#como-funciona">como funciona</Link><Link href="#precos">preços</Link><Link href="/eu">meu perfil</Link></nav>
         <nav><b>Conta</b><Link href="/login">entrar</Link><Link href="/dashboard">responsável</Link><Link href="/admin">admin</Link></nav>
-        <nav><b>Legal</b><Link href="/privacidade">privacidade</Link><Link href="/termos">termos de uso</Link><Link href="#faq">perguntas frequentes</Link></nav>
+        <nav>
+          <b>Legal</b>
+          {LEGAL_PAGES.map(({ href, label }) => (
+            <Link key={href} href={href}>{label.toLowerCase()}</Link>
+          ))}
+          <Link href="#faq">perguntas frequentes</Link>
+        </nav>
+      </div>
+      <div className="site-footer-bottom shell">
+        <p>PRAESENTIA © 2026 · Todo momento começa com uma presença.</p>
       </div>
     </footer>
   );
