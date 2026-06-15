@@ -1,11 +1,12 @@
 /**
- * Cria produtos/preços de teste no Stripe Dashboard (modo test).
+ * Cria produtos/preços no Stripe Dashboard.
  *
- * Uso:
- *   $env:STRIPE_SECRET_KEY="sk_test_..."
- *   node scripts/stripe-bootstrap-prices.mjs
+ * Test mode:
+ *   npm run stripe:bootstrap-prices
  *
- * Ou defina STRIPE_SECRET_KEY em .env.local na raiz do projeto.
+ * Live mode (produção):
+ *   STRIPE_LIVE_SECRET_KEY=sk_live_... npm run stripe:bootstrap-prices:live
+ *   Ou defina STRIPE_LIVE_SECRET_KEY em .env.local (não commitar).
  */
 import { readFileSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -33,13 +34,23 @@ function loadEnvLocal() {
 
 loadEnvLocal();
 
-const secretKey = process.env.STRIPE_SECRET_KEY?.trim();
+const liveMode = process.argv.includes("--live");
+const secretKey = (liveMode ? process.env.STRIPE_LIVE_SECRET_KEY : process.env.STRIPE_SECRET_KEY)?.trim();
+
 if (!secretKey) {
-  console.error("Defina STRIPE_SECRET_KEY (sk_test_...) em .env.local ou no ambiente.");
+  console.error(
+    liveMode
+      ? "Defina STRIPE_LIVE_SECRET_KEY (sk_live_...) em .env.local ou no ambiente."
+      : "Defina STRIPE_SECRET_KEY (sk_test_...) em .env.local ou no ambiente."
+  );
   process.exit(1);
 }
-if (!secretKey.startsWith("sk_test_")) {
-  console.error("Use uma chave de TESTE (sk_test_...). Não rode este script com chave live.");
+if (liveMode && !secretKey.startsWith("sk_live_")) {
+  console.error("Live mode exige STRIPE_LIVE_SECRET_KEY com prefixo sk_live_.");
+  process.exit(1);
+}
+if (!liveMode && !secretKey.startsWith("sk_test_")) {
+  console.error("Test mode exige STRIPE_SECRET_KEY com prefixo sk_test_.");
   process.exit(1);
 }
 
@@ -100,7 +111,7 @@ async function ensureCatalogItem(item) {
   return { env: item.env, priceId: price.id };
 }
 
-console.log("Bootstrap Stripe (test mode) — Praesentia\n");
+console.log(`Bootstrap Stripe (${liveMode ? "LIVE" : "test"} mode) — Praesentia\n`);
 
 const envLines = [];
 for (const item of CATALOG) {
@@ -109,9 +120,15 @@ for (const item of CATALOG) {
   console.log(`  ${env} → ${priceId}`);
 }
 
-console.log("\nCopie para .env.local:\n");
+console.log("\nCopie para Vercel (Production):\n");
 console.log(envLines.join("\n"));
-console.log("\nWebhook local (Stripe CLI):");
-console.log("  stripe listen --forward-to localhost:3000/api/billing/webhook/stripe");
-console.log("  → copie whsec_... para STRIPE_WEBHOOK_SECRET\n");
-console.log("Publishable key: Developers → API keys → pk_test_... → NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY");
+if (liveMode) {
+  console.log("\nWebhook produção:");
+  console.log("  https://praesentia.com.br/api/billing/webhook/stripe");
+  console.log("  eventos: checkout.session.completed + checkout.session.async_payment_succeeded");
+} else {
+  console.log("\nWebhook local (Stripe CLI):");
+  console.log("  stripe listen --forward-to localhost:3000/api/billing/webhook/stripe");
+  console.log("  → copie whsec_... para STRIPE_WEBHOOK_SECRET\n");
+  console.log("Publishable key: Developers → API keys → pk_test_... → NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY");
+}

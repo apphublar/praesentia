@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { cache } from "react";
 import { repositories } from "@/lib/db";
 import { isDevelopmentBypassAllowed } from "@/lib/env";
 import { users } from "@/lib/mock-data";
@@ -49,7 +50,7 @@ async function enrichSessionFromDatabase(payload: SessionPayload): Promise<Sessi
   return fallback;
 }
 
-export async function getCurrentSession(_options?: { throwOnDbError?: boolean }): Promise<Session | null> {
+export const getCurrentSession = cache(async (_options?: { throwOnDbError?: boolean }): Promise<Session | null> => {
   const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
   const payload = token ? verifySessionToken(token) : null;
@@ -77,7 +78,7 @@ export async function getCurrentSession(_options?: { throwOnDbError?: boolean })
   }
 
   return null;
-}
+});
 
 export class AuthError extends Error {
   code: "UNAUTHENTICATED" | "FORBIDDEN" | "REAUTH_REQUIRED" | "SERVICE_UNAVAILABLE";

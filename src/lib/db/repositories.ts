@@ -86,6 +86,7 @@ export interface UserRepository {
 
 export interface EventRepository {
   findById(id: string): Promise<Event | null>;
+  findByIds(ids: string[]): Promise<Event[]>;
   findBySlugOrCode(slugOrCode: string): Promise<Event | null>;
   listByOwner(userId: string): Promise<Event[]>;
   findOwnerId(eventId: string): Promise<string | null>;
@@ -152,6 +153,7 @@ export interface MemberRepository {
 
 export interface MediaRepository {
   listPublishedByEvent(eventId: string): Promise<import("@/types/domain").MediaItem[]>;
+  countPublishedByEventIds(eventIds: string[]): Promise<Record<string, number>>;
   findById(mediaId: string): Promise<import("@/types/domain").MediaItem | null>;
   create(input: CreateMediaInput): Promise<import("@/types/domain").MediaItem>;
   archive(mediaId: string, actorUserId: string): Promise<import("@/types/domain").MediaItem>;
@@ -206,6 +208,7 @@ export interface GuestMessageRepository {
 export interface GuestRsvpRepository {
   create(input: CreateGuestRsvpInput): Promise<GuestRsvp>;
   listByEvent(eventId: string): Promise<GuestRsvp[]>;
+  listByEventIds(eventIds: string[]): Promise<GuestRsvp[]>;
   sumPixContributions(eventId: string): Promise<number>;
   findConfirmedByEmail(eventId: string, email: string): Promise<GuestRsvp | null>;
   findById(eventId: string, rsvpId: string): Promise<GuestRsvp | null>;

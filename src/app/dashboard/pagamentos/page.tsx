@@ -2,6 +2,7 @@ import Link from "next/link";
 import { PaymentHistoryPanel } from "@/components/app/account/payment-history-panel";
 import { requirePageSession } from "@/lib/auth/session";
 import { mapAuditLogToPayment } from "@/lib/billing/payment-history";
+import { getCachedEventsByIds } from "@/lib/db/cached-queries";
 import { repositories } from "@/lib/db";
 import { safeRepositoryCall } from "@/lib/db/safe";
 
@@ -14,13 +15,8 @@ export default async function PaymentsPage() {
   );
 
   const eventIds = [...new Set(rows.map((row) => row.eventId).filter(Boolean))] as string[];
-  const eventTitles = new Map<string, string>();
-  await Promise.all(
-    eventIds.map(async (eventId) => {
-      const event = await safeRepositoryCall(() => repositories.events.findById(eventId), null, "events.findById");
-      if (event) eventTitles.set(eventId, event.title);
-    })
-  );
+  const events = await getCachedEventsByIds(eventIds);
+  const eventTitles = new Map(events.map((event) => [event.id, event.title]));
 
   const payments = rows
     .map((row) => mapAuditLogToPayment(row, row.eventId ? eventTitles.get(row.eventId) : null))

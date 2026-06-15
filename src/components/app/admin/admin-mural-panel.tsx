@@ -12,16 +12,18 @@ import { resolveMediaItemUrl } from "@/lib/storage/media-url";
 export function AdminMuralPanel({
   event,
   items,
+  initialAccessRequests = [],
   layout = "split",
   showTelaoLink = true
 }: {
   event: Event;
   items: MediaItem[];
+  initialAccessRequests?: MuralAccessRequest[];
   layout?: "split" | "stack";
   showTelaoLink?: boolean;
 }) {
   const [rows, setRows] = useState(items);
-  const [accessRequests, setAccessRequests] = useState<MuralAccessRequest[]>([]);
+  const [accessRequests, setAccessRequests] = useState<MuralAccessRequest[]>(initialAccessRequests);
   const [loadingRequestId, setLoadingRequestId] = useState<string | null>(null);
   const [screenEnabled, setScreenEnabled] = useState(event.screen.enabled);
   const [showMessages, setShowMessages] = useState(event.screen.showMessages);
@@ -29,11 +31,12 @@ export function AdminMuralPanel({
   const [screenError, setScreenError] = useState("");
 
   useEffect(() => {
+    if (initialAccessRequests.length > 0) return;
     fetch(`/api/events/${event.id}/mural/access-requests`)
       .then((res) => res.json())
       .then((data) => setAccessRequests(data.requests ?? []))
       .catch(() => undefined);
-  }, [event.id]);
+  }, [event.id, initialAccessRequests.length]);
 
   const pending = accessRequests.filter((item) => item.status === "pending");
   const photos = rows.filter((item) => item.type !== "message");

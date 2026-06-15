@@ -3846,6 +3846,31 @@ p + a.btn,
   margin: 14px 0 0;
 }
 
+.card.dashboard-card.plan-upgrade-panel {
+  padding: 22px;
+  margin-bottom: 0;
+  min-width: 0;
+  overflow: visible;
+}
+
+@media (max-width: 640px) {
+  .plan-upgrade-title {
+    font-size: 22px;
+  }
+
+  .plan-upgrade-option-title {
+    font-size: 18px;
+  }
+
+  .plan-upgrade-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .plan-upgrade-option-meta {
+    font-size: 13px;
+  }
+}
+
 .locked-capsule-preview {
   border-style: dashed;
   background: rgba(255, 178, 62, 0.08);
@@ -5269,6 +5294,8 @@ p + a.btn,
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
+  padding-top: 10px;
+  overflow: visible;
 }
 
 .invite-ai-upgrade-card {
@@ -5417,8 +5444,28 @@ p + a.btn,
 }
 
 @media (max-width: 820px) {
+  .invite-ai-upgrade-backdrop {
+    align-items: flex-start;
+    padding: 12px 12px calc(72px + env(safe-area-inset-bottom));
+  }
+
+  .invite-ai-upgrade-modal {
+    max-height: none;
+    padding: 24px 18px calc(24px + env(safe-area-inset-bottom));
+  }
+
   .invite-ai-upgrade-grid {
     grid-template-columns: 1fr;
+    padding-top: 8px;
+    gap: 18px;
+  }
+
+  .invite-ai-upgrade-card.is-popular {
+    margin-top: 4px;
+  }
+
+  .invite-ai-upgrade-emotional {
+    margin-bottom: 8px;
   }
 }
 

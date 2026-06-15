@@ -295,6 +295,24 @@ export const postgresEvents: EventRepository = {
     `;
     return rows[0] ? rowToEvent(rows[0]) : null;
   },
+  async findByIds(ids) {
+    if (ids.length === 0) return [];
+    const sql = getSql();
+    const rows = await sql`
+      select e.*, u.name as owner_name, p.enabled as pix_enabled, p.receiver_name as pix_receiver_name,
+        p.key_encrypted as pix_key_encrypted, p.suggested_amount_cents as pix_suggested_amount_cents,
+        p.min_per_person_cents as pix_min_per_person_cents, p.message as pix_message,
+        s.enabled as screen_enabled, s.paused as screen_paused,
+        s.show_qr_code as screen_show_qr_code, s.show_videos as screen_show_videos,
+        s.show_messages as screen_show_messages
+      from events e
+      join users u on u.id = e.owner_id
+      left join pix_settings p on p.event_id = e.id
+      left join screen_settings s on s.event_id = e.id
+      where e.id in ${sql(ids)}
+    `;
+    return rows.map(rowToEvent);
+  },
   async findBySlugOrCode(slugOrCode) {
     const sql = getSql();
     const rows = await sql`
@@ -762,6 +780,21 @@ export const postgresMedia: MediaRepository = {
     `;
     return rows.map(rowToMedia);
   },
+  async countPublishedByEventIds(eventIds: string[]) {
+    if (eventIds.length === 0) return {};
+    const sql = getSql();
+    const rows = await sql`
+      select event_id, count(*)::int as total
+      from media_items
+      where event_id in ${sql(eventIds)} and status = 'published'
+      group by event_id
+    `;
+    const counts: Record<string, number> = {};
+    for (const row of rows) {
+      counts[String(row.event_id)] = Number(row.total);
+    }
+    return counts;
+  },
   async findById(mediaId) {
     const sql = getSql();
     const rows = await sql`
@@ -1131,6 +1164,16 @@ export const postgresGuestRsvps: GuestRsvpRepository = {
     const sql = getSql();
     const rows = await sql`
       select * from guest_rsvps where event_id = ${eventId} order by confirmed_at desc
+    `;
+    return rows.map(rowToGuestRsvp);
+  },
+  async listByEventIds(eventIds: string[]) {
+    if (eventIds.length === 0) return [];
+    const sql = getSql();
+    const rows = await sql`
+      select * from guest_rsvps
+      where event_id in ${sql(eventIds)}
+      order by confirmed_at desc
     `;
     return rows.map(rowToGuestRsvp);
   },

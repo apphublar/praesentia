@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "stripe:bootstrap-prices": "node scripts/stripe-bootstrap-prices.mjs"
+    "stripe:bootstrap-prices": "node scripts/stripe-bootstrap-prices.mjs",
+    "stripe:bootstrap-prices:live": "node scripts/stripe-bootstrap-prices.mjs --live"
   },
   "dependencies": {
     "@imgly/background-removal": "^1.7.0",

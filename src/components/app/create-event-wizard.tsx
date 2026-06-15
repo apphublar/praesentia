@@ -334,7 +334,7 @@ export function CreateEventWizard({
               <p style={{ color: "var(--muted)", fontSize: 15, margin: "0 0 30px" }}>
                 Comece grátis. A Cápsula pode ser ativada em <strong>pagamento único</strong> ou no <strong>plano anual</strong>, a qualquer momento antes do fim do evento.
               </p>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14, alignItems: "stretch" }}>
+              <div className="create-plan-grid">
                 {CREATE_PLANS.map((p) => (
                   <PlanCard key={p.id} plan={p} selected={plan === p.id} onSelect={() => setPlan(p.id)} />
                 ))}

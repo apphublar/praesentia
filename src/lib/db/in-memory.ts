@@ -81,6 +81,10 @@ export const inMemoryEvents: EventRepository = {
   async findById(id) {
     return events.find((event) => event.id === id) ?? null;
   },
+  async findByIds(ids) {
+    const idSet = new Set(ids);
+    return events.filter((event) => idSet.has(event.id));
+  },
   async findBySlugOrCode(slugOrCode) {
     return events.find((event) => event.slug === slugOrCode || event.freeCode === slugOrCode) ?? null;
   },
@@ -395,6 +399,15 @@ export const inMemoryMedia: MediaRepository = {
       .filter((item) => item.eventId === eventId && item.status === "published")
       .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
   },
+  async countPublishedByEventIds(eventIds: string[]) {
+    const idSet = new Set(eventIds);
+    const counts: Record<string, number> = {};
+    for (const item of mediaItems) {
+      if (item.status !== "published" || !idSet.has(item.eventId)) continue;
+      counts[item.eventId] = (counts[item.eventId] ?? 0) + 1;
+    }
+    return counts;
+  },
   async findById(mediaId) {
     return mediaItems.find((item) => item.id === mediaId) ?? null;
   },
@@ -623,6 +636,10 @@ export const inMemoryGuestRsvps: GuestRsvpRepository = {
   },
   async listByEvent(eventId: string): Promise<GuestRsvp[]> {
     return guestRsvpStore.filter((r) => r.eventId === eventId);
+  },
+  async listByEventIds(eventIds: string[]): Promise<GuestRsvp[]> {
+    const idSet = new Set(eventIds);
+    return guestRsvpStore.filter((r) => idSet.has(r.eventId));
   },
   async findById(eventId, rsvpId) {
     return guestRsvpStore.find((item) => item.id === rsvpId && item.eventId === eventId) ?? null;
