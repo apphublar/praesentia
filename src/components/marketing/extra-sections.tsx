@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { PraesentiaLogo } from "@/components/brand/praesentia-logo";
 import { LEGAL_PAGES } from "@/lib/legal/constants";
+import { SITE_CTA, SITE_NAV_LINKS } from "@/lib/marketing/site-nav-links";
 import { marketingImages, mavieJourneyDates } from "@/lib/marketing/marketing-images";
 import {
   MarketingCapsulePreview,
@@ -412,19 +413,23 @@ export function SiteFooter() {
   return (
     <footer className="site-footer">
       <div className="shell footer-grid">
-        <div>
+        <div className="footer-brand">
           <PraesentiaLogo markHeight={34} wordmarkSize={22} withTape withShadow={false} />
           <p>Eventos particulares, memórias permanentes e cápsulas do tempo com controle do responsável.</p>
-          <Link className="btn" href="/criar">criar evento</Link>
+          <Link className="btn" href={SITE_CTA.href}>{SITE_CTA.label}</Link>
         </div>
-        <nav><b>Produto</b><Link href="#como-funciona">como funciona</Link><Link href="#precos">preços</Link><Link href="/eu">meu perfil</Link></nav>
-        <nav><b>Conta</b><Link href="/login">entrar</Link><Link href="/dashboard">responsável</Link><Link href="/admin">admin</Link></nav>
+        <nav>
+          <b>Navegação</b>
+          {SITE_NAV_LINKS.map(({ href, label }) => (
+            <Link key={href} href={href}>{label}</Link>
+          ))}
+        </nav>
         <nav>
           <b>Legal</b>
           {LEGAL_PAGES.map(({ href, label }) => (
             <Link key={href} href={href}>{label.toLowerCase()}</Link>
           ))}
-          <Link href="#faq">perguntas frequentes</Link>
+          <Link href="/#faq">perguntas frequentes</Link>
         </nav>
       </div>
       <div className="site-footer-bottom shell">
