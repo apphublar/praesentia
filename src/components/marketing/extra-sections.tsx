@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { PraesentiaLogo } from "@/components/brand/praesentia-logo";
 import { LEGAL_PAGES } from "@/lib/legal/constants";
-import { SITE_CTA, SITE_NAV_LINKS } from "@/lib/marketing/site-nav-links";
+import { DEMO_INVITE_HREF, DEMO_INVITE_LABEL, SITE_CTA, SITE_NAV_LINKS } from "@/lib/marketing/site-nav-links";
 import { marketingImages, mavieJourneyDates } from "@/lib/marketing/marketing-images";
 import {
   MarketingCapsulePreview,
@@ -75,7 +75,7 @@ const plans = [
     cta: "Eternizar minha memória",
     featured: true,
     sections: [
-      ["Convite & RSVP", ["Tudo do Gratuito", "Subdomínio pago do evento", "IA premium para convite"]],
+      ["Convite & RSVP", ["Tudo do Gratuito", "Subdomínio pago do evento", "Até 3 imagens de convite geradas por IA"]],
       ["Memórias permanentes", ["Cápsula do tempo", "Timeline do evento", "Fotos, vídeos e recados", "Exportação das memórias"]],
       ["Armazenamento", ["5 GB inclusos", "Mínimo de 36 meses (ampliável)"]]
     ]
@@ -87,7 +87,7 @@ const plans = [
     subtitle: "Sua história organizada em uma única timeline.",
     cta: "Quero a timeline",
     sections: [
-      ["Eventos", ["Tudo do Cápsula", "Até 6 eventos por ano", "Timeline conectada"]],
+      ["Eventos", ["Tudo do Cápsula", "Até 6 eventos por ano", "Timeline conectada", "12 imagens de convite por IA no ano — use como quiser entre os eventos"]],
       ["Memórias permanentes", ["Cápsulas conectadas", "Fotos, vídeos e recados", "Exportação das memórias"]],
       ["Armazenamento", ["20 GB compartilhados", "Mínimo de 36 meses por evento (ampliável)"]]
     ]
@@ -289,11 +289,11 @@ export function LifeCapsulesSection() {
           ))}
         </div>
         <div className="life-footer">
-          <em>"presença - do latim praesentia - o que está aqui, agora"</em>
-          <div className="life-footer-actions">
-            <span className="life-demo-note">Demonstração · perfil e números são fictícios</span>
-            <Link href="/eu">ver meu perfil de presença</Link>
-          </div>
+          <em>
+            &ldquo;Presença&rdquo; vem do latim <span style={{ fontStyle: "italic" }}>praesentia</span> — estar aqui, agora, com quem
+            importa. Cada festa começa quando alguém confirma que vem.
+          </em>
+          <span className="life-demo-note">Demonstração · perfil e números são fictícios</span>
         </div>
       </div>
     </section>
@@ -307,13 +307,17 @@ export function PrivacySection() {
       <h2 className="display-i feature-title">Pensado pra Mavie Fontinhas.</h2>
       <p className="feature-copy">Mas cabe no churrasco dos amigos, no casamento, no aniversário e em qualquer evento particular.</p>
       <div className="privacy-grid">
-        {privacyItems.map(([title, text], index) => (
-          <article key={title} className={index === 5 ? "dark card" : "card"}>
-            <span style={{ background: ["var(--coral)", "var(--violet)", "var(--green)", "var(--gold)", "var(--sky)", "var(--ink)"][index] }}>{index + 1}</span>
-            <h3 className="display">{title}</h3>
-            <p>{text}</p>
-          </article>
-        ))}
+        {privacyItems.map(([title, text], index) => {
+          const badgeColors = ["var(--coral)", "var(--violet)", "var(--green)", "var(--gold)", "var(--sky)", "var(--gold)"];
+          const badgeText = index === 5 ? "var(--ink)" : "#fff";
+          return (
+            <article key={title} className={index === 5 ? "dark card" : "card"}>
+              <span style={{ background: badgeColors[index], color: badgeText }}>{index + 1}</span>
+              <h3 className="display">{title}</h3>
+              <p>{text}</p>
+            </article>
+          );
+        })}
       </div>
     </section>
   );
@@ -387,7 +391,7 @@ export function FinalCTASection() {
         <span className="pill">grátis — sem cartão</span>
         <h2 className="display-i">O próximo evento que você vai amar começa agora.</h2>
         <p>Crie o convite em minutos e transforme a noite em uma cápsula do tempo que você poderá revisitar.</p>
-        <div><Link className="btn" href="/criar">Criar meu evento</Link><Link className="btn secondary" href="/evento/mavie-1-ano">Ver demo da Mavie Fontinhas</Link></div>
+        <div><Link className="btn" href="/criar">Criar meu evento</Link><Link className="btn secondary" href={DEMO_INVITE_HREF}>{DEMO_INVITE_LABEL}</Link></div>
       </div>
     </section>
   );
@@ -429,7 +433,7 @@ export function SiteFooter() {
           {LEGAL_PAGES.map(({ href, label }) => (
             <Link key={href} href={href}>{label.toLowerCase()}</Link>
           ))}
-          <Link href="/#faq">perguntas frequentes</Link>
+          <Link href="/#faq">Perguntas frequentes</Link>
         </nav>
       </div>
       <div className="site-footer-bottom shell">

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AppNav } from "@/components/layout/app-nav";
+import { DEMO_INVITE_HREF, DEMO_INVITE_LABEL } from "@/lib/marketing/site-nav-links";
 import {
   FAQSection,
   FeaturedCapsulesSection,
@@ -63,7 +64,7 @@ export default function HomePage() {
             <Confetti style={{ position: "absolute", left: -26, top: -24 }} />
             <span className="pill">
               <span style={{ width: 6, height: 6, borderRadius: 999, background: "var(--coral)" }} />
-              beta - eventos privados
+              Presença hoje. Memórias para sempre.
             </span>
             <h1 className="display-i" style={{ margin: "18px 0 0", fontSize: "clamp(50px, 8vw, 112px)", lineHeight: 0.94 }}>
               Todo momento
@@ -82,8 +83,8 @@ export default function HomePage() {
               <Link className="btn" href="/criar">
                 Criar meu evento
               </Link>
-              <Link className="btn secondary" href="/evento/mavie-1-ano">
-                Ver exemplo
+              <Link className="btn secondary" href={DEMO_INVITE_HREF}>
+                {DEMO_INVITE_LABEL}
               </Link>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 26 }}>

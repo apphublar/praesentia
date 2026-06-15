@@ -558,6 +558,49 @@ p + a.btn,
   margin-top: 0;
 }
 
+.marketing-invite-art {
+  display: block;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(42, 34, 27, 0.12);
+  background: #fff;
+  line-height: 0;
+  transition: transform 0.16s ease, box-shadow 0.16s ease;
+}
+
+.marketing-invite-art:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(42, 34, 27, 0.12);
+}
+
+.marketing-invite-art img {
+  width: 100%;
+  height: auto;
+  display: block;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+}
+
+.marketing-invite-rsvp-btn {
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--bg);
+  padding: 10px 14px;
+  font-weight: 800;
+  font-size: 13px;
+  text-align: center;
+  text-decoration: none;
+}
+
+.phase-preview-ui-invite {
+  display: flex;
+  flex-direction: column;
+}
+
 .phase-preview-note,
 .phase-preview-lock {
   margin: 10px 0 0;
@@ -809,8 +852,7 @@ p + a.btn,
   overflow: hidden;
 }
 
-.life-header,
-.life-footer {
+.life-header {
   display: flex;
   align-items: center;
   gap: 14px;
@@ -911,15 +953,18 @@ p + a.btn,
 
 .life-footer {
   border-top: 1px solid rgba(247, 238, 219, 0.15);
-  justify-content: space-between;
-  padding-top: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px 32px 0;
 }
 
-.life-footer a {
-  border: 1.5px solid var(--bg);
-  border-radius: 999px;
-  padding: 9px 14px;
-  font-size: 12px;
+.life-footer em {
+  color: rgba(247, 238, 219, 0.88);
+  font-style: italic;
+  line-height: 1.55;
+  max-width: 52rem;
 }
 
 .privacy-grid {

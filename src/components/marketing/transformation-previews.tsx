@@ -1,5 +1,7 @@
-import { GuestPolaroidFrame } from "@/components/media/guest-polaroid-frame";
+import Link from "next/link";
 import { marketingImages } from "@/lib/marketing/marketing-images";
+import { DEMO_INVITE_HREF } from "@/lib/marketing/site-nav-links";
+import { GuestPolaroidFrame } from "@/components/media/guest-polaroid-frame";
 
 const muralSamples = [
   { src: marketingImages.featured.mavie, alt: "Mavie Fontinhas com o bolo de aniversário", author: "Ana B." },
@@ -17,12 +19,15 @@ const capsuleSamples = [
 export function MarketingInvitePreview() {
   return (
     <div className="phase-preview-ui phase-preview-ui-invite">
-      <div className="invite-mini">
-        <b className="display-i">Mavie Fontinhas, 1.</b>
-        <small>14 MAR · 15H · jardim encantado</small>
-        <button type="button">confirmar presença</button>
-      </div>
-      <p className="phase-preview-note">Capa com IA, RSVP, lista de convidados e contagem regressiva — tudo pronto antes do grande dia.</p>
+      <Link href={DEMO_INVITE_HREF} className="marketing-invite-art" aria-label="Abrir convite demonstrativo da Mavie Fontinhas">
+        <img src={marketingImages.invitePreview} alt="Convite da festa de 1 ano da Mavie Fontinhas — Jardim Encantado" />
+      </Link>
+      <Link className="marketing-invite-rsvp-btn" href={DEMO_INVITE_HREF}>
+        Confirmar presença
+      </Link>
+      <p className="phase-preview-note">
+        Capa com IA, RSVP, lista de convidados e contagem regressiva — tudo pronto antes do grande dia.
+      </p>
     </div>
   );
 }

@@ -39,8 +39,8 @@ export const AI_INVITE_PER_EVENT_MAX = 3;
 /** Cápsula (evento único pago). */
 export const CAPSULE_AI_COVER_GENERATIONS = 3;
 
-/** Cápsula Plus — total compartilhado entre eventos do ano. */
-export const FAMILY_AI_COVER_POOL_TOTAL = 10;
+/** Cápsula Plus — total compartilhado entre eventos do ano (distribuição flexível). */
+export const FAMILY_AI_COVER_POOL_TOTAL = 12;
 
-/** Cácsula Plus — máximo por evento. */
-export const FAMILY_AI_COVER_PER_EVENT_MAX = 2;
+/** Cápsula Plus — máximo por evento (pode concentrar mais imagens em um evento). */
+export const FAMILY_AI_COVER_PER_EVENT_MAX = 12;
