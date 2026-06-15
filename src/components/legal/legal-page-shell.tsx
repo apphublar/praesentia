@@ -1,15 +1,18 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { AppNav } from "@/components/layout/app-nav";
+import { LegalNav } from "@/components/legal/legal-nav";
 import { SiteFooter } from "@/components/marketing/extra-sections";
 
 export function LegalPageShell({
   title,
   updatedAt,
+  currentPath,
   children
 }: {
   title: string;
   updatedAt: string;
+  currentPath?: string;
   children: ReactNode;
 }) {
   return (
@@ -26,6 +29,7 @@ export function LegalPageShell({
           Última atualização: {updatedAt}
         </p>
         <article className="legal-prose">{children}</article>
+        <LegalNav current={currentPath} />
       </main>
       <SiteFooter />
     </>
