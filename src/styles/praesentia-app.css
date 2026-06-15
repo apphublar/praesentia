@@ -194,6 +194,15 @@
   border: 1px solid var(--line);
   border-radius: var(--r-lg);
   box-shadow: var(--shadow-card);
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+.praesentia-app .card button,
+.praesentia-app .card label,
+.praesentia-app .card .fl {
+  overflow-wrap: normal;
+  word-break: normal;
 }
 
 .praesentia-app .card-flat {
@@ -714,9 +723,48 @@
   animation: pa-floatUp 0.5s cubic-bezier(0.2, 0.7, 0.3, 1) both;
 }
 
-@media (max-width: 900px) {
-  .app-create-layout .invite-art-grid {
-    grid-template-columns: 1fr !important;
+.invite-art-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 300px);
+  gap: 26px;
+  align-items: start;
+}
+
+.invite-art-grid > * {
+  min-width: 0;
+}
+
+.art-style-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.art-style-grid button {
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+/* Com menu lateral + rail do wizard, a coluna do formulário fica estreita demais antes de 1180px */
+@media (max-width: 1180px) {
+  .invite-art-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .invite-art-grid .invite-art-preview {
+    position: static;
+    max-width: 320px;
+    margin: 0 auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .art-style-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .app-create-layout .scroll {
+    padding: 24px 18px 48px !important;
   }
 }
 

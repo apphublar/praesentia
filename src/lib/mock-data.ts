@@ -1,13 +1,13 @@
 import type { Event, EventMember, MediaItem, User } from "@/types/domain";
 import { PLANS } from "@/lib/plans";
 
-export const users: User[] = [
+const SEED_USERS: User[] = [
   { id: "usr_owner", name: "Camila Andrade", email: "camila@example.com", role: "user", aiInviteFreeUsed: false, aiInvitePoolRemaining: 0 },
   { id: "usr_maria", name: "Maria Silva", email: "maria@example.com", role: "user", aiInviteFreeUsed: false, aiInvitePoolRemaining: 0 },
   { id: "usr_admin", name: "Equipe Praesentia", email: "admin@praesentia.com.br", role: "platform_admin", aiInviteFreeUsed: false, aiInvitePoolRemaining: 0 }
 ];
 
-export const events: Event[] = [
+const SEED_EVENTS: Event[] = [
   {
     id: "evt_mavie",
     slug: "mavie-1-ano",
@@ -59,7 +59,7 @@ export const events: Event[] = [
   }
 ];
 
-export const members: EventMember[] = [
+const SEED_MEMBERS: EventMember[] = [
   {
     id: "mem_owner",
     eventId: "evt_mavie",
@@ -80,7 +80,7 @@ export const members: EventMember[] = [
   }
 ];
 
-export const mediaItems: MediaItem[] = [
+const SEED_MEDIA: MediaItem[] = [
   {
     id: "med_001",
     eventId: "evt_mavie",
@@ -120,6 +120,37 @@ export const mediaItems: MediaItem[] = [
     createdAt: "2026-03-14T18:03:00.000Z"
   }
 ];
+
+type DevMockStore = {
+  users: User[];
+  events: Event[];
+  members: EventMember[];
+  mediaItems: MediaItem[];
+};
+
+function cloneSeed<T>(value: T): T {
+  return structuredClone(value);
+}
+
+function getDevMockStore(): DevMockStore {
+  const globalStore = globalThis as typeof globalThis & { __praesentiaDevMockStore?: DevMockStore };
+  if (!globalStore.__praesentiaDevMockStore) {
+    globalStore.__praesentiaDevMockStore = {
+      users: cloneSeed(SEED_USERS),
+      events: cloneSeed(SEED_EVENTS),
+      members: cloneSeed(SEED_MEMBERS),
+      mediaItems: cloneSeed(SEED_MEDIA)
+    };
+  }
+  return globalStore.__praesentiaDevMockStore;
+}
+
+const store = getDevMockStore();
+
+export const users = store.users;
+export const events = store.events;
+export const members = store.members;
+export const mediaItems = store.mediaItems;
 
 export function getEventBySlug(slug: string) {
   return events.find((event) => event.slug === slug || event.freeCode === slug);

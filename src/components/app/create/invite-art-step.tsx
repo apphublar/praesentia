@@ -416,7 +416,7 @@ export function InviteArtStep({
   }
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 300px", gap: 26, alignItems: "start" }}>
+    <div className="invite-art-grid">
       <div>
         <div className="card" style={{ padding: 16, marginBottom: 18 }}>
           <span className="fl">Como você quer a imagem do convite?</span>
@@ -751,7 +751,7 @@ export function InviteArtStep({
         {error ? <p style={{ color: "var(--coral-deep)", fontSize: 13, marginTop: 12 }}>{error}</p> : null}
       </div>
 
-      <div style={{ position: "sticky", top: 0 }}>
+      <div className="invite-art-preview" style={{ position: "sticky", top: 0 }}>
         <Mono style={{ display: "block", marginBottom: 10 }}>Prévia do convite</Mono>
         {previewBusy ? (
           <div

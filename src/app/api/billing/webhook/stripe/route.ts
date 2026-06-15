@@ -26,8 +26,16 @@ export async function POST(request: Request) {
   }
 
   try {
-    if (event.type === "checkout.session.completed") {
+    if (event.type === "checkout.session.completed" || event.type === "checkout.session.async_payment_succeeded") {
       const session = event.data.object;
+      // Boleto/PIX: completed chega antes do pagamento; async_payment_succeeded confirma de fato.
+      if (
+        event.type === "checkout.session.completed" &&
+        session.payment_status !== "paid" &&
+        session.payment_status !== "no_payment_required"
+      ) {
+        return NextResponse.json({ received: true });
+      }
       const metadata = parseCheckoutMetadata(session.metadata ?? {});
       if (!metadata) {
         console.warn("[stripe-webhook] metadata ausente", session.id);

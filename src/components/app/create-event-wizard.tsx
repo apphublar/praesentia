@@ -11,6 +11,7 @@ import { CREATE_PLANS, PlanCard, type PlanId } from "@/components/app/plans/plan
 import { Icon, type IconName } from "@/components/app/ui/icon";
 import { Field, Mono, Segmented } from "@/components/app/ui/primitives";
 import { validateInviteCopyForContinue } from "@/lib/events/invite-text-validation";
+import { handleBillingApiResponse } from "@/lib/billing/checkout-client";
 import type { CoverQuota } from "@/components/dashboard/cover-generator";
 import type { TextQuota } from "@/components/dashboard/invite-text-editor";
 import type { EventType } from "@/types/domain";
@@ -148,6 +149,10 @@ export function CreateEventWizard({
     }
   }, [state?.eventId, router]);
 
+  useEffect(() => {
+    document.querySelector(".app-create-layout .scroll")?.scrollTo({ top: 0, behavior: "smooth" });
+  }, [step]);
+
   function next() {
     if (step === 1) {
       const validation = validateInviteCopyForContinue(copy);
@@ -176,9 +181,10 @@ export function CreateEventWizard({
       if (plan === "plus" && !subscription) {
         const plusRes = await fetch("/api/billing/activate-plus", { method: "POST" });
         const plusData = await plusRes.json();
-        if (!plusRes.ok) {
-          setPlanMessage(plusData.error ?? "Erro ao ativar Cápsula Plus.");
-          setPlanLoading(null);
+        const plusHandled = handleBillingApiResponse(plusData as Record<string, unknown>);
+        if (plusHandled.redirected) return;
+        if (!plusRes.ok || !plusHandled.ok) {
+          setPlanMessage(plusHandled.error ?? String(plusData.error ?? "Erro ao ativar Cápsula Plus."));
           return;
         }
       }
@@ -188,13 +194,19 @@ export function CreateEventWizard({
         body: JSON.stringify({ eventId: ev.id, plan: plan === "plus" ? "family" : "capsule" })
       });
       const data = await res.json();
-      if (!res.ok) setPlanMessage(data.error ?? "Erro ao ativar cápsula.");
-      else setPlanMessage(data.message ?? "Plano ativado!");
+      const handled = handleBillingApiResponse(data as Record<string, unknown>);
+      if (handled.redirected) return;
+      if (!res.ok || !handled.ok) {
+        setPlanMessage(handled.error ?? String(data.error ?? "Erro ao ativar cápsula."));
+        return;
+      }
+      setPlanMessage(String(data.message ?? "Plano ativado!"));
+      next();
     } catch {
       setPlanMessage("Erro de conexão.");
+    } finally {
+      setPlanLoading(null);
     }
-    setPlanLoading(null);
-    next();
   }
 
   return (

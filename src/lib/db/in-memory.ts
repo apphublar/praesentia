@@ -537,16 +537,24 @@ export const inMemoryLikes: LikeRepository = {
   }
 };
 
-const auditLogStore: {
-  id: string;
-  actorUserId: string | null;
-  eventId: string | null;
-  action: string;
-  targetType: string;
-  targetId: string | null;
-  metadata: Record<string, unknown>;
-  createdAt: string;
-}[] = [];
+const auditLogStore = (() => {
+  const globalStore = globalThis as typeof globalThis & {
+    __praesentiaAuditLogStore?: {
+      id: string;
+      actorUserId: string | null;
+      eventId: string | null;
+      action: string;
+      targetType: string;
+      targetId: string | null;
+      metadata: Record<string, unknown>;
+      createdAt: string;
+    }[];
+  };
+  if (!globalStore.__praesentiaAuditLogStore) {
+    globalStore.__praesentiaAuditLogStore = [];
+  }
+  return globalStore.__praesentiaAuditLogStore;
+})();
 
 export const inMemoryAudit: AuditRepository = {
   async record(input) {
