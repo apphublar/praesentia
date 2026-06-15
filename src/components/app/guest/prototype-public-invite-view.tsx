@@ -12,6 +12,8 @@ import { parseEventDateTime } from "@/lib/events/datetime";
 import type { PublicInvitePhase } from "@/lib/mural/timeline";
 import { GuestMessageSection } from "@/components/event/guest-message-section";
 import { PraesentiaBrandFooter } from "@/components/brand/praesentia-logo";
+import { MavieInviteArt } from "@/components/marketing/mavie-invite-art";
+import { isDemoEventSlug } from "@/lib/marketing/demo-event";
 
 function FakeQr() {
   return (
@@ -106,7 +108,9 @@ export function PrototypePublicInviteView({
 
       <div style={{ padding: "14px 16px 40px" }}>
         <div className="pop">
-          {event.coverImageUrl ? (
+          {isDemoEventSlug(event.slug) ? (
+            <MavieInviteArt />
+          ) : event.coverImageUrl ? (
             <InviteArt title={event.title} coverUrl={event.coverImageUrl} info={false} />
           ) : (
             <InviteArt title={event.title} themeLabel={event.theme} dateShort={dateLine} time={timeLine} place={placeLine} />

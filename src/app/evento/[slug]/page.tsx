@@ -10,10 +10,12 @@ import { safeRepositoryCall } from "@/lib/db/safe";
 import { getMuralSession } from "@/lib/mural/session";
 import { getPublicEventViewMode } from "@/lib/mural/timeline";
 import { hasCapsuleAccess } from "@/lib/plans/features";
+import { resolveDemoEvent } from "@/lib/marketing/demo-event";
 
 export default async function EventPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const event = await repositories.events.findBySlugOrCode(slug);
+  const storedEvent = await repositories.events.findBySlugOrCode(slug);
+  const event = resolveDemoEvent(storedEvent, slug);
   if (!event) notFound();
 
   const profile = getEventProfile(event.eventType);

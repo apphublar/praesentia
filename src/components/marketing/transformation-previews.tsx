@@ -1,7 +1,8 @@
 import Link from "next/link";
+import { MavieInviteArt } from "@/components/marketing/mavie-invite-art";
+import { GuestPolaroidFrame } from "@/components/media/guest-polaroid-frame";
 import { marketingImages } from "@/lib/marketing/marketing-images";
 import { DEMO_INVITE_HREF } from "@/lib/marketing/site-nav-links";
-import { GuestPolaroidFrame } from "@/components/media/guest-polaroid-frame";
 
 const muralSamples = [
   { src: marketingImages.featured.mavie, alt: "Mavie Fontinhas com o bolo de aniversário", author: "Ana B." },
@@ -19,8 +20,8 @@ const capsuleSamples = [
 export function MarketingInvitePreview() {
   return (
     <div className="phase-preview-ui phase-preview-ui-invite">
-      <Link href={DEMO_INVITE_HREF} className="marketing-invite-art" aria-label="Abrir convite demonstrativo da Mavie Fontinhas">
-        <img src={marketingImages.invitePreview} alt="Convite da festa de 1 ano da Mavie Fontinhas — Jardim Encantado" />
+      <Link href={DEMO_INVITE_HREF} className="marketing-invite-link" aria-label="Abrir convite demonstrativo da Mavie Fontinhas">
+        <MavieInviteArt compact />
       </Link>
       <Link className="marketing-invite-rsvp-btn" href={DEMO_INVITE_HREF}>
         Confirmar presença

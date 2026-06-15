@@ -558,27 +558,99 @@ p + a.btn,
   margin-top: 0;
 }
 
-.marketing-invite-art {
+.marketing-invite-link {
   display: block;
-  border-radius: 10px;
-  overflow: hidden;
-  border: 1px solid rgba(42, 34, 27, 0.12);
-  background: #fff;
-  line-height: 0;
+  text-decoration: none;
+  color: inherit;
   transition: transform 0.16s ease, box-shadow 0.16s ease;
 }
 
-.marketing-invite-art:hover {
+.marketing-invite-link:hover {
   transform: translateY(-1px);
-  box-shadow: 0 8px 18px rgba(42, 34, 27, 0.12);
 }
 
-.marketing-invite-art img {
-  width: 100%;
-  height: auto;
+.mavie-invite-art {
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(42, 34, 27, 0.12);
+  background: linear-gradient(145deg, #fbe3cc 0%, #f6d4b8 100%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+}
+
+.mavie-invite-art.is-compact .mavie-invite-art-frame {
+  padding: 14px 12px 16px;
+}
+
+.mavie-invite-art-frame {
+  padding: 22px 18px 24px;
+  text-align: center;
+  position: relative;
+}
+
+.mavie-invite-kicker {
   display: block;
-  aspect-ratio: 3 / 4;
-  object-fit: cover;
+  font-size: 9px;
+  letter-spacing: 0.22em;
+  color: #6b5b4f;
+  margin-bottom: 8px;
+}
+
+.mavie-invite-name {
+  display: block;
+  font-size: clamp(22px, 4.5vw, 30px);
+  line-height: 1.05;
+  color: #2a221b;
+}
+
+.mavie-invite-age {
+  display: block;
+  margin-top: 4px;
+  font-size: clamp(16px, 3.2vw, 20px);
+  color: #c45c3e;
+  font-style: italic;
+  font-family: var(--font-display-i, Georgia, serif);
+}
+
+.mavie-invite-rule {
+  border: 0;
+  border-top: 1px solid rgba(42, 34, 27, 0.16);
+  margin: 10px auto 12px;
+  width: 72%;
+}
+
+.mavie-invite-date {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: #2a221b;
+}
+
+.mavie-invite-meta,
+.mavie-invite-city {
+  margin: 4px 0 0;
+  font-size: 11.5px;
+  color: #5c4f44;
+}
+
+.mavie-invite-note {
+  margin: 10px 0 0;
+  font-size: 11px;
+  color: #5c4f44;
+  font-style: italic;
+}
+
+.mavie-invite-dress {
+  margin: 4px 0 0;
+  font-size: 10px;
+  color: #8a7a6c;
+}
+
+.mavie-invite-art:not(.is-compact) .mavie-invite-name {
+  font-size: clamp(28px, 6vw, 38px);
+}
+
+.mavie-invite-art:not(.is-compact) .mavie-invite-art-frame {
+  padding: 28px 22px 32px;
 }
 
 .marketing-invite-rsvp-btn {

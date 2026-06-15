@@ -25,7 +25,6 @@ const SEED_EVENTS: Event[] = [
     aiTextGenerationsCount: 0,
     aiTextEditsCount: 0,
     aiCoverPendingUrls: [],
-    coverImageUrl: "/marketing/sections/mavie-invite-preview.svg",
     capsuleActivatedAt: "2026-02-01T12:00:00.000Z",
     date: "2026-03-14",
     startsAt: "15:00",

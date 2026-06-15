@@ -1,3 +1,4 @@
+import { isDemoEventSlug } from "@/lib/marketing/demo-event";
 import { isValidEventInstant, normalizeEventDateString, parseEventDateTime } from "@/lib/events/datetime";
 import { getEventEndDate, getEventStartDate } from "@/lib/events/phase";
 import { hasCapsuleAccess } from "@/lib/plans/features";
@@ -44,6 +45,7 @@ export function getSchedulePhase(event: Event, now = new Date()) {
 
 /** Fase do convite antes do evento: RSVP aberto, contagem regressiva ou nenhuma ação primária. */
 export function getInvitePhase(event: Event, profileNeedsRsvp: boolean, now = new Date()): PublicInvitePhase {
+  if (isDemoEventSlug(event.slug)) return "rsvp_open";
   if (getSchedulePhase(event, now) !== "before") return "none";
 
   const rsvpRequired = eventRequiresRsvp(event, profileNeedsRsvp);
@@ -53,6 +55,7 @@ export function getInvitePhase(event: Event, profileNeedsRsvp: boolean, now = ne
 }
 
 export function getPublicEventViewMode(event: Event, now = new Date()): PublicEventViewMode {
+  if (isDemoEventSlug(event.slug)) return "invite";
   const capsule = hasCapsuleAccess(event);
   const schedule = getSchedulePhase(event, now);
 

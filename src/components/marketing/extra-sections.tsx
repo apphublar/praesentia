@@ -87,7 +87,7 @@ const plans = [
     subtitle: "Sua história organizada em uma única timeline.",
     cta: "Quero a timeline",
     sections: [
-      ["Eventos", ["Tudo do Cápsula", "Até 6 eventos por ano", "Timeline conectada", "12 imagens de convite por IA no ano — use como quiser entre os eventos"]],
+      ["Eventos", ["Tudo do Cápsula", "Até 6 eventos por ano", "Timeline conectada", "12 imagens IA/ano — distribua entre os eventos"]],
       ["Memórias permanentes", ["Cápsulas conectadas", "Fotos, vídeos e recados", "Exportação das memórias"]],
       ["Armazenamento", ["20 GB compartilhados", "Mínimo de 36 meses por evento (ampliável)"]]
     ]
