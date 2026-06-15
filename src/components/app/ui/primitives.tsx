@@ -159,15 +159,7 @@ export function Segmented<T extends string>({
 }) {
   return (
     <div
-      style={{
-        display: "inline-flex",
-        background: "var(--card-2)",
-        border: "1px solid var(--line)",
-        borderRadius: 999,
-        padding: 3,
-        gap: 2,
-        width: full ? "100%" : "auto"
-      }}
+      className={`segmented-control${full ? " is-full" : ""}${options.length >= 4 ? " is-wrap-mobile" : ""}`}
     >
       {options.map((o) => {
         const v = typeof o === "string" ? o : o.v;
@@ -178,20 +170,7 @@ export function Segmented<T extends string>({
             key={v}
             type="button"
             onClick={() => onChange(v)}
-            style={{
-              flex: full ? 1 : "none",
-              border: "none",
-              cursor: "pointer",
-              borderRadius: 999,
-              padding: "7px 14px",
-              fontFamily: "var(--font-sans)",
-              fontWeight: 600,
-              fontSize: 13,
-              transition: "all .15s",
-              background: on ? "var(--ink)" : "transparent",
-              color: on ? "var(--paper)" : "var(--ink-2)",
-              boxShadow: on ? "0 2px 8px -3px rgba(0,0,0,.4)" : "none"
-            }}
+            className={`segmented-control-btn${on ? " is-active" : ""}`}
           >
             {l}
           </button>

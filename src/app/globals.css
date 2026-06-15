@@ -5306,7 +5306,22 @@ p + a.btn,
   padding: 18px 16px 16px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
+  min-width: 0;
+  overflow: visible;
+}
+
+.invite-ai-upgrade-card .btn {
+  box-shadow: none !important;
+  width: 100%;
+  margin-top: auto;
+  border-radius: 999px;
+}
+
+.invite-ai-upgrade-card.is-disabled .btn:disabled {
+  box-shadow: none !important;
+  transform: none;
+  opacity: 0.72;
 }
 
 .invite-ai-upgrade-card.is-popular {

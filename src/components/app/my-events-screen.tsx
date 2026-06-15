@@ -99,7 +99,7 @@ function EventCard({ item, index }: { item: EventListItem; index: number }) {
               <span className={ph.live ? "pulse" : ""} style={{ width: 7, height: 7, borderRadius: 99, background: ph.color }} />
               {ph.label}
             </span>
-            <span style={{ fontSize: 12.5, color: "var(--ink-2)", fontWeight: 600 }}>{getEventMetricLabel(phase, rsvps, mediaCount)}</span>
+            <span style={{ fontSize: 12.5, color: "var(--ink-2)", fontWeight: 600, textAlign: "right", minWidth: 0, overflowWrap: "anywhere" }}>{getEventMetricLabel(phase, rsvps, mediaCount)}</span>
           </div>
         </div>
       </div>
@@ -122,13 +122,14 @@ export function MyEventsScreen({ userName, items }: { userName: string; items: E
   }, [items, filter, query]);
 
   return (
-    <div className="scroll" style={{ height: "100%", overflow: "auto", background: "var(--paper)" }}>
-      <div style={{ maxWidth: 1060, margin: "0 auto", padding: "36px 44px 60px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 24, flexWrap: "wrap", gap: 16 }}>
+    <div className="scroll my-events-page" style={{ height: "100%", overflow: "auto", background: "var(--paper)" }}>
+      <div className="my-events-header">
           <div>
             <Mono>Olá, {userName.split(" ")[0]}</Mono>
-            <h1 className="display" style={{ fontSize: 40, marginTop: 6 }}>
-              Seus <span className="coral">momentos</span>.
+            <h1 className="display my-events-title">
+              <span className="my-events-title-line">
+                Seus <span className="coral">momentos</span>.
+              </span>
             </h1>
           </div>
           <Link className="btn btn-coral" href={CREATE_EVENT_PATH}>
@@ -151,22 +152,14 @@ export function MyEventsScreen({ userName, items }: { userName: string; items: E
           </div>
         ) : (
           <>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 22, flexWrap: "wrap", gap: 12 }}>
+            <div className="my-events-toolbar">
               <Segmented options={[...FILTERS]} value={filter} onChange={setFilter} />
-              <div className="card-flat" style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 13px", background: "#fff" }}>
-                <Icon name="search" size={15} style={{ color: "var(--muted)" }} />
+              <div className="card-flat my-events-search">
+                <Icon name="search" size={15} style={{ color: "var(--muted)", flexShrink: 0 }} />
                 <input
                   placeholder="Buscar evento…"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  style={{
-                    border: "none",
-                    outline: "none",
-                    background: "transparent",
-                    fontFamily: "var(--font-sans)",
-                    fontSize: 13,
-                    width: 130
-                  }}
                 />
               </div>
             </div>
@@ -213,7 +206,6 @@ export function MyEventsScreen({ userName, items }: { userName: string; items: E
             </div>
           </>
         )}
-      </div>
     </div>
   );
 }

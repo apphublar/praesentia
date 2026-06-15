@@ -472,7 +472,7 @@ export function InviteArtStep({
                   <Icon name="x" size={17} />
                 </button>
               </div>
-              <div style={{ padding: 14, borderRadius: 12, background: "var(--card-2)", border: "1px solid var(--line)" }}>
+              <div className="invite-photo-settings">
                 <span className="fl">Formato da foto</span>
                 <Segmented
                   full
@@ -498,7 +498,7 @@ export function InviteArtStep({
                     { v: "xl" as const, l: "Extra" }
                   ]}
                 />
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 14, padding: "10px 12px", borderRadius: 10, background: "#fff", border: "1px solid var(--line)" }}>
+                <div className="invite-photo-bg-toggle">
                   <div>
                     <div style={{ fontWeight: 600, fontSize: 12.5 }}>Remover fundo da foto do homenageado</div>
                     <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 2, lineHeight: 1.45 }}>
@@ -510,8 +510,8 @@ export function InviteArtStep({
                     onChange={setRemoveBackground}
                   />
                 </div>
-                <div style={{ display: "flex", gap: 16, alignItems: "flex-start", marginTop: 14 }}>
-                  <div style={{ flexShrink: 0 }}>
+                <div className="invite-photo-layout">
+                  <div className="invite-photo-position">
                     <span className="fl">Posição na arte</span>
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 5, width: 104 }}>
                       {PHOTO_POSITIONS.map((p) => {
@@ -547,7 +547,7 @@ export function InviteArtStep({
                       })}
                     </div>
                   </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="invite-photo-notes">
                     <span className="fl">Orientação sobre a foto</span>
                     <p style={{ margin: "0 0 8px", fontSize: 11, color: "var(--muted)", lineHeight: 1.45 }}>
                       Opcional. Se a foto tiver várias pessoas ou algo a ajustar, descreva o que manter ou remover — a IA segue junto com as configurações acima.

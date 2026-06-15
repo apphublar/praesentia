@@ -85,7 +85,7 @@ export function AdminConfigPanel({
 
 
   return (
-    <div style={{ maxWidth: 680 }}>
+    <div className="admin-config-panel">
       <ConfBlock title="Confirmação de presença" desc="Defina o prazo e o que pedir aos convidados.">
         <Field2 label="Prazo do RSVP">
           <input type="date" className="input" value={rsvpDeadline} onChange={(e) => setRsvpDeadline(e.target.value)} />
@@ -128,7 +128,7 @@ export function AdminConfigPanel({
         <Field2 label="Título do evento">
           <input className="input" value={title} onChange={(e) => setTitle(e.target.value)} />
         </Field2>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+        <div className="admin-config-datetime">
           <Field2 label="Data">
             <input type="date" className="input" value={date} onChange={(e) => setDate(e.target.value)} />
           </Field2>
@@ -151,8 +151,8 @@ export function AdminConfigPanel({
             const blocked = member.accessStatus === "blocked";
             const isOnlyOwner = member.role === "owner" && ownerCount <= 1;
             return (
-              <div key={member.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0" }}>
-                <span style={{ fontSize: 13, color: "var(--ink-2)" }}>{member.userId}</span>
+              <div key={member.id} className="admin-member-row">
+                <span className="admin-member-id">{member.userId}</span>
                 <button
                   type="button"
                   className={`btn btn-sm ${blocked ? "btn-coral" : "btn-ghost"}`}

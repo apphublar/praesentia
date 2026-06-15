@@ -102,6 +102,8 @@
   white-space: nowrap;
   text-decoration: none;
   min-height: 44px;
+  box-shadow: none;
+  max-width: 100%;
 }
 
 .praesentia-app .btn:active {
@@ -111,6 +113,7 @@
 .praesentia-app .btn-dark {
   background: var(--dark);
   color: #f4eddf;
+  box-shadow: none;
 }
 
 .praesentia-app .btn-dark:hover {
@@ -131,11 +134,17 @@
   background: transparent;
   color: var(--ink);
   border: 1.5px solid var(--line-2);
+  box-shadow: none;
 }
 
 .praesentia-app .btn-ghost:hover {
   border-color: var(--ink);
   background: rgba(0, 0, 0, 0.02);
+}
+
+.praesentia-app .btn-ghost:disabled {
+  box-shadow: none;
+  transform: none;
 }
 
 .praesentia-app .btn-amber {
@@ -1228,6 +1237,15 @@
   display: flex;
   gap: 9px;
   flex-wrap: wrap;
+  width: 100%;
+}
+
+@media (max-width: 640px) {
+  .event-admin-actions .btn {
+    flex: 1 1 calc(50% - 5px);
+    min-width: 0;
+    justify-content: center;
+  }
 }
 
 .event-admin-scroll {
@@ -1324,6 +1342,12 @@
   background: var(--dark);
   color: var(--paper);
   border: none;
+  box-shadow: var(--shadow-pop);
+}
+
+.praesentia-app .card.event-admin-capsule-card {
+  background: var(--dark);
+  border-color: var(--dark-line);
 }
 
 .event-admin-capsule-head {
@@ -1591,10 +1615,6 @@
     grid-template-columns: 1fr;
   }
 
-  .event-admin-sidebar {
-    order: -1;
-  }
-
   .event-admin-shortcuts {
     grid-template-columns: 1fr;
   }
@@ -1625,5 +1645,248 @@
 
   .phase-line-connector {
     top: 15px;
+  }
+}
+
+/* ─── My events (Seus momentos) ───────────────────────────────────────────── */
+.my-events-page {
+  max-width: 1060px;
+  margin: 0 auto;
+  padding: 36px 44px 60px;
+}
+
+.my-events-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.my-events-title {
+  font-size: clamp(28px, 7vw, 40px);
+  margin-top: 6px;
+  line-height: 1.08;
+}
+
+.my-events-title-line {
+  display: inline;
+  white-space: nowrap;
+}
+
+.my-events-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 22px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.my-events-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 13px;
+  background: #fff;
+  flex: 1;
+  min-width: min(100%, 200px);
+  max-width: 280px;
+}
+
+.my-events-search input {
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  width: 100%;
+  min-width: 0;
+}
+
+/* ─── Segmented control ─────────────────────────────────────────────────────── */
+.segmented-control {
+  display: flex;
+  flex-wrap: wrap;
+  background: var(--card-2);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 3px;
+  gap: 2px;
+  max-width: 100%;
+}
+
+.segmented-control.is-full {
+  width: 100%;
+}
+
+.segmented-control-btn {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: none;
+  cursor: pointer;
+  border-radius: 999px;
+  padding: 7px 10px;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: clamp(11px, 2.8vw, 13px);
+  transition: all 0.15s;
+  background: transparent;
+  color: var(--ink-2);
+  box-shadow: none;
+  white-space: nowrap;
+}
+
+.segmented-control-btn.is-active {
+  background: var(--ink);
+  color: var(--paper);
+  box-shadow: 0 2px 8px -3px rgba(0, 0, 0, 0.4);
+}
+
+@media (max-width: 480px) {
+  .segmented-control.is-wrap-mobile {
+    border-radius: 14px;
+  }
+
+  .segmented-control.is-wrap-mobile .segmented-control-btn {
+    flex: 1 1 calc(50% - 4px);
+    border-radius: 10px;
+    white-space: normal;
+    text-align: center;
+    line-height: 1.2;
+    padding: 8px 6px;
+  }
+}
+
+/* ─── Invite art photo controls ─────────────────────────────────────────────── */
+.invite-photo-settings {
+  padding: 14px;
+  border-radius: 12px;
+  background: var(--card-2);
+  border: 1px solid var(--line);
+}
+
+.invite-photo-bg-toggle {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #fff;
+  border: 1px solid var(--line);
+}
+
+.invite-photo-bg-toggle > div:first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.invite-photo-layout {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  margin-top: 14px;
+}
+
+.invite-photo-position {
+  flex-shrink: 0;
+}
+
+.invite-photo-notes {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ─── Admin mural / config ────────────────────────────────────────────────── */
+.admin-mural-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 320px);
+  gap: 24px;
+  align-items: start;
+}
+
+.admin-config-panel {
+  max-width: 680px;
+  min-width: 0;
+}
+
+.admin-config-panel .input,
+.admin-config-panel textarea {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.admin-config-datetime {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.admin-member-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  min-width: 0;
+}
+
+.admin-member-id {
+  font-size: 13px;
+  color: var(--ink-2);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .my-events-page {
+    padding: 24px 18px calc(72px + env(safe-area-inset-bottom));
+  }
+
+  .my-events-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .my-events-header .btn-coral {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .my-events-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .my-events-search {
+    max-width: none;
+  }
+
+  .admin-mural-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-config-datetime {
+    grid-template-columns: 1fr;
+  }
+
+  .invite-photo-layout {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 640px) {
+  .admin-config-datetime {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .admin-config-datetime > :last-child {
+    grid-column: 1 / -1;
   }
 }

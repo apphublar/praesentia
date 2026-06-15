@@ -234,7 +234,7 @@ export function AdminMuralPanel({
   }
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(280px,340px)", gap: 24, alignItems: "start" }}>
+    <div className="admin-mural-layout">
       {contentGrid}
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>{sidebar}</div>
     </div>
