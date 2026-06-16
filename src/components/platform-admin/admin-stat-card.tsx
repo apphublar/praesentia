@@ -13,7 +13,7 @@ export function AdminStatCard({
 }) {
   return (
     <article className="platform-admin-stat">
-      <p className="mono">{label}</p>
+      <p className="platform-admin-stat-label">{label}</p>
       <strong style={accent ? { color: accent } : undefined}>{value}</strong>
       {hint ? <span>{hint}</span> : null}
     </article>

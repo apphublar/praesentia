@@ -38,7 +38,7 @@ export function AdminShell({ user, children }: { user: User; children: React.Rea
             <p className="mono">Operação Praesentia</p>
             <h1>Painel do controlador</h1>
           </div>
-          <Link className="btn" href="/">Ver site</Link>
+          <Link className="btn btn-dark" href="/">Ver site</Link>
         </header>
         <div className="platform-admin-content">{children}</div>
       </div>

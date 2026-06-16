@@ -24,7 +24,7 @@ export default async function AdminClientsPage({
         </div>
         <form className="platform-admin-search" action="/admin/clientes" method="get">
           <input type="search" name="q" placeholder="Buscar nome ou e-mail" defaultValue={search} />
-          <button className="btn" type="submit">Buscar</button>
+          <button className="btn btn-dark" type="submit">Buscar</button>
           {search ? <Link href="/admin/clientes">Limpar</Link> : null}
         </form>
       </div>

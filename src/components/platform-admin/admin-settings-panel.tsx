@@ -11,7 +11,7 @@ export function AdminSettingsPanel({ user }: { user: User }) {
   const [emailState, emailAction, emailPending] = useActionState(adminUpdateEmail, initial);
 
   return (
-    <div className="platform-admin-settings">
+    <>
       <section className="card">
         <h2>Sua conta admin</h2>
         <p>E-mail atual: <strong>{user.email}</strong></p>
@@ -58,6 +58,6 @@ export function AdminSettingsPanel({ user }: { user: User }) {
           {emailState.error ? <p className="platform-admin-error">{emailState.error}</p> : null}
         </form>
       </section>
-    </div>
+    </>
   );
 }

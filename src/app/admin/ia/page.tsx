@@ -19,26 +19,26 @@ export default async function AdminAiPage() {
           </p>
         </div>
         <div className="platform-admin-link-row">
-          <a className="btn" href={ADMIN_EXTERNAL_LINKS.openAiUsage} target="_blank" rel="noreferrer">Abrir painel OpenAI</a>
+          <a className="btn btn-dark" href={ADMIN_EXTERNAL_LINKS.openAiUsage} target="_blank" rel="noreferrer">Abrir painel OpenAI</a>
           <a className="btn btn-secondary" href={ADMIN_EXTERNAL_LINKS.openAiApiKeys} target="_blank" rel="noreferrer">Chaves API</a>
         </div>
       </div>
 
       <div className="platform-admin-metrics platform-admin-metrics-compact">
         <article className="platform-admin-stat">
-          <p className="mono">Custo estimado total</p>
+          <p className="platform-admin-stat-label">Custo estimado total</p>
           <strong style={{ color: "#2563eb" }}>{formatUsd(metrics.estimatedAiCostUsd)}</strong>
         </article>
         <article className="platform-admin-stat">
-          <p className="mono">Artefatos concluídos</p>
+          <p className="platform-admin-stat-label">Artefatos concluídos</p>
           <strong>{metrics.aiArtifactsCompleted}</strong>
         </article>
         <article className="platform-admin-stat">
-          <p className="mono">Estornadas / falhas</p>
+          <p className="platform-admin-stat-label">Estornadas / falhas</p>
           <strong>{metrics.aiArtifactsRefunded}</strong>
         </article>
         <article className="platform-admin-stat">
-          <p className="mono">Custo na lista abaixo</p>
+          <p className="platform-admin-stat-label">Custo na lista abaixo</p>
           <strong>{formatUsd(totalUsageCost)}</strong>
         </article>
       </div>

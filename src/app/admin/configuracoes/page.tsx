@@ -11,8 +11,10 @@ export default async function AdminSettingsPage() {
     <section className="platform-admin-section">
       <h2>Configurações</h2>
       <p className="platform-admin-lead">Gerencie e-mail, senha e autenticador do super admin.</p>
-      <AdminMfaSetupPanel enrolled={mfa.enrolled} />
-      <AdminSettingsPanel user={session.user} />
+      <div className="platform-admin-settings">
+        <AdminMfaSetupPanel enrolled={mfa.enrolled} />
+        <AdminSettingsPanel user={session.user} />
+      </div>
     </section>
   );
 }

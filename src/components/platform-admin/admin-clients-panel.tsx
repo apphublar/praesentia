@@ -181,16 +181,41 @@ export function AdminClientsPanel({
                       <td>{event.capsuleActivatedAt ? event.planTier : "free"}</td>
                       <td>{event.coverSource === "custom" ? "Própria" : "IA"}</td>
                       <td>{event.storageUsedGb.toFixed(1)}/{event.storageLimitGb.toFixed(0)} GB</td>
-                      <td className="platform-admin-row-actions">
-                        {!event.capsuleActivatedAt ? (
-                          <button type="button" disabled={pending} onClick={() => run(() => adminActivateCapsule(event.id, selected.id))}>
-                            Liberar cápsula
+                      <td>
+                        <div className="platform-admin-row-actions">
+                          {!event.capsuleActivatedAt ? (
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-secondary"
+                              disabled={pending}
+                              onClick={() => run(() => adminActivateCapsule(event.id, selected.id))}
+                            >
+                              Liberar cápsula
+                            </button>
+                          ) : null}
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-secondary"
+                            disabled={pending}
+                            onClick={() => run(() => adminAddStorage(event.id, selected.id, 5))}
+                          >
+                            +5 GB
                           </button>
-                        ) : null}
-                        <button type="button" disabled={pending} onClick={() => run(() => adminAddStorage(event.id, selected.id, 5))}>+5 GB</button>
-                        <button type="button" disabled={pending} onClick={() => run(() => adminAddStorage(event.id, selected.id, 10))}>+10 GB</button>
-                        <a href={`${appBaseUrl}/evento/${event.slug}`} target="_blank" rel="noreferrer">Link convite</a>
-                        <a href={`${appBaseUrl}/dashboard/eventos/${event.id}`} target="_blank" rel="noreferrer">Painel</a>
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-secondary"
+                            disabled={pending}
+                            onClick={() => run(() => adminAddStorage(event.id, selected.id, 10))}
+                          >
+                            +10 GB
+                          </button>
+                          <a className="btn btn-sm btn-secondary" href={`${appBaseUrl}/evento/${event.slug}`} target="_blank" rel="noreferrer">
+                            Link convite
+                          </a>
+                          <a className="btn btn-sm btn-secondary" href={`${appBaseUrl}/dashboard/eventos/${event.id}`} target="_blank" rel="noreferrer">
+                            Painel
+                          </a>
+                        </div>
                       </td>
                     </tr>
                   ))}

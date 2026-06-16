@@ -1892,10 +1892,78 @@
 }
 
 /* Platform super admin */
-.platform-admin {
+.praesentia-app .platform-admin {
   display: grid;
   grid-template-columns: 260px minmax(0, 1fr);
   min-height: 100vh;
+  font-family: var(--font-sans);
+}
+
+.praesentia-app .platform-admin .card {
+  padding: 22px 24px;
+}
+
+.praesentia-app .platform-admin .card.platform-admin-table-wrap {
+  padding: 0;
+  overflow: hidden;
+}
+
+.praesentia-app .platform-admin .card.platform-admin-table-wrap .platform-admin-table th,
+.praesentia-app .platform-admin .card.platform-admin-table-wrap .platform-admin-table td {
+  padding: 12px 22px;
+}
+
+.praesentia-app .platform-admin-topbar h1,
+.praesentia-app .platform-admin-section h2,
+.praesentia-app .platform-admin-section h3,
+.praesentia-app .platform-admin-list h2,
+.praesentia-app .platform-admin-detail h2 {
+  font-family: var(--font-display);
+  font-style: normal;
+  letter-spacing: -0.01em;
+}
+
+.praesentia-app .platform-admin .btn:not(.btn-secondary):not(.btn-danger):not(.btn-ghost):not(.btn-coral):not(.btn-amber) {
+  background: var(--dark);
+  color: #f4eddf;
+}
+
+.praesentia-app .platform-admin .btn:not(.btn-secondary):not(.btn-danger):not(.btn-ghost):not(.btn-coral):not(.btn-amber):hover {
+  background: #000;
+}
+
+.praesentia-app .btn-secondary {
+  background: #fff;
+  color: var(--ink);
+  border: 1.5px solid var(--line-2);
+  box-shadow: none;
+}
+
+.praesentia-app .btn-secondary:hover {
+  border-color: var(--ink);
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.praesentia-app .btn-danger {
+  background: #fff5f4;
+  color: #b42318;
+  border: 1.5px solid #fecdca;
+  box-shadow: none;
+}
+
+.praesentia-app .btn-danger:hover {
+  background: #fee4e2;
+  border-color: #fda29b;
+}
+
+.platform-admin-stat-label {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin: 0;
 }
 
 .platform-admin-sidebar {
@@ -1924,9 +1992,17 @@
   border-radius: 10px;
   font-size: 14px;
   font-weight: 600;
+  text-decoration: none;
+  border: 1px solid transparent;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 
-.platform-admin-nav a.is-active,
+.platform-admin-nav a.is-active {
+  background: rgba(247, 238, 219, 0.12);
+  border-color: rgba(247, 238, 219, 0.18);
+  color: #fff;
+}
+
 .platform-admin-nav a:hover {
   background: rgba(247, 238, 219, 0.08);
   color: #fff;
@@ -2043,6 +2119,12 @@
   overflow: auto;
 }
 
+.platform-admin-field span {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
 .platform-admin-user-row {
   text-align: left;
   background: #fff;
@@ -2050,6 +2132,7 @@
   border-radius: 12px;
   padding: 12px;
   cursor: pointer;
+  font-family: var(--font-sans);
 }
 
 .platform-admin-user-row.is-active {
@@ -2127,21 +2210,8 @@
 .platform-admin-actions .btn,
 .platform-admin-actions a.btn {
   font-size: 13px;
-  padding: 9px 12px;
-}
-
-.btn-secondary {
-  background: #fff;
-  color: var(--ink);
-  border: 1.5px solid var(--line);
-  box-shadow: none;
-}
-
-.btn-danger {
-  background: #fff5f4;
-  color: #b42318;
-  border: 1.5px solid #fecdca;
-  box-shadow: none;
+  padding: 9px 14px;
+  min-height: 38px;
 }
 
 .platform-admin-table-wrap {
@@ -2171,15 +2241,17 @@
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+  min-width: 240px;
 }
 
-.platform-admin-row-actions button,
-.platform-admin-row-actions a {
-  font-size: 11px;
-  padding: 4px 8px;
-  border-radius: 999px;
-  border: 1px solid var(--line);
-  background: #fff;
+.platform-admin-row-actions .btn {
+  font-size: 12px;
+  padding: 6px 12px;
+  min-height: 34px;
+}
+
+.platform-admin-table td:last-child {
+  min-width: 260px;
 }
 
 .platform-admin-badge {
@@ -2214,6 +2286,13 @@
   border: 1px solid var(--line);
   border-radius: 999px;
   padding: 10px 14px;
+  font-family: var(--font-sans);
+  background: #fff;
+}
+
+.platform-admin-search .btn {
+  min-height: 40px;
+  padding: 9px 18px;
 }
 
 .platform-admin-links .platform-admin-link-row,
@@ -2242,7 +2321,18 @@
 .platform-admin-settings {
   display: grid;
   gap: 16px;
-  max-width: 560px;
+  max-width: 720px;
+}
+
+.platform-admin-settings .card h2 {
+  font-size: 20px;
+  margin-bottom: 12px;
+}
+
+.platform-admin-settings .card p {
+  margin: 0;
+  color: var(--ink-2);
+  line-height: 1.55;
 }
 
 .platform-admin-form {
