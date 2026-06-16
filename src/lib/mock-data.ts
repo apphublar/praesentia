@@ -4,7 +4,7 @@ import { PLANS } from "@/lib/plans";
 const SEED_USERS: User[] = [
   { id: "usr_owner", name: "Camila Andrade", email: "camila@example.com", role: "user", aiInviteFreeUsed: false, aiInvitePoolRemaining: 0 },
   { id: "usr_maria", name: "Maria Silva", email: "maria@example.com", role: "user", aiInviteFreeUsed: false, aiInvitePoolRemaining: 0 },
-  { id: "usr_admin", name: "Equipe Praesentia", email: "admin@praesentia.com.br", role: "platform_admin", aiInviteFreeUsed: false, aiInvitePoolRemaining: 0 }
+  { id: "usr_admin", name: "Super Admin Praesentia", email: "adm.praesentia@gmail.com", role: "platform_admin", aiInviteFreeUsed: false, aiInvitePoolRemaining: 0 }
 ];
 
 const SEED_EVENTS: Event[] = [

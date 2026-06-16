@@ -2258,6 +2258,27 @@ p + a.btn,
   text-decoration: underline;
 }
 
+.auth-secondary-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.auth-mfa-qr-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 12px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.auth-mfa-qr-wrap img {
+  display: block;
+}
+
 .storage-actions-row,
 .settings-actions-row {
   display: flex;

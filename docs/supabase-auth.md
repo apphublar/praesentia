@@ -26,17 +26,11 @@ This is the production authentication plan for Praesentia.
    - `https://your-production-domain/login`
    - `https://your-production-domain/login/redefinir-senha`
    - Vercel preview URLs only if you want preview auth testing.
-9. Create your first admin account through the normal signup flow.
-10. Promote the admin account in SQL:
-
-```sql
-update public.users
-set role = 'platform_admin'
-where email = 'your-admin-email@example.com';
-```
-
-11. Enable MFA for admin accounts.
-12. Keep the service role key server-only. Never expose it in client components.
+9. Create the super admin account with email `adm.praesentia@gmail.com` through the normal signup flow.
+10. Run migration `docs/migrations/015-platform-admin-email.sql` (only this email becomes `platform_admin`).
+11. In Authentication → Providers → enable TOTP MFA for the project.
+12. After first login, open `/admin/configuracoes` and configure Google Authenticator.
+13. Keep the service role key server-only. Never expose it in client components.
 
 ## Vercel Variables
 
@@ -50,6 +44,7 @@ NEXT_PUBLIC_SUPABASE_URL=...
 NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 SUPABASE_SERVICE_ROLE_KEY=...
 SESSION_SECRET=...
+PLATFORM_ADMIN_EMAIL=adm.praesentia@gmail.com
 ALLOW_DEV_AUTH_BYPASS=false
 ```
 

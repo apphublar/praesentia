@@ -5,6 +5,9 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { repositories } from "@/lib/db";
+import { loginRequiresMfaVerification, verifyTotpCode } from "@/lib/auth/mfa";
+import { isPlatformAdminEmail } from "@/lib/auth/platform-admin";
+import { syncPlatformAdminRole } from "@/lib/auth/sync-platform-admin-role";
 import { createSessionToken, SESSION_COOKIE_NAME, sessionCookieOptions } from "@/lib/auth/session-cookie";
 import { sanitizeText } from "@/lib/security/sanitize";
 import { resolvePostLoginPath } from "@/lib/auth/post-login-path";
@@ -12,6 +15,11 @@ import { resolvePostLoginPath } from "@/lib/auth/post-login-path";
 export type AuthActionState = {
   error?: string;
   notice?: string;
+  requiresMfa?: boolean;
+  factorId?: string;
+  pendingNext?: string;
+  mfaQrCode?: string;
+  mfaFactorId?: string;
 };
 
 function sanitizeRedirectPath(value: FormDataEntryValue | null, fallback: string) {
@@ -25,7 +33,9 @@ async function resolveLoginDestination(formNext: FormDataEntryValue | null, user
   return resolvePostLoginPath(userId, requested);
 }
 
-async function issuePraesentiaSession(userId: string, nextPath: string) {
+async function issuePraesentiaSession(userId: string, email: string, nextPath: string): Promise<AuthActionState> {
+  await syncPlatformAdminRole(userId, email);
+
   const user = await repositories.users.findById(userId);
   if (!user) {
     return {
@@ -33,10 +43,16 @@ async function issuePraesentiaSession(userId: string, nextPath: string) {
     };
   }
 
+  if (user.blockedAt) {
+    return { error: "Esta conta está bloqueada. Entre em contato com o suporte." };
+  }
+
+  const role = isPlatformAdminEmail(user.email) ? "platform_admin" : user.role;
+
   const cookieStore = await cookies();
   const token = createSessionToken({
     userId: user.id,
-    role: user.role,
+    role,
     name: user.name,
     email: user.email,
     reauth: true
@@ -87,7 +103,7 @@ export async function updatePasswordAfterRecovery(_state: AuthActionState, formD
   const supabase = await createSupabaseServerClient();
   const { data: authData, error: authError } = await supabase.auth.getUser();
 
-  if (authError || !authData.user) {
+  if (authError || !authData.user?.email) {
     return { error: "Link expirado ou inválido. Solicite uma nova recuperação de senha." };
   }
 
@@ -97,7 +113,7 @@ export async function updatePasswordAfterRecovery(_state: AuthActionState, formD
     return { error: "Não foi possível atualizar sua senha agora." };
   }
 
-  return issuePraesentiaSession(authData.user.id, nextPath);
+  return issuePraesentiaSession(authData.user.id, authData.user.email, nextPath);
 }
 
 export async function loginWithSupabase(_state: AuthActionState, formData: FormData): Promise<AuthActionState> {
@@ -111,12 +127,51 @@ export async function loginWithSupabase(_state: AuthActionState, formData: FormD
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
-  if (error || !data.user) {
+  if (error || !data.user?.email) {
     return { error: "Email ou senha inválidos." };
   }
 
   const nextPath = await resolveLoginDestination(formData.get("next"), data.user.id);
-  return issuePraesentiaSession(data.user.id, nextPath);
+  const mfa = await loginRequiresMfaVerification(supabase);
+
+  if (mfa.required) {
+    return {
+      requiresMfa: true,
+      factorId: mfa.factorId,
+      pendingNext: nextPath,
+      notice: "Digite o código de 6 dígitos do Google Authenticator."
+    };
+  }
+
+  return issuePraesentiaSession(data.user.id, data.user.email, nextPath);
+}
+
+export async function verifyLoginMfa(_state: AuthActionState, formData: FormData): Promise<AuthActionState> {
+  const code = String(formData.get("code") ?? "").trim();
+  const factorId = String(formData.get("factorId") ?? "");
+  const nextPath = sanitizeRedirectPath(formData.get("next"), "/dashboard");
+
+  if (!code || code.length < 6 || !factorId) {
+    return { error: "Informe o código de 6 dígitos do autenticador." };
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const verified = await verifyTotpCode(supabase, factorId, code);
+  if (!verified.ok) {
+    return {
+      error: verified.error,
+      requiresMfa: true,
+      factorId,
+      pendingNext: nextPath
+    };
+  }
+
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user?.email) {
+    return { error: "Sessão expirada. Entre novamente com email e senha." };
+  }
+
+  return issuePraesentiaSession(authData.user.id, authData.user.email, nextPath);
 }
 
 export async function signUpWithSupabase(_state: AuthActionState, formData: FormData): Promise<AuthActionState> {
@@ -153,10 +208,52 @@ export async function signUpWithSupabase(_state: AuthActionState, formData: Form
     return { error: "Este email já possui uma conta. Faça login ou recupere sua senha." };
   }
 
-  if (!data.session || !data.user) {
+  if (!data.session || !data.user?.email) {
     return { notice: "Conta criada. Confira seu email para confirmar o acesso." };
   }
 
   const nextPath = await resolveLoginDestination(formNext, data.user.id);
-  return issuePraesentiaSession(data.user.id, nextPath);
+  return issuePraesentiaSession(data.user.id, data.user.email, nextPath);
+}
+
+export async function startMfaEnrollment(): Promise<AuthActionState> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.auth.mfa.enroll({
+    factorType: "totp",
+    friendlyName: "Google Authenticator"
+  });
+
+  if (error || !data?.id || !data.totp?.qr_code) {
+    return { error: "Não foi possível iniciar a configuração do autenticador." };
+  }
+
+  return {
+    notice: "Escaneie o QR Code no Google Authenticator e confirme com um código.",
+    mfaFactorId: data.id,
+    mfaQrCode: data.totp.qr_code
+  };
+}
+
+export async function confirmMfaEnrollment(_state: AuthActionState, formData: FormData): Promise<AuthActionState> {
+  const factorId = String(formData.get("factorId") ?? "");
+  const code = String(formData.get("code") ?? "").trim();
+
+  if (!factorId || code.length < 6) {
+    return { error: "Informe o código de 6 dígitos." };
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const verified = await verifyTotpCode(supabase, factorId, code);
+  if (!verified.ok) return { error: verified.error };
+
+  revalidatePath("/admin/configuracoes");
+  return { notice: "Autenticador configurado com sucesso. Use o código ao entrar." };
+}
+
+export async function getMfaEnrollmentStatus(): Promise<{ enrolled: boolean; factorId?: string }> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.auth.mfa.listFactors();
+  if (error) return { enrolled: false };
+  const factor = data.totp.find((item) => item.status === "verified");
+  return { enrolled: Boolean(factor), factorId: factor?.id };
 }

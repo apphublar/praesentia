@@ -73,6 +73,7 @@ export type User = {
   name: string;
   email: string;
   role: "platform_admin" | "user";
+  blockedAt?: string | null;
   aiInviteFreeUsed?: boolean;
   aiInvitePoolRemaining?: number;
   aiInvitePoolPlan?: AiInvitePoolPlan;

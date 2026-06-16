@@ -18,6 +18,7 @@ export default async function LoginPage({
   const showDevLogin = isDevelopmentBypassAllowed();
   const params = (await searchParams) ?? {};
   const nextPath = sanitizeNextParam(params.next);
+  const initialMfaFactorId = typeof params.factorId === "string" ? params.factorId : undefined;
 
   return (
     <>
@@ -34,11 +35,11 @@ export default async function LoginPage({
                 </p>
               ) : (
                 <p>
-                  Entre ou crie sua conta para organizar eventos, convidados e memórias — do convite à cápsula do tempo.
+                  Entre ou crie sua conta. Recuperação de senha e Google Authenticator disponíveis na aba Entrar.
                 </p>
               )}
             </section>
-            {showDevLogin ? <DevLoginForm /> : <SupabaseLoginForm nextPath={nextPath} />}
+            {showDevLogin ? <DevLoginForm /> : <SupabaseLoginForm nextPath={nextPath} initialMfaFactorId={initialMfaFactorId} />}
           </div>
           <LoginShowcase />
         </div>

@@ -113,8 +113,10 @@ export async function requirePageSession(loginNext?: string) {
   }
 }
 
+import { isPlatformAdminEmail } from "@/lib/auth/platform-admin";
+
 export function isPlatformAdmin(user: User) {
-  return user.role === "platform_admin";
+  return isPlatformAdminEmail(user.email);
 }
 
 export async function requirePlatformAdmin() {

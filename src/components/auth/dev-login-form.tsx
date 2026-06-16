@@ -12,7 +12,7 @@ const options: Record<LoginRole, { email: string; label: string; description: st
     redirectTo: "/dashboard"
   },
   admin: {
-    email: "admin@praesentia.com.br",
+    email: "adm.praesentia@gmail.com",
     label: "Entrar como admin",
     description: "Acessa a operação da plataforma e controles globais.",
     redirectTo: "/admin"
