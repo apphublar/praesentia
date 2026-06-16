@@ -140,7 +140,7 @@ function PraesentiaMark({
           y={letterY}
           textAnchor="middle"
           dominantBaseline="central"
-          fontFamily="'Playfair Display', Georgia, serif"
+          fontFamily="'Outfit', 'Plus Jakarta Sans', system-ui, sans-serif"
           fontWeight={600}
           fontSize={letterSize}
           fill={colors.letter}
@@ -172,8 +172,8 @@ function PraesentiaWordmark({
     <span
       className="praesentia-wordmark"
       style={{
-        fontFamily: "'Playfair Display', Georgia, serif",
-        fontStyle: "italic",
+        fontFamily: "'Outfit', 'Plus Jakarta Sans', system-ui, sans-serif",
+        fontStyle: "normal",
         fontWeight: 600,
         fontSize: size,
         letterSpacing: "-0.01em",

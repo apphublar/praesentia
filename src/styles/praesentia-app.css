@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..800;1,400..800&family=Hanken+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&family=Space+Mono:wght@400;700&display=swap");
 
 .praesentia-app {
   --paper: #f4eddf;
@@ -25,8 +25,8 @@
   --p-peach: #f3d7bc;
   --tape-y: #f4e08a;
   --tape-c: #f1a695;
-  --font-display: "Playfair Display", Georgia, serif;
-  --font-sans: "Hanken Grotesk", system-ui, sans-serif;
+  --font-display: "Outfit", "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-sans: "Manrope", "Plus Jakarta Sans", system-ui, sans-serif;
   --font-mono: "Space Mono", ui-monospace, monospace;
   --r-lg: 24px;
   --r-md: 16px;
@@ -80,9 +80,9 @@
 
 .praesentia-app .display {
   font-family: var(--font-display);
-  font-style: italic;
-  font-weight: 500;
-  line-height: 1.02;
+  font-style: normal;
+  font-weight: 600;
+  line-height: 1.01;
   letter-spacing: -0.005em;
 }
 

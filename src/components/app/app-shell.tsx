@@ -118,7 +118,12 @@ export function AppShell({ user, events, children }: { user: User; events: Event
   const navGroups = useMemo(() => buildAppNavGroups(activeEvent), [activeEvent]);
   const organizerNav = navGroups.find((group) => group.label === "Organizador")?.items ?? [];
   const accountNav = navGroups.find((group) => group.label === "Conta")?.items ?? [];
-  const mobileNav = [...organizerNav, ...accountNav.filter((item) => item.id !== "sair")];
+  const mobileNav = [
+    organizerNav.find((item) => item.id === "eventos"),
+    organizerNav.find((item) => item.id === "criar"),
+    organizerNav.find((item) => item.id === "admin"),
+    ...accountNav.filter((item) => item.id !== "sair")
+  ].filter((item): item is AppNavItem => Boolean(item));
 
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" });
@@ -178,6 +183,7 @@ export function AppShell({ user, events, children }: { user: User; events: Event
         {mobileNav.map((item) => {
           const on = isAppNavItemActive(item, pathname, activeEvent);
           const disabled = isAppNavItemDisabled(item, activeEvent);
+          const isCreate = item.id === "criar";
           if (disabled) {
             return (
               <span key={item.id} style={{ minWidth: 62, textAlign: "center", opacity: 0.45, color: "var(--faint)", fontSize: 11 }}>
@@ -190,6 +196,7 @@ export function AppShell({ user, events, children }: { user: User; events: Event
             <Link
               key={item.id}
               href={item.href}
+              className={isCreate ? "app-bottom-nav-create" : undefined}
               style={{
                 flex: 1,
                 display: "flex",
@@ -201,10 +208,21 @@ export function AppShell({ user, events, children }: { user: User; events: Event
                 fontSize: 11,
                 fontWeight: on ? 700 : 500,
                 textDecoration: "none",
-                minWidth: 62
+                minWidth: 62,
+                ...(isCreate
+                  ? {
+                      background: "var(--coral)",
+                      color: "#fff",
+                      borderRadius: 999,
+                      padding: "10px 10px",
+                      boxShadow: "0 8px 18px -10px rgba(242,107,90,.85)",
+                      marginTop: -20,
+                      border: "2px solid var(--paper)"
+                    }
+                  : null)
               }}
             >
-              <Icon name={item.icon} size={20} />
+              <Icon name={item.icon} size={isCreate ? 18 : 20} />
               {item.name.split(" ")[0]}
             </Link>
           );

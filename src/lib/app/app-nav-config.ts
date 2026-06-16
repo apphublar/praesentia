@@ -91,7 +91,7 @@ export function buildAppNavGroups(event: Event | null): AppNavGroup[] {
       label: "Conta",
       items: [
         { id: "pagamentos", href: "/dashboard/pagamentos", name: "Pagamentos", icon: "card" },
-        { id: "site", href: "/", name: "Voltar ao site", icon: "home" },
+        { id: "site", href: "/", name: "Sair", icon: "home" },
         { id: "sair", href: "/api/auth/logout", name: "Sair da conta", icon: "logout" }
       ]
     }

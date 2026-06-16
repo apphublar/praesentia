@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap");
 
 :root {
   --bg: #f7eedb;
@@ -28,7 +28,7 @@ body {
 }
 
 body {
-  font-family: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+  font-family: "Manrope", "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   overflow-x: hidden;
@@ -127,14 +127,14 @@ p + a.btn,
 }
 
 .display {
-  font-family: "DM Serif Display", Georgia, serif;
-  font-weight: 400;
+  font-family: "Outfit", "Plus Jakarta Sans", system-ui, sans-serif;
+  font-weight: 600;
 }
 
 .display-i {
-  font-family: "DM Serif Display", Georgia, serif;
-  font-style: italic;
-  font-weight: 400;
+  font-family: "Outfit", "Plus Jakarta Sans", system-ui, sans-serif;
+  font-style: normal;
+  font-weight: 600;
 }
 
 .mono {
@@ -380,7 +380,7 @@ p + a.btn,
 }
 
 .storage-capacity strong {
-  font-family: "DM Serif Display", Georgia, serif;
+  font-family: "Outfit", "Plus Jakarta Sans", system-ui, sans-serif;
   font-size: 56px;
   line-height: 0.9;
   font-weight: 400;
@@ -2090,7 +2090,7 @@ p + a.btn,
 }
 
 .login-showcase-stat-value {
-  font-family: "DM Serif Display", Georgia, serif;
+  font-family: "Outfit", "Plus Jakarta Sans", system-ui, sans-serif;
   font-size: 28px;
   line-height: 1;
   font-style: italic;
@@ -3083,7 +3083,7 @@ p + a.btn,
 }
 
 .dashboard-metric-value {
-  font-family: "DM Serif Display", Georgia, serif;
+  font-family: "Outfit", "Plus Jakarta Sans", system-ui, sans-serif;
   font-size: 34px;
   line-height: 1;
   font-weight: 400;
@@ -3258,7 +3258,7 @@ p + a.btn,
 
 .dashboard-event-card-body strong {
   font-size: 20px;
-  font-family: "DM Serif Display", Georgia, serif;
+  font-family: "Outfit", "Plus Jakarta Sans", system-ui, sans-serif;
 }
 
 .dashboard-event-card-body p {
@@ -3671,7 +3671,7 @@ p + a.btn,
 }
 
 .cover-phone-title {
-  font-family: "DM Serif Display", serif;
+  font-family: "Outfit", "Plus Jakarta Sans", system-ui, sans-serif;
   font-size: 20px;
   line-height: 1.15;
   color: var(--ink);
@@ -4282,7 +4282,7 @@ p + a.btn,
 }
 
 .public-event-title {
-  font-family: "DM Serif Display", Georgia, serif;
+  font-family: "Outfit", "Plus Jakarta Sans", system-ui, sans-serif;
   font-size: clamp(36px, 7vw, 58px);
   line-height: 0.98;
   margin: 14px 0 8px;
@@ -4297,7 +4297,7 @@ p + a.btn,
 }
 
 .public-event-headline {
-  font-family: "DM Serif Display", Georgia, serif;
+  font-family: "Outfit", "Plus Jakarta Sans", system-ui, sans-serif;
   font-size: 24px;
   color: var(--ink);
   margin-top: 16px;
@@ -4309,7 +4309,7 @@ p + a.btn,
 }
 
 .public-event-section-title {
-  font-family: "DM Serif Display", Georgia, serif;
+  font-family: "Outfit", "Plus Jakarta Sans", system-ui, sans-serif;
   font-size: 28px;
   margin: 0 0 8px;
 }
@@ -4509,7 +4509,7 @@ p + a.btn,
 
 .public-event-goal-value {
   display: block;
-  font-family: "DM Serif Display", Georgia, serif;
+  font-family: "Outfit", "Plus Jakarta Sans", system-ui, sans-serif;
   font-size: 44px;
   margin: 8px 0;
   color: var(--public-accent);
@@ -4579,7 +4579,7 @@ p + a.btn,
 .public-event-mural-message {
   padding: 18px;
   margin: 0;
-  font-family: "DM Serif Display", Georgia, serif;
+  font-family: "Outfit", "Plus Jakarta Sans", system-ui, sans-serif;
   font-size: 18px;
   line-height: 1.35;
   background: var(--public-accent-soft);
@@ -4733,7 +4733,7 @@ p + a.btn,
 
 .checkin-link-card h3 {
   margin: 0 0 6px;
-  font-family: "DM Serif Display", serif;
+  font-family: "Outfit", "Plus Jakarta Sans", system-ui, sans-serif;
   font-size: 24px;
   line-height: 1.1;
 }
@@ -4858,7 +4858,7 @@ p + a.btn,
 
 .portaria-header h1,
 .portaria-lock-card h1 {
-  font-family: "DM Serif Display", serif;
+  font-family: "Outfit", "Plus Jakarta Sans", system-ui, sans-serif;
   font-size: clamp(28px, 7vw, 40px);
   line-height: 1.05;
   margin: 0 0 8px;
@@ -4924,7 +4924,7 @@ p + a.btn,
 
 .portaria-stat-value {
   display: block;
-  font-family: "DM Serif Display", serif;
+  font-family: "Outfit", "Plus Jakarta Sans", system-ui, sans-serif;
   font-size: 36px;
   line-height: 1.1;
   margin-top: 4px;
