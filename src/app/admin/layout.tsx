@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const session = await requirePageSession("/admin");
   if (!isPlatformAdmin(session.user)) {
-    redirect("/login?next=%2Fadmin&error=not-admin");
+    redirect("/dashboard");
   }
 
   return (

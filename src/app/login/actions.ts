@@ -3,7 +3,6 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { establishPraesentiaSessionForUser } from "@/lib/auth/establish-session";
 import { loginRequiresMfaVerification, verifyTotpCode } from "@/lib/auth/mfa";
 import { disposableEmailErrorMessage, isDisposableEmail } from "@/lib/auth/disposable-email";
 import { sanitizeText } from "@/lib/security/sanitize";
@@ -30,10 +29,9 @@ async function resolveLoginDestination(formNext: FormDataEntryValue | null, user
   return resolvePostLoginPath(userId, requested);
 }
 
-async function issuePraesentiaSession(userId: string, email: string, nextPath: string): Promise<AuthActionState> {
-  const result = await establishPraesentiaSessionForUser(userId, email, nextPath);
-  if (!result.ok) return { error: result.error };
-  redirect(result.nextPath);
+/** Cookie é gravado na resposta HTTP de redirect (mesmo fluxo do OAuth callback). */
+function issuePraesentiaSession(_userId: string, _email: string, nextPath: string): never {
+  redirect(`/api/auth/establish-session?next=${encodeURIComponent(nextPath)}`);
 }
 
 function appBaseUrl() {
