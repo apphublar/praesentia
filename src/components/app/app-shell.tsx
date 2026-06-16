@@ -120,9 +120,9 @@ export function AppShell({ user, events, children }: { user: User; events: Event
   const accountNav = navGroups.find((group) => group.label === "Conta")?.items ?? [];
   const mobileNav = [
     organizerNav.find((item) => item.id === "eventos"),
-    organizerNav.find((item) => item.id === "criar"),
     organizerNav.find((item) => item.id === "admin"),
-    ...accountNav.filter((item) => item.id !== "sair")
+    organizerNav.find((item) => item.id === "criar"),
+    ...accountNav
   ].filter((item): item is AppNavItem => Boolean(item));
 
   async function handleLogout() {
@@ -184,6 +184,7 @@ export function AppShell({ user, events, children }: { user: User; events: Event
           const on = isAppNavItemActive(item, pathname, activeEvent);
           const disabled = isAppNavItemDisabled(item, activeEvent);
           const isCreate = item.id === "criar";
+          const isLogout = item.id === "sair";
           if (disabled) {
             return (
               <span key={item.id} style={{ minWidth: 62, textAlign: "center", opacity: 0.45, color: "var(--faint)", fontSize: 11 }}>
@@ -205,6 +206,7 @@ export function AppShell({ user, events, children }: { user: User; events: Event
                 gap: 4,
                 padding: "6px 4px",
                 color: on ? "var(--coral-deep)" : "var(--muted)",
+                ...(isLogout ? { color: "var(--coral-deep)" } : null),
                 fontSize: 11,
                 fontWeight: on ? 700 : 500,
                 textDecoration: "none",
@@ -223,14 +225,10 @@ export function AppShell({ user, events, children }: { user: User; events: Event
               }}
             >
               <Icon name={item.icon} size={isCreate ? 18 : 20} />
-              {item.name.split(" ")[0]}
+              {item.name}
             </Link>
           );
         })}
-        <button type="button" className="app-bottom-nav-action is-logout" onClick={handleLogout} style={{ minWidth: 62 }}>
-          <Icon name="logout" size={20} />
-          Sair
-        </button>
       </nav>
     </div>
   );

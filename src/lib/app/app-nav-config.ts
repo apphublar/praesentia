@@ -27,13 +27,13 @@ export function buildAppNavGroups(event: Event | null): AppNavGroup[] {
     {
       label: "Organizador",
       items: [
-        { id: "eventos", href: "/dashboard", name: "Meus eventos", icon: "grid" },
-        { id: "criar", href: CREATE_EVENT_PATH, name: "Criar evento", icon: "plus" },
+        { id: "eventos", href: "/dashboard", name: "Meus", icon: "grid" },
+        { id: "criar", href: CREATE_EVENT_PATH, name: "Criar", icon: "plus" },
         {
           id: "admin",
           href: eventId ? `/dashboard/eventos/${eventId}` : "",
-          name: "Painel do evento",
-          icon: "gear",
+          name: "Painel",
+          icon: "sun",
           requiresEvent: true
         }
       ]
@@ -90,9 +90,8 @@ export function buildAppNavGroups(event: Event | null): AppNavGroup[] {
     {
       label: "Conta",
       items: [
-        { id: "pagamentos", href: "/dashboard/pagamentos", name: "Pagamentos", icon: "card" },
-        { id: "site", href: "/", name: "Sair", icon: "home" },
-        { id: "sair", href: "/api/auth/logout", name: "Sair da conta", icon: "logout" }
+        { id: "pagamentos", href: "/dashboard/pagamentos", name: "Compras", icon: "card" },
+        { id: "sair", href: "/api/auth/logout", name: "Sair", icon: "logout" }
       ]
     }
   ];
@@ -111,7 +110,6 @@ export function isAppNavItemActive(item: AppNavItem, pathname: string, event: Ev
   if (item.id === "telao" && event) return pathname === `/dashboard/eventos/${event.id}/telao`;
   if (item.id === "capsula" && event) return pathname === `/dashboard/eventos/${event.id}/capsula`;
   if (item.id === "pagamentos") return pathname === "/dashboard/pagamentos";
-  if (item.id === "site") return false;
   if (item.id === "sair") return false;
   return false;
 }
