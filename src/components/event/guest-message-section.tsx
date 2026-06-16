@@ -75,9 +75,13 @@ export function GuestMessageSection({
           </div>
         ))}
         <div style={{ display: "flex", gap: 8, marginTop: 6, flexDirection: "column" }}>
-          {!authorName.trim() ? (
-            <input className="input" placeholder="Seu nome" value={authorName} onChange={(e) => setAuthorName(e.target.value)} style={{ padding: "10px 12px", fontSize: 13 }} />
-          ) : null}
+          <input
+            className="input"
+            placeholder="Seu nome"
+            value={authorName}
+            onChange={(e) => setAuthorName(e.target.value)}
+            style={{ padding: "10px 12px", fontSize: 13 }}
+          />
           <div style={{ display: "flex", gap: 8 }}>
             <input
               className="input"

@@ -72,9 +72,10 @@ export function AdminConfigPanel({
         body: JSON.stringify({ giftSuggestions: items })
       });
       if (!response.ok) throw new Error(String(data.error ?? "Erro ao salvar."));
-      setGiftState({ loading: false, message: "Sugestões salvas.", tone: "ok" });
+      setGiftState({ loading: false, message: "Sugestão salva no convite.", tone: "ok" });
     } catch (error) {
       setGiftState({ loading: false, message: apiErrorMessage(error, "Falha ao salvar sugestões."), tone: "error" });
+      throw error;
     }
   }
 

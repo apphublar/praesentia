@@ -1,4 +1,4 @@
-import { sanitizeText } from "@/lib/security/sanitize";
+import { sanitizeText, sanitizeUrl } from "@/lib/security/sanitize";
 import type { GiftSuggestion } from "@/types/domain";
 
 export function createGiftSuggestionId() {
@@ -19,7 +19,7 @@ export function normalizeGiftSuggestions(raw: unknown, maxItems = 12): GiftSugge
       id: sanitizeText(row.id, 64) || `gift_${index}`,
       title,
       note: row.note ? sanitizeText(row.note, 500) : undefined,
-      linkUrl: row.linkUrl ? sanitizeText(row.linkUrl, 400) : undefined,
+      linkUrl: row.linkUrl ? sanitizeUrl(row.linkUrl, 400) : undefined,
       imageUrl: row.imageUrl ? sanitizeText(row.imageUrl, 500) : undefined
     });
   }

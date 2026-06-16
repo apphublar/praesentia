@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { GiftSuggestion } from "@/types/domain";
 import { createGiftSuggestionId } from "@/lib/events/gift-suggestions";
+import { normalizeExternalUrl } from "@/lib/security/sanitize";
 import { Field2 } from "@/components/app/admin/conf-block";
 
 export function GiftSuggestionsAdminEditor({
@@ -23,25 +24,51 @@ export function GiftSuggestionsAdminEditor({
   const [note, setNote] = useState("");
   const [linkUrl, setLinkUrl] = useState("");
 
-  function addItem() {
+  async function addItem() {
     const trimmed = title.trim();
-    if (!trimmed) return;
-    setItems((current) => [
-      ...current,
+    if (!trimmed || saving) return;
+
+    const draftTitle = trimmed;
+    const draftNote = note.trim();
+    const draftLinkInput = linkUrl.trim();
+    const draftLink = draftLinkInput ? normalizeExternalUrl(draftLinkInput) : undefined;
+    const previousItems = items;
+
+    const nextItems: GiftSuggestion[] = [
+      ...items,
       {
         id: createGiftSuggestionId(),
-        title: trimmed,
-        note: note.trim() || undefined,
-        linkUrl: linkUrl.trim() || undefined
+        title: draftTitle,
+        note: draftNote || undefined,
+        linkUrl: draftLink
       }
-    ]);
+    ];
+
+    setItems(nextItems);
     setTitle("");
     setNote("");
     setLinkUrl("");
+
+    try {
+      await onSave(nextItems);
+    } catch {
+      setItems(previousItems);
+      setTitle(draftTitle);
+      setNote(draftNote);
+      setLinkUrl(draftLinkInput);
+    }
   }
 
-  function removeItem(id: string) {
-    setItems((current) => current.filter((item) => item.id !== id));
+  async function removeItem(id: string) {
+    if (saving) return;
+    const previousItems = items;
+    const nextItems = items.filter((item) => item.id !== id);
+    setItems(nextItems);
+    try {
+      await onSave(nextItems);
+    } catch {
+      setItems(previousItems);
+    }
   }
 
   return (
@@ -57,7 +84,7 @@ export function GiftSuggestionsAdminEditor({
                   <p style={{ margin: "4px 0 0", fontSize: 12, color: "var(--muted)", wordBreak: "break-all" }}>{item.linkUrl}</p>
                 ) : null}
               </div>
-              <button type="button" className="btn btn-ghost btn-sm" onClick={() => removeItem(item.id)}>
+              <button type="button" className="btn btn-ghost btn-sm" disabled={saving} onClick={() => void removeItem(item.id)}>
                 Remover
               </button>
             </li>
@@ -79,14 +106,9 @@ export function GiftSuggestionsAdminEditor({
         <input className="input" value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} maxLength={400} placeholder="https://loja.com/produto…" />
       </Field2>
 
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-        <button type="button" className="btn btn-ghost btn-sm" onClick={addItem} disabled={!title.trim()}>
-          + Adicionar sugestão
-        </button>
-        <button type="button" className="btn btn-dark btn-sm" disabled={saving} onClick={() => onSave(items)}>
-          {saving ? "Salvando…" : "Salvar sugestões"}
-        </button>
-      </div>
+      <button type="button" className="btn btn-dark btn-sm" onClick={() => void addItem()} disabled={!title.trim() || saving}>
+        {saving ? "Adicionando…" : "+ Adicionar sugestão de presente"}
+      </button>
 
       {message ? (
         <p style={{ margin: 0, fontSize: 13, color: tone === "error" ? "var(--coral-deep)" : "#7d9a6f" }}>{message}</p>

@@ -45,7 +45,13 @@ export function GiftSuggestionsCarousel({ suggestions }: { suggestions: GiftSugg
               <h3>{item.title}</h3>
               {item.note ? <p>{item.note}</p> : null}
               {item.linkUrl ? (
-                <a className="btn btn-coral btn-sm gift-carousel-card-cta" href={item.linkUrl} target="_blank" rel="noopener noreferrer">
+                <a
+                  className="btn btn-coral btn-sm gift-carousel-card-cta"
+                  href={item.linkUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(event) => event.stopPropagation()}
+                >
                   Ver presente
                   <Icon name="arrowR" size={13} />
                 </a>

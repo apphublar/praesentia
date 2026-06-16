@@ -7,6 +7,21 @@ export function sanitizeText(input: unknown, maxLength = 1000) {
     .slice(0, maxLength);
 }
 
+export function normalizeExternalUrl(input: string) {
+  const trimmed = input.trim();
+  if (!trimmed) return "";
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  if (trimmed.startsWith("//")) return `https:${trimmed}`;
+  return `https://${trimmed}`;
+}
+
+export function sanitizeUrl(input: unknown, maxLength = 400) {
+  if (typeof input !== "string") return undefined;
+  const cleaned = input.replace(/[<>]/g, "").trim().slice(0, maxLength);
+  if (!cleaned) return undefined;
+  return normalizeExternalUrl(cleaned);
+}
+
 /** Preserva quebras de linha — use em instruções estruturadas (ex.: zona da foto). */
 export function sanitizeMultilineText(input: unknown, maxLength = 2500) {
   if (typeof input !== "string") return "";
