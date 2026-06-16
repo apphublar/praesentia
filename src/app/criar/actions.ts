@@ -85,7 +85,7 @@ export async function createEventAction(_prev: CreateEventState, formData: FormD
   const eventFormat = resolveEventFormat(eventType, required(formData.get("eventFormat"), 20));
 
   const title = required(formData.get("title"), 120);
-  const hostName = required(formData.get("hostName"), 120);
+  const hostName = optional(formData.get("hostName"), 120);
   const organizerName = optional(formData.get("organizerName"), 120);
   const theme = required(formData.get("theme"), 120);
   const story = optional(formData.get("story"), 4000);
@@ -109,7 +109,7 @@ export async function createEventAction(_prev: CreateEventState, formData: FormD
   const goalAmount = parseAmount(formData.get("goalAmount"));
   const minPerPerson = parseAmount(formData.get("minPerPerson"));
 
-  if (!title || !hostName) {
+  if (!title) {
     return validationError("campos-obrigatorios");
   }
 
@@ -122,6 +122,7 @@ export async function createEventAction(_prev: CreateEventState, formData: FormD
   }
 
   const safeType = normalizeEventType(eventType);
+  const resolvedHostName = hostName || organizerName || "Homenageado(a)";
 
   if (eventFormat === "online" && !onlineMeetingUrl) {
     return validationError("link-online-obrigatorio");
@@ -140,8 +141,8 @@ export async function createEventAction(_prev: CreateEventState, formData: FormD
       title,
       theme: profile.isFundraising ? (theme || "Arrecadação") : theme,
       eventType: safeType,
-      hostName,
-      organizerName: profile.isFundraising ? hostName : organizerName,
+      hostName: resolvedHostName,
+      organizerName: profile.isFundraising ? resolvedHostName : organizerName,
       eventFormat,
       onlineMeetingUrl: eventFormat === "online" ? onlineMeetingUrl : undefined,
       date: resolvedDate,
@@ -181,7 +182,7 @@ export async function createEventAction(_prev: CreateEventState, formData: FormD
     if (profile.isFundraising || pixKey) {
       event = await repositories.events.updatePixSettings(event.id, session.user.id, {
         enabled: true,
-        receiverName: pixReceiverName || hostName,
+        receiverName: pixReceiverName || resolvedHostName,
         key: pixKey,
         goalAmount,
         suggestedAmount: goalAmount,

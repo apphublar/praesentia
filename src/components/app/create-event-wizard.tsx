@@ -260,8 +260,8 @@ export function CreateEventWizard({
                 <Field label="Nome do evento" span={2}>
                   <input className="input" name="title" required value={form.title} onChange={(e) => setF("title", e.target.value)} />
                 </Field>
-                <Field label="Homenageado(a)">
-                  <input className="input" name="hostName" required value={form.honoree} onChange={(e) => setF("honoree", e.target.value)} />
+                <Field label="Homenageado(a) (opcional)">
+                  <input className="input" name="hostName" value={form.honoree} onChange={(e) => setF("honoree", e.target.value)} />
                 </Field>
                 <Field label="Tema (opcional)">
                   <input className="input" value={form.theme} onChange={(e) => setF("theme", e.target.value)} />

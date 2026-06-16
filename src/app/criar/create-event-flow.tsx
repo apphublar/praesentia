@@ -212,8 +212,8 @@ export function CreateEventFlow() {
                       <input name="title" required maxLength={120} placeholder="Ex: Aniversário de 1 ano da Mavie Fontinhas" />
                     </label>
                     <label className="field">
-                      <span>Nome do homenageado(a) *</span>
-                      <input name="hostName" required maxLength={120} placeholder="Ex: Mavie, João..." />
+                      <span>Nome do homenageado(a) (opcional)</span>
+                      <input name="hostName" maxLength={120} placeholder="Ex: Mavie, João... (ou deixe em branco)" />
                     </label>
                     <label className="field">
                       <span>Quem está organizando *</span>

@@ -153,6 +153,8 @@ export function InviteArtStep({
   const [photoSize, setPhotoSize] = useState<PhotoSize>("md");
   const [removeBackground, setRemoveBackground] = useState(Boolean(event.hostPhotoUrl));
   const [photoNotes, setPhotoNotes] = useState("");
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [photoPreviewUrl, setPhotoPreviewUrl] = useState("");
   const [coverMode, setCoverMode] = useState<InviteCoverMode>(event.coverSource === "custom" ? "custom" : "ai");
   const [imgState, setImgState] = useState<"empty" | "loading" | "done">(event.coverImageUrl ? "done" : "empty");
   const [coverUrl, setCoverUrl] = useState(event.coverImageUrl ?? "");
@@ -378,6 +380,10 @@ export function InviteArtStep({
   }
 
   async function uploadPhoto(file: File) {
+    const localPreview = URL.createObjectURL(file);
+    setUploadingPhoto(true);
+    setPhotoPreviewUrl(localPreview);
+    setPhotoName(file.name);
     setError("");
     try {
       await resizeImageForCover(file);
@@ -398,6 +404,10 @@ export function InviteArtStep({
       }
     } catch (err) {
       setError(apiErrorMessage(err, "Erro de conexão."));
+    } finally {
+      URL.revokeObjectURL(localPreview);
+      setPhotoPreviewUrl("");
+      setUploadingPhoto(false);
     }
   }
 
@@ -446,7 +456,7 @@ export function InviteArtStep({
             <span style={{ fontSize: 11.5, color: "var(--faint)" }}>· opcional</span>
           </div>
 
-          {photoUrl ? (
+          {photoUrl || uploadingPhoto ? (
             <>
               <div
                 style={{
@@ -462,16 +472,31 @@ export function InviteArtStep({
               >
                 <div style={{ width: 46, height: 46, borderRadius: 999, overflow: "hidden", flexShrink: 0, border: "2px solid #fff", boxShadow: "0 2px 6px -2px rgba(0,0,0,.3)" }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={photoUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  <img src={photoUrl || photoPreviewUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 600, fontSize: 13 }}>{photoName || "Foto enviada"}</div>
-                  <div style={{ fontSize: 11.5, color: "var(--muted)" }}>Ajuste formato, tamanho e posição</div>
+                  <div style={{ fontSize: 11.5, color: "var(--muted)" }}>
+                    {uploadingPhoto ? "Enviando e processando foto..." : "Ajuste formato, tamanho e posição"}
+                  </div>
                 </div>
-                <button type="button" onClick={() => setPhotoUrl("")} style={{ border: "none", background: "transparent", cursor: "pointer", color: "var(--faint)", padding: 4 }}>
+                <button
+                  type="button"
+                  disabled={uploadingPhoto}
+                  onClick={() => setPhotoUrl("")}
+                  style={{ border: "none", background: "transparent", cursor: uploadingPhoto ? "wait" : "pointer", color: "var(--faint)", padding: 4 }}
+                >
                   <Icon name="x" size={17} />
                 </button>
               </div>
+              {uploadingPhoto ? (
+                <div className="invite-photo-upload-progress">
+                  <span className="invite-photo-upload-spinner" aria-hidden="true" />
+                  <p>
+                    Foto anexada. Estamos processando para aplicar no convite...
+                  </p>
+                </div>
+              ) : null}
               <div className="invite-photo-settings">
                 <span className="fl">Formato da foto</span>
                 <Segmented
@@ -576,18 +601,23 @@ export function InviteArtStep({
                 cursor: "pointer",
                 textAlign: "left",
                 background: "#fff",
-                border: "1.5px dashed var(--line-2)"
+                border: "1.5px dashed var(--line-2)",
+                opacity: uploadingPhoto ? 0.7 : 1
               }}
             >
-              <input type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={(e) => e.target.files?.[0] && uploadPhoto(e.target.files[0])} />
+              <input type="file" accept="image/jpeg,image/png,image/webp" hidden disabled={uploadingPhoto} onChange={(e) => e.target.files?.[0] && uploadPhoto(e.target.files[0])} />
               <span style={{ width: 38, height: 38, borderRadius: 10, background: "var(--card-2)", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--coral-deep)" }}>
                 <Icon name="image" size={18} />
               </span>
               <span style={{ flex: 1 }}>
-                <span style={{ display: "block", fontWeight: 600, fontSize: 13, color: "var(--ink)" }}>Adicionar foto do homenageado</span>
-                <span style={{ display: "block", fontSize: 11.5, color: "var(--muted)" }}>JPG ou PNG · arraste ou clique</span>
+                <span style={{ display: "block", fontWeight: 600, fontSize: 13, color: "var(--ink)" }}>
+                  {uploadingPhoto ? "Processando foto..." : "Adicionar foto do homenageado"}
+                </span>
+                <span style={{ display: "block", fontSize: 11.5, color: "var(--muted)" }}>
+                  {uploadingPhoto ? "Aguarde alguns segundos" : "JPG ou PNG · arraste ou clique"}
+                </span>
               </span>
-              <Icon name="plus" size={17} style={{ color: "var(--muted)" }} />
+              {!uploadingPhoto ? <Icon name="plus" size={17} style={{ color: "var(--muted)" }} /> : null}
             </label>
           )}
         </div>
