@@ -141,11 +141,13 @@ export function PraesentiaLogo({
 export function PraesentiaBrandFooter({
   kicker = "feito com",
   markHeight = 24,
-  wordmarkSize = 17
+  wordmarkSize = 17,
+  variant = "dark"
 }: {
   kicker?: string;
   markHeight?: number;
   wordmarkSize?: number;
+  variant?: PraesentiaLogoVariant;
 }) {
   return (
     <div style={{ textAlign: "center", color: "var(--faint, #8a7c6a)" }}>
@@ -153,7 +155,7 @@ export function PraesentiaBrandFooter({
         {kicker}
       </div>
       <div style={{ display: "flex", justifyContent: "center" }}>
-        <PraesentiaLogo variant="dark" markHeight={markHeight} wordmarkSize={wordmarkSize} />
+        <PraesentiaLogo variant={variant} markHeight={markHeight} wordmarkSize={wordmarkSize} />
       </div>
     </div>
   );

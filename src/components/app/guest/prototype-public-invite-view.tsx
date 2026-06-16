@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { Event, GiftSuggestion, GuestMessage } from "@/types/domain";
+import type { Event, GuestMessage } from "@/types/domain";
 import { InviteArt } from "@/components/app/ui/invite-art";
 import { Icon } from "@/components/app/ui/icon";
 import { Avatar, Confetti, Mono, Segmented } from "@/components/app/ui/primitives";
@@ -12,6 +12,7 @@ import { parseEventDateTime } from "@/lib/events/datetime";
 import type { PublicInvitePhase } from "@/lib/mural/timeline";
 import { GuestMessageSection } from "@/components/event/guest-message-section";
 import { PraesentiaBrandFooter } from "@/components/brand/praesentia-logo";
+import { GiftSuggestionsCarousel } from "@/components/event/gift-suggestions-carousel";
 import { MavieInviteArt } from "@/components/marketing/mavie-invite-art";
 import { isDemoEventSlug } from "@/lib/marketing/demo-event";
 
@@ -61,7 +62,7 @@ export function PrototypePublicInviteView({
   managerHref?: string;
   publicMessages?: GuestMessage[];
 }) {
-  const [gift, setGift] = useState<null | "pix" | "sug">(null);
+  const [pixOpen, setPixOpen] = useState(false);
   const [pixCopied, setPixCopied] = useState(false);
   const showRsvp = invitePhase === "rsvp_open";
   const showCountdown = invitePhase === "countdown";
@@ -200,42 +201,27 @@ export function PrototypePublicInviteView({
           </div>
         ) : null}
 
-        {(event.pix?.enabled || event.giftSuggestions.length > 0) && (
+        {event.pix?.enabled ? (
           <div className="card" style={{ padding: 18, marginBottom: 14 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 6 }}>
-              <Icon name="gift" size={18} style={{ color: "var(--coral-deep)" }} />
-              <strong style={{ fontSize: 14.5 }}>Presentes</strong>
+              <Icon name="qr" size={18} style={{ color: "var(--coral-deep)" }} />
+              <strong style={{ fontSize: 14.5 }}>Pix</strong>
             </div>
             <p style={{ margin: "0 0 14px", fontSize: 13, color: "var(--ink-2)", lineHeight: 1.5 }}>
-              Sua presença já é o maior presente. {event.pix?.enabled ? "Se quiser mimar, deixamos um Pix." : "Veja sugestões abaixo."}
+              Sua presença já é o maior presente. Se quiser mimar, deixamos um Pix.
             </p>
-            <div style={{ display: "flex", gap: 9 }}>
-              {event.pix?.enabled ? (
-                <button
-                  type="button"
-                  className={`btn btn-sm ${gift === "pix" ? "btn-dark" : "btn-ghost"}`}
-                  style={{ flex: 1 }}
-                  onClick={() => setGift(gift === "pix" ? null : "pix")}
-                >
-                  <Icon name="qr" size={14} />
-                  Pix
-                </button>
-              ) : null}
-              {event.giftSuggestions.length > 0 ? (
-                <button
-                  type="button"
-                  className={`btn btn-sm ${gift === "sug" ? "btn-dark" : "btn-ghost"}`}
-                  style={{ flex: 1 }}
-                  onClick={() => setGift(gift === "sug" ? null : "sug")}
-                >
-                  <Icon name="gift" size={14} />
-                  Sugestões
-                </button>
-              ) : null}
-            </div>
+            <button
+              type="button"
+              className={`btn btn-sm ${pixOpen ? "btn-dark" : "btn-ghost"}`}
+              style={{ width: "100%" }}
+              onClick={() => setPixOpen((open) => !open)}
+            >
+              <Icon name="qr" size={14} />
+              {pixOpen ? "Ocultar Pix" : "Ver chave Pix"}
+            </button>
 
-            {gift === "pix" && event.pix ? (
-              <div className="fadeUp" style={{ marginTop: 14, paddingTop: 16, borderTop: "1px solid var(--line)" }}>
+            {pixOpen && event.pix ? (
+              <div style={{ marginTop: 14, paddingTop: 16, borderTop: "1px solid var(--line)" }}>
                 <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
                   <FakeQr />
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -259,21 +245,27 @@ export function PrototypePublicInviteView({
                 </div>
               </div>
             ) : null}
-
-            {gift === "sug" ? (
-              <div className="fadeUp" style={{ marginTop: 14, paddingTop: 16, borderTop: "1px solid var(--line)" }}>
-                <Mono style={{ display: "block", marginBottom: 10 }}>Ideias que a família adorou</Mono>
-                <GiftList suggestions={event.giftSuggestions} />
-              </div>
-            ) : null}
           </div>
-        )}
+        ) : null}
+
+        {event.giftSuggestions.length > 0 ? (
+          <div className="card" style={{ padding: 18, marginBottom: 14 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 6 }}>
+              <Icon name="gift" size={18} style={{ color: "var(--coral-deep)" }} />
+              <strong style={{ fontSize: 14.5 }}>Sugestões de presente</strong>
+            </div>
+            <p style={{ margin: "0 0 14px", fontSize: 13, color: "var(--ink-2)", lineHeight: 1.5 }}>
+              Ideias que a família adorou — escolha com carinho.
+            </p>
+            <GiftSuggestionsCarousel suggestions={event.giftSuggestions} />
+          </div>
+        ) : null}
 
         <div className="card" style={{ padding: 18 }}>
           <GuestMessageSection eventId={event.id} initialPublicMessages={publicMessages} variant="prototype" />
         </div>
 
-        <PraesentiaBrandFooter />
+        <PraesentiaBrandFooter variant="light" />
 
         {managerHref ? (
           <p style={{ textAlign: "center", marginTop: 16, fontSize: 12 }}>
@@ -283,58 +275,6 @@ export function PrototypePublicInviteView({
           </p>
         ) : null}
       </div>
-    </div>
-  );
-}
-
-function GiftList({ suggestions }: { suggestions: GiftSuggestion[] }) {
-  const colors = ["var(--p-blue)", "var(--p-green)", "var(--p-rose)", "var(--p-lilac)"];
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      {suggestions.map((s, i) => (
-        <div
-          key={s.id}
-          style={{
-            display: "flex",
-            gap: 11,
-            alignItems: "center",
-            padding: "10px 12px",
-            borderRadius: 12,
-            background: "var(--card-2)",
-            border: "1px solid var(--line)"
-          }}
-        >
-          <span
-            style={{
-              width: 34,
-              height: 34,
-              borderRadius: 9,
-              flexShrink: 0,
-              background: colors[i % colors.length],
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "#3a3127"
-            }}
-          >
-            <Icon name="gift" size={16} />
-          </span>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontWeight: 600, fontSize: 13 }}>{s.title}</div>
-            {s.note ? (
-              <div className="mono" style={{ fontSize: 9 }}>
-                {s.note}
-              </div>
-            ) : null}
-          </div>
-          {s.linkUrl ? (
-            <a className="btn btn-ghost btn-sm" style={{ padding: "7px 12px" }} href={s.linkUrl} target="_blank" rel="noopener noreferrer">
-              Presentear
-              <Icon name="arrowR" size={13} />
-            </a>
-          ) : null}
-        </div>
-      ))}
     </div>
   );
 }

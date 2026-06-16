@@ -330,7 +330,7 @@ export function CapsulaOpen({
           </p>
         </div>
 
-        <PraesentiaBrandFooter kicker="memórias guardadas com" />
+        <PraesentiaBrandFooter kicker="memórias guardadas com" variant="light" />
       </div>
     </div>
   );

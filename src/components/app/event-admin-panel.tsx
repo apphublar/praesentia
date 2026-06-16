@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState, useTransition } from "react";
 import type { Event, EventMember, GuestRsvp, MediaItem, MuralAccessRequest, UserSubscription } from "@/types/domain";
 import { ExpandStorageModal } from "@/components/app/expand-storage-modal";
 import { PhaseLine } from "@/components/app/admin/phase-line";
@@ -85,6 +85,8 @@ export function EventAdminPanel({
   needsRsvp: boolean;
 }) {
   const [tab, setTab] = useState<TabId>("visao");
+  const [visitedTabs, setVisitedTabs] = useState<Set<TabId>>(() => new Set(["visao"]));
+  const [, startTransition] = useTransition();
   const [expandStorage, setExpandStorage] = useState(false);
   const capsule = hasCapsuleAccess(event);
   const confirmed = guestRsvps.filter((g) => g.rsvpStatus === "confirmed");
@@ -99,6 +101,26 @@ export function EventAdminPanel({
     poolUsedBytes: event.storageUsedBytes
   });
   const coverColor = PASTELS[event.id.length % PASTELS.length];
+
+  useEffect(() => {
+    void import("@/components/app/admin/admin-guests-panel");
+    void import("@/components/app/admin/admin-checkin-panel");
+    void import("@/components/app/admin/admin-mural-panel");
+    void import("@/components/app/admin/admin-config-panel");
+  }, []);
+
+  function selectTab(next: TabId) {
+    if (next === tab) return;
+    startTransition(() => {
+      setTab(next);
+      setVisitedTabs((current) => {
+        if (current.has(next)) return current;
+        const updated = new Set(current);
+        updated.add(next);
+        return updated;
+      });
+    });
+  }
 
   return (
     <div className="event-admin-shell">
@@ -148,7 +170,7 @@ export function EventAdminPanel({
               <button
                 key={t.id}
                 type="button"
-                onClick={() => setTab(t.id)}
+                onClick={() => selectTab(t.id)}
                 className={`app-admin-tab${on ? " is-active" : ""}`}
               >
                 <Icon name={t.icon} size={15} />
@@ -159,92 +181,96 @@ export function EventAdminPanel({
         </div>
       </div>
 
-      <div className="scroll event-admin-scroll" key={tab}>
-        <div className="fadeUp">
-          {tab === "visao" && (
-            <div className="event-admin-overview">
-              <div className="event-admin-main">
-                <div className="event-admin-stats">
-                  <Stat n={confirmed.length} l="Confirmados" sub="rsvp" accent="var(--coral-deep)" />
-                  <Stat n={Math.max(0, guestRsvps.filter((g) => g.rsvpStatus === "declined").length)} l="Recusados" sub="rsvp" />
-                  <Stat n={totalPeople} l="Pessoas" sub="com acompanhantes" />
-                  <Stat n={checkedIn || "—"} l="Na portaria" sub="check-in" />
-                </div>
-                <PhaseLine current={getAdminPhaseLineCurrent(event)} capsule={capsule} />
-                <div className="card event-admin-shortcuts-card">
-                  <Mono style={{ display: "block", marginBottom: 14 }}>Atalhos</Mono>
-                  <div className="event-admin-shortcuts">
-                    {[
-                      { label: "Compartilhar link", tab: "visao" as TabId, icon: "share" as IconName },
-                      { label: "Ver confirmados", tab: "convidados" as TabId, icon: "users" as IconName },
-                      { label: "Link da portaria", tab: "checkin" as TabId, icon: "qr" as IconName },
-                      { label: "Configurar evento", tab: "config" as TabId, icon: "gear" as IconName }
-                    ].map((item) => (
-                      <button key={item.label} type="button" onClick={() => setTab(item.tab)} className="event-admin-shortcut">
-                        <span className="event-admin-shortcut-icon">
-                          <Icon name={item.icon} size={16} />
-                        </span>
-                        <span className="event-admin-shortcut-label">{item.label}</span>
-                        <Icon name="chevR" size={14} style={{ color: "var(--faint)", marginLeft: "auto" }} />
-                      </button>
-                    ))}
-                  </div>
-                </div>
+      <div className="scroll event-admin-scroll">
+        <div hidden={tab !== "visao"} className="event-admin-tab-panel">
+          <div className="event-admin-overview">
+            <div className="event-admin-main">
+              <div className="event-admin-stats">
+                <Stat n={confirmed.length} l="Confirmados" sub="rsvp" accent="var(--coral-deep)" />
+                <Stat n={Math.max(0, guestRsvps.filter((g) => g.rsvpStatus === "declined").length)} l="Recusados" sub="rsvp" />
+                <Stat n={totalPeople} l="Pessoas" sub="com acompanhantes" />
+                <Stat n={checkedIn || "—"} l="Na portaria" sub="check-in" />
               </div>
-              <div className="event-admin-sidebar">
-                {capsule ? (
-                  <div className="card event-admin-capsule-card">
-                    <div className="event-admin-capsule-head">
-                      <Icon name="hourglass" size={17} style={{ color: "var(--amber)" }} />
-                      <strong>Cápsula ativa</strong>
-                      <span className="mono event-admin-capsule-badge">36 meses+</span>
-                    </div>
-                    <Mono style={{ color: "rgba(244,237,223,.55)" }}>
-                      Armazenamento · {storage.contractedGb.toFixed(0)} GB
-                      {storage.extraGb > 0 ? ` · +${storage.extraGb.toFixed(0)} GB extra` : ""}
-                    </Mono>
-                    <div className="event-admin-storage-bar-wrap">
-                      <div className="event-admin-storage-bar-labels">
-                        <span>Em uso</span>
-                        <span>{storage.usedGb.toFixed(2)} GB</span>
-                      </div>
-                      <div className="event-admin-storage-bar">
-                        <div className="event-admin-storage-bar-fill" style={{ width: `${storage.progressPercent}%` }} />
-                      </div>
-                    </div>
-                    <p className="event-admin-capsule-note">{mediaCount} memórias publicadas</p>
-                    <button type="button" className="btn btn-amber btn-sm event-admin-expand-btn" onClick={() => setExpandStorage(true)}>
-                      Ampliar espaço
+              <PhaseLine current={getAdminPhaseLineCurrent(event)} capsule={capsule} />
+              <div className="card event-admin-shortcuts-card">
+                <Mono style={{ display: "block", marginBottom: 14 }}>Atalhos</Mono>
+                <div className="event-admin-shortcuts">
+                  {[
+                    { label: "Compartilhar link", tab: "visao" as TabId, icon: "share" as IconName },
+                    { label: "Ver confirmados", tab: "convidados" as TabId, icon: "users" as IconName },
+                    { label: "Link da portaria", tab: "checkin" as TabId, icon: "qr" as IconName },
+                    { label: "Configurar evento", tab: "config" as TabId, icon: "gear" as IconName }
+                  ].map((item) => (
+                    <button key={item.label} type="button" onClick={() => selectTab(item.tab)} className="event-admin-shortcut">
+                      <span className="event-admin-shortcut-icon">
+                        <Icon name={item.icon} size={16} />
+                      </span>
+                      <span className="event-admin-shortcut-label">{item.label}</span>
+                      <Icon name="chevR" size={14} style={{ color: "var(--faint)", marginLeft: "auto" }} />
                     </button>
-                  </div>
-                ) : (
-                  <PlanUpgradePanel event={event} subscription={subscription} />
-                )}
-                {coverQuota ? <InviteAiQuotaPanel quota={coverQuota} eventUsed={event.aiCoverGenerationsCount} /> : null}
-                {needsRsvp && confirmed.length > 0 ? (
-                  <div className="card event-admin-recent-rsvps">
-                    <Mono style={{ display: "block", marginBottom: 12 }}>Confirmações recentes</Mono>
-                    {confirmed.slice(0, 4).map((g) => (
-                      <div key={g.id} className="event-admin-rsvp-row">
-                        <Avatar name={g.guestName} size={30} />
-                        <span className="event-admin-rsvp-name">{g.guestName}</span>
-                        <Icon name="check" size={15} style={{ color: "#7d9a6f" }} sw={2.4} />
-                      </div>
-                    ))}
-                  </div>
-                ) : null}
+                  ))}
+                </div>
               </div>
             </div>
-          )}
+            <div className="event-admin-sidebar">
+              {capsule ? (
+                <div className="card event-admin-capsule-card">
+                  <div className="event-admin-capsule-head">
+                    <Icon name="hourglass" size={17} style={{ color: "var(--amber)" }} />
+                    <strong>Cápsula ativa</strong>
+                    <span className="mono event-admin-capsule-badge">36 meses+</span>
+                  </div>
+                  <Mono style={{ color: "rgba(244,237,223,.55)" }}>
+                    Armazenamento · {storage.contractedGb.toFixed(0)} GB
+                    {storage.extraGb > 0 ? ` · +${storage.extraGb.toFixed(0)} GB extra` : ""}
+                  </Mono>
+                  <div className="event-admin-storage-bar-wrap">
+                    <div className="event-admin-storage-bar-labels">
+                      <span>Em uso</span>
+                      <span>{storage.usedGb.toFixed(2)} GB</span>
+                    </div>
+                    <div className="event-admin-storage-bar">
+                      <div className="event-admin-storage-bar-fill" style={{ width: `${storage.progressPercent}%` }} />
+                    </div>
+                  </div>
+                  <p className="event-admin-capsule-note">{mediaCount} memórias publicadas</p>
+                  <button type="button" className="btn btn-amber btn-sm event-admin-expand-btn" onClick={() => setExpandStorage(true)}>
+                    Ampliar espaço
+                  </button>
+                </div>
+              ) : (
+                <PlanUpgradePanel event={event} subscription={subscription} />
+              )}
+              {coverQuota ? <InviteAiQuotaPanel quota={coverQuota} eventUsed={event.aiCoverGenerationsCount} /> : null}
+              {needsRsvp && confirmed.length > 0 ? (
+                <div className="card event-admin-recent-rsvps">
+                  <Mono style={{ display: "block", marginBottom: 12 }}>Confirmações recentes</Mono>
+                  {confirmed.slice(0, 4).map((g) => (
+                    <div key={g.id} className="event-admin-rsvp-row">
+                      <Avatar name={g.guestName} size={30} />
+                      <span className="event-admin-rsvp-name">{g.guestName}</span>
+                      <Icon name="check" size={15} style={{ color: "#7d9a6f" }} sw={2.4} />
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </div>
 
-          {tab === "convidados" &&
-            (needsRsvp ? (
+        {visitedTabs.has("convidados") ? (
+          <div hidden={tab !== "convidados"} className="event-admin-tab-panel">
+            {needsRsvp ? (
               <AdminGuestsPanel eventId={event.id} initialRsvps={guestRsvps} />
             ) : (
               <p style={{ color: "var(--muted)" }}>RSVP não habilitado para este evento.</p>
-            ))}
-          {tab === "checkin" &&
-            (needsRsvp ? (
+            )}
+          </div>
+        ) : null}
+
+        {visitedTabs.has("checkin") ? (
+          <div hidden={tab !== "checkin"} className="event-admin-tab-panel">
+            {needsRsvp ? (
               <AdminCheckinPanel
                 eventId={event.id}
                 eventSlug={event.slug}
@@ -253,22 +279,30 @@ export function EventAdminPanel({
               />
             ) : (
               <p style={{ color: "var(--muted)" }}>Check-in disponível com RSVP.</p>
-            ))}
-          {tab === "mural" &&
-            (capsule ? (
+            )}
+          </div>
+        ) : null}
+
+        {visitedTabs.has("mural") ? (
+          <div hidden={tab !== "mural"} className="event-admin-tab-panel">
+            {capsule ? (
               <AdminMuralPanel event={event} items={media} initialAccessRequests={muralAccessRequests} />
             ) : (
               <LockedCapsuleView />
-            ))}
-          {tab === "config" && (
+            )}
+          </div>
+        ) : null}
+
+        {visitedTabs.has("config") ? (
+          <div hidden={tab !== "config"} className="event-admin-tab-panel">
             <AdminConfigPanel
               event={event}
               members={eventMembers}
               capsuleActive={Boolean(event.capsuleActivatedAt)}
               needsRsvp={needsRsvp}
             />
-          )}
-        </div>
+          </div>
+        ) : null}
       </div>
 
       {expandStorage ? (

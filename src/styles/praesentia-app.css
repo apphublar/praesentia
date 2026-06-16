@@ -1953,6 +1953,138 @@
   white-space: nowrap;
 }
 
+.gift-suggestions-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.gift-suggestions-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--card-2);
+  border: 1px solid var(--line);
+}
+
+.gift-suggestions-item strong {
+  display: block;
+  font-size: 13.5px;
+}
+
+.gift-suggestions-item p {
+  margin: 4px 0 0;
+  font-size: 12.5px;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.gift-carousel {
+  margin: 0 -4px;
+}
+
+.gift-carousel-track {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  padding: 4px 4px 8px;
+  scrollbar-width: none;
+}
+
+.gift-carousel-track::-webkit-scrollbar {
+  display: none;
+}
+
+.gift-carousel-card {
+  flex: 0 0 min(78%, 280px);
+  scroll-snap-align: center;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: var(--card-2);
+  box-shadow: 0 10px 24px -18px rgba(58, 49, 39, 0.35);
+}
+
+.gift-carousel-card-media {
+  height: 132px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gift-carousel-card-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.gift-carousel-card-body {
+  padding: 14px 14px 16px;
+}
+
+.gift-carousel-card-body h3 {
+  margin: 0 0 6px;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.gift-carousel-card-body p {
+  margin: 0 0 12px;
+  font-size: 12.5px;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.gift-carousel-card-cta {
+  width: 100%;
+  justify-content: center;
+}
+
+.gift-carousel-dots {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.gift-carousel-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 99px;
+  background: var(--line-2);
+  transition: width 0.25s ease, background 0.25s ease;
+}
+
+.gift-carousel-dot.is-active {
+  width: 18px;
+  background: var(--coral-deep);
+}
+
+.event-admin-tab-panel[hidden] {
+  display: none !important;
+}
+
+.app-admin-tab,
+.navitem,
+.app-bottom-nav a,
+.app-bottom-nav-action {
+  touch-action: manipulation;
+}
+
+.app-admin-tab {
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
 @media (max-width: 900px) {
   .my-events-page {
     padding: 24px 18px calc(72px + env(safe-area-inset-bottom));

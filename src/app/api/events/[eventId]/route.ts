@@ -4,6 +4,7 @@ import { normalizeEventDateString, normalizeEventTimeString } from "@/lib/events
 import { getCurrentSession, requireRecentAuthentication } from "@/lib/auth/session";
 import { repositories } from "@/lib/db";
 import { assertTrustedOrigin } from "@/lib/security/origin";
+import { normalizeGiftSuggestions } from "@/lib/events/gift-suggestions";
 import { isValidPixKey, sanitizeText } from "@/lib/security/sanitize";
 
 export async function GET(_request: Request, context: { params: Promise<{ eventId: string }> }) {
@@ -62,6 +63,11 @@ export async function PATCH(request: Request, context: { params: Promise<{ event
       suggestedAmount: Number(body.pix.suggestedAmount || 0) || undefined,
       message: sanitizeText(body.pix.message, 180)
     });
+  }
+
+  if (body.giftSuggestions !== undefined) {
+    const giftSuggestions = normalizeGiftSuggestions(body.giftSuggestions);
+    await repositories.events.update(eventId, session.user.id, { giftSuggestions });
   }
 
   if (body.details && typeof body.details === "object") {

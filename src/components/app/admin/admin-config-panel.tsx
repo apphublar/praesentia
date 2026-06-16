@@ -4,6 +4,8 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { Event, EventMember } from "@/types/domain";
 import { ConfBlock, ConfigRow, Field2 } from "@/components/app/admin/conf-block";
+import { GiftSuggestionsAdminEditor } from "@/components/app/admin/gift-suggestions-admin-editor";
+import type { GiftSuggestion } from "@/types/domain";
 import { apiErrorMessage, dashboardFetchJson } from "@/lib/api/dashboard-fetch";
 
 type RequestState = { loading: boolean; message: string; tone: "ok" | "error" | "idle" };
@@ -32,8 +34,9 @@ export function AdminConfigPanel({
 
   const [pixEnabled, setPixEnabled] = useState(Boolean(event.pix?.enabled));
   const [pixKey, setPixKey] = useState(event.pix?.key ?? "");
-  const [showGifts, setShowGifts] = useState(event.giftSuggestions.length > 0);
   const [pixState, setPixState] = useState<RequestState>(idle);
+  const [giftState, setGiftState] = useState<RequestState>(idle);
+  const [localMembers, setLocalMembers] = useState(members);
 
   const ownerCount = useMemo(() => members.filter((m) => m.role === "owner").length, [members]);
 
@@ -58,6 +61,20 @@ export function AdminConfigPanel({
       setDetailsState({ loading: false, message: "Configurações salvas.", tone: "ok" });
     } catch (error) {
       setDetailsState({ loading: false, message: apiErrorMessage(error, "Falha ao salvar."), tone: "error" });
+    }
+  }
+
+  async function saveGiftSuggestions(items: GiftSuggestion[]) {
+    setGiftState({ loading: true, message: "", tone: "idle" });
+    try {
+      const { response, data } = await dashboardFetchJson(`/api/events/${event.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ giftSuggestions: items })
+      });
+      if (!response.ok) throw new Error(String(data.error ?? "Erro ao salvar."));
+      setGiftState({ loading: false, message: "Sugestões salvas.", tone: "ok" });
+    } catch (error) {
+      setGiftState({ loading: false, message: apiErrorMessage(error, "Falha ao salvar sugestões."), tone: "error" });
     }
   }
 
@@ -98,16 +115,25 @@ export function AdminConfigPanel({
         <Status state={detailsState} />
       </ConfBlock>
 
-      <ConfBlock title="Presentes & Pix" desc="Opcional. Aparece na página do convite.">
+      <ConfBlock title="Pix" desc="Opcional. Aparece na página do convite.">
         <ConfigRow label="Mostrar Pix no convite" on={pixEnabled} onChange={setPixEnabled} />
         <Field2 label="Chave Pix">
           <input className="input" placeholder="email, telefone ou aleatória" value={pixKey} onChange={(e) => setPixKey(e.target.value)} />
         </Field2>
-        <ConfigRow label="Mostrar sugestões de presente" on={showGifts} onChange={setShowGifts} />
         <button type="button" className="btn btn-dark btn-sm" disabled={pixState.loading} onClick={savePix}>
-          {pixState.loading ? "Salvando…" : "Salvar presentes"}
+          {pixState.loading ? "Salvando…" : "Salvar Pix"}
         </button>
         <Status state={pixState} />
+      </ConfBlock>
+
+      <ConfBlock title="Sugestões de presente" desc="Ideias de presente em carrossel na página do convite.">
+        <GiftSuggestionsAdminEditor
+          initialItems={event.giftSuggestions}
+          onSave={saveGiftSuggestions}
+          saving={giftState.loading}
+          message={giftState.message}
+          tone={giftState.tone}
+        />
       </ConfBlock>
 
       {capsuleActive ? (
@@ -145,9 +171,9 @@ export function AdminConfigPanel({
         <Status state={detailsState} />
       </ConfBlock>
 
-      {capsuleActive && members.length > 0 ? (
+      {capsuleActive && localMembers.length > 0 ? (
         <ConfBlock title="Moderar convidados" desc="Bloqueie acesso ao mural quando necessário.">
-          {members.map((member) => {
+          {localMembers.map((member) => {
             const blocked = member.accessStatus === "blocked";
             const isOnlyOwner = member.role === "owner" && ownerCount <= 1;
             return (
@@ -158,11 +184,19 @@ export function AdminConfigPanel({
                   className={`btn btn-sm ${blocked ? "btn-coral" : "btn-ghost"}`}
                   disabled={isOnlyOwner}
                   onClick={async () => {
-                    await dashboardFetchJson(`/api/events/${event.id}/members/${member.userId}`, {
-                      method: "PATCH",
-                      body: JSON.stringify({ action: blocked ? "unblock" : "block" })
-                    });
-                    window.location.reload();
+                    const { response, data } = await dashboardFetchJson(
+                      `/api/events/${event.id}/members/${member.userId}`,
+                      {
+                        method: "PATCH",
+                        body: JSON.stringify({ action: blocked ? "unblock" : "block" })
+                      }
+                    );
+                    const updatedMember = data.member as EventMember | undefined;
+                    if (response.ok && updatedMember) {
+                      setLocalMembers((current) =>
+                        current.map((row) => (row.userId === member.userId ? updatedMember : row))
+                      );
+                    }
                   }}
                 >
                   {blocked ? "Desbloquear" : "Bloquear"}

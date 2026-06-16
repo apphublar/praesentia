@@ -85,7 +85,7 @@ function NavLink({
   }
 
   return (
-    <Link href={href} className={`navitem${isLogout ? " is-logout" : ""}`} style={baseStyle}>
+    <Link href={href} prefetch className={`navitem${isLogout ? " is-logout" : ""}`} style={baseStyle}>
       {content}
       {compact ? <span style={{ fontSize: 10.5, lineHeight: 1.2 }}>{item.name.split(" ")[0]}</span> : null}
     </Link>
@@ -124,6 +124,20 @@ export function AppShell({ user, events, children }: { user: User; events: Event
     organizerNav.find((item) => item.id === "criar"),
     ...accountNav
   ].filter((item): item is AppNavItem => Boolean(item));
+
+  useEffect(() => {
+    const hrefs = new Set<string>();
+    for (const group of navGroups) {
+      for (const item of group.items) {
+        if (item.href && !item.externalPreview && !item.href.startsWith("#")) {
+          hrefs.add(item.href);
+        }
+      }
+    }
+    for (const href of hrefs) {
+      router.prefetch(href);
+    }
+  }, [navGroups, router]);
 
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" });
@@ -223,6 +237,7 @@ export function AppShell({ user, events, children }: { user: User; events: Event
             <Link
               key={item.id}
               href={item.href}
+              prefetch
               className={isCreate ? "app-bottom-nav-create" : undefined}
               style={{
                 flex: 1,

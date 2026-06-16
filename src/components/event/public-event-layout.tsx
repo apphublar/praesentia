@@ -23,7 +23,7 @@ export function PublicEventLayout({
       </div>
       <main className="public-event-main">{children}</main>
       <footer className="public-event-footer">
-        <PraesentiaBrandFooter />
+        <PraesentiaBrandFooter variant="light" />
       </footer>
     </div>
   );
