@@ -115,7 +115,7 @@ function FieldWithAi({
       </div>
       <button
         type="button"
-        className="btn btn-dark btn-sm"
+        className="btn btn-sm invite-ai-secondary-btn"
         style={{ marginTop: 12, width: "100%" }}
         onClick={onGenerate}
         disabled={loading || disabled}
@@ -538,7 +538,7 @@ export function InviteArtStep({
                 <div className="invite-photo-layout">
                   <div className="invite-photo-position">
                     <span className="fl">Posição na arte</span>
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 5, width: 104 }}>
+                    <div className="invite-photo-position-grid">
                       {PHOTO_POSITIONS.map((p) => {
                         const on = photoPos === p;
                         return (

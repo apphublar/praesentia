@@ -117,6 +117,8 @@ export function AppShell({ user, events, children }: { user: User; events: Event
 
   const navGroups = useMemo(() => buildAppNavGroups(activeEvent), [activeEvent]);
   const organizerNav = navGroups.find((group) => group.label === "Organizador")?.items ?? [];
+  const accountNav = navGroups.find((group) => group.label === "Conta")?.items ?? [];
+  const mobileNav = [...organizerNav, ...accountNav.filter((item) => item.id !== "sair")];
 
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" });
@@ -167,32 +169,18 @@ export function AppShell({ user, events, children }: { user: User; events: Event
               </span>
             </div>
           </div>
-          <div className="app-rail-account-links">
-            <Link href="/dashboard/pagamentos" className={`app-rail-account-link${pathname === "/dashboard/pagamentos" ? " is-active" : ""}`}>
-              <Icon name="card" size={15} />
-              Pagamentos
-            </Link>
-            <Link href="/" className="app-rail-account-link">
-              <Icon name="home" size={15} />
-              Voltar ao site
-            </Link>
-            <button type="button" className="app-rail-account-link is-logout app-rail-account-button" onClick={handleLogout}>
-              <Icon name="logout" size={15} />
-              Sair da conta
-            </button>
-          </div>
         </div>
       </aside>
 
       <div className="app-main">{children}</div>
 
       <nav className="app-bottom-nav" aria-label="Navegação principal">
-        {organizerNav.map((item) => {
+        {mobileNav.map((item) => {
           const on = isAppNavItemActive(item, pathname, activeEvent);
           const disabled = isAppNavItemDisabled(item, activeEvent);
           if (disabled) {
             return (
-              <span key={item.id} style={{ flex: 1, textAlign: "center", opacity: 0.45, color: "var(--faint)", fontSize: 11 }}>
+              <span key={item.id} style={{ minWidth: 62, textAlign: "center", opacity: 0.45, color: "var(--faint)", fontSize: 11 }}>
                 <Icon name={item.icon} size={20} />
                 {item.name.split(" ")[0]}
               </span>
@@ -212,7 +200,8 @@ export function AppShell({ user, events, children }: { user: User; events: Event
                 color: on ? "var(--coral-deep)" : "var(--muted)",
                 fontSize: 11,
                 fontWeight: on ? 700 : 500,
-                textDecoration: "none"
+                textDecoration: "none",
+                minWidth: 62
               }}
             >
               <Icon name={item.icon} size={20} />
@@ -220,6 +209,10 @@ export function AppShell({ user, events, children }: { user: User; events: Event
             </Link>
           );
         })}
+        <button type="button" className="app-bottom-nav-action is-logout" onClick={handleLogout} style={{ minWidth: 62 }}>
+          <Icon name="logout" size={20} />
+          Sair
+        </button>
       </nav>
     </div>
   );

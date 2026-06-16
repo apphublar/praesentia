@@ -630,7 +630,14 @@
     border-top: 1px solid var(--line);
     padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
     gap: 6px;
-    justify-content: space-around;
+    justify-content: flex-start;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .app-bottom-nav::-webkit-scrollbar {
+    display: none;
   }
 
   .app-main {
@@ -1821,9 +1828,27 @@
   flex-shrink: 0;
 }
 
+.invite-photo-position-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 5px;
+  width: 104px;
+}
+
 .invite-photo-notes {
   flex: 1;
   min-width: 0;
+}
+
+.invite-ai-secondary-btn {
+  background: linear-gradient(135deg, #3d342a 0%, #2a231b 100%);
+  color: #f8efe0;
+  border: 1px solid #5a4a3b;
+  box-shadow: 0 4px 12px -6px rgba(34, 27, 20, 0.6);
+}
+
+.invite-ai-secondary-btn:hover {
+  background: linear-gradient(135deg, #4a3e31 0%, #30281f 100%);
 }
 
 .invite-photo-upload-progress {
@@ -1931,6 +1956,13 @@
 
   .invite-photo-layout {
     flex-direction: column;
+  }
+
+  .invite-photo-position {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
   }
 
   .invite-art-grid {
