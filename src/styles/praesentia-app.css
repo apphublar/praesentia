@@ -611,7 +611,16 @@
 }
 
 .app-bottom-nav-action.is-logout {
+  color: var(--muted);
+}
+
+.app-bottom-nav-action.is-logout:hover {
   color: var(--coral-deep);
+}
+
+.app-bottom-nav-action.is-logout:focus-visible {
+  outline: 2px solid rgba(242, 107, 90, 0.35);
+  outline-offset: 2px;
 }
 
 @media (max-width: 900px) {

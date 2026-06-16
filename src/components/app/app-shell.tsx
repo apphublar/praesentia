@@ -193,6 +193,32 @@ export function AppShell({ user, events, children }: { user: User; events: Event
               </span>
             );
           }
+          if (isLogout) {
+            return (
+              <button
+                key={item.id}
+                type="button"
+                className="app-bottom-nav-action is-logout"
+                onClick={handleLogout}
+                style={{
+                  flex: 1,
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: 4,
+                  padding: "6px 4px",
+                  color: "var(--muted)",
+                  fontSize: 11,
+                  fontWeight: 500,
+                  textDecoration: "none",
+                  minWidth: 62
+                }}
+              >
+                <Icon name={item.icon} size={20} />
+                {item.name}
+              </button>
+            );
+          }
           return (
             <Link
               key={item.id}
@@ -206,7 +232,6 @@ export function AppShell({ user, events, children }: { user: User; events: Event
                 gap: 4,
                 padding: "6px 4px",
                 color: on ? "var(--coral-deep)" : "var(--muted)",
-                ...(isLogout ? { color: "var(--coral-deep)" } : null),
                 fontSize: 11,
                 fontWeight: on ? 700 : 500,
                 textDecoration: "none",
