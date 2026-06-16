@@ -468,6 +468,12 @@
   transition: background 0.15s, color 0.15s;
 }
 
+.app-rail-account-button,
+.navitem-button {
+  border: 0;
+  font-family: inherit;
+}
+
 .app-rail-account-link:hover {
   background: rgba(0, 0, 0, 0.04);
   color: var(--ink);

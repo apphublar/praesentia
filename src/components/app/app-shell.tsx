@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo } from "react";
 import type { Event, User } from "@/types/domain";
 import { Icon } from "@/components/app/ui/icon";
@@ -19,12 +19,14 @@ function NavLink({
   item,
   event,
   pathname,
-  compact
+  compact,
+  onLogout
 }: {
   item: AppNavItem;
   event: Event | null;
   pathname: string;
   compact?: boolean;
+  onLogout: () => void;
 }) {
   const on = isAppNavItemActive(item, pathname, event);
   const locked = isAppNavItemLocked(item, event);
@@ -73,6 +75,15 @@ function NavLink({
     );
   }
 
+  if (isLogout) {
+    return (
+      <button type="button" className="navitem is-logout navitem-button" style={baseStyle} onClick={onLogout}>
+        {content}
+        {compact ? <span style={{ fontSize: 10.5, lineHeight: 1.2 }}>{item.name.split(" ")[0]}</span> : null}
+      </button>
+    );
+  }
+
   return (
     <Link href={href} className={`navitem${isLogout ? " is-logout" : ""}`} style={baseStyle}>
       {content}
@@ -83,6 +94,7 @@ function NavLink({
 
 export function AppShell({ user, events, children }: { user: User; events: Event[]; children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
 
   useEffect(() => {
     if ("serviceWorker" in navigator) {
@@ -105,6 +117,12 @@ export function AppShell({ user, events, children }: { user: User; events: Event
 
   const navGroups = useMemo(() => buildAppNavGroups(activeEvent), [activeEvent]);
   const organizerNav = navGroups.find((group) => group.label === "Organizador")?.items ?? [];
+
+  async function handleLogout() {
+    await fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" });
+    router.replace("/login");
+    router.refresh();
+  }
 
   return (
     <div className="app-shell">
@@ -133,7 +151,7 @@ export function AppShell({ user, events, children }: { user: User; events: Event
                 {group.cap ? <Icon name="hourglass" size={11} style={{ color: "var(--coral-deep)" }} /> : null}
               </div>
               {group.items.map((item) => (
-                <NavLink key={item.id} item={item} event={activeEvent} pathname={pathname} />
+                <NavLink key={item.id} item={item} event={activeEvent} pathname={pathname} onLogout={handleLogout} />
               ))}
             </div>
           ))}
@@ -158,10 +176,10 @@ export function AppShell({ user, events, children }: { user: User; events: Event
               <Icon name="home" size={15} />
               Voltar ao site
             </Link>
-            <Link href="/api/auth/logout" className="app-rail-account-link is-logout">
+            <button type="button" className="app-rail-account-link is-logout app-rail-account-button" onClick={handleLogout}>
               <Icon name="logout" size={15} />
               Sair da conta
-            </Link>
+            </button>
           </div>
         </div>
       </aside>
