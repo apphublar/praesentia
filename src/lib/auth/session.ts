@@ -11,6 +11,7 @@ import {
   type SessionPayload
 } from "@/lib/auth/session-cookie";
 import type { User } from "@/types/domain";
+import { isPlatformAdminEmail } from "@/lib/auth/platform-admin";
 
 export type Session = {
   user: User;
@@ -29,12 +30,27 @@ function userFromPayload(payload: SessionPayload): User {
 }
 
 async function enrichSessionFromDatabase(payload: SessionPayload): Promise<Session> {
-  const fallback: Session = { user: userFromPayload(payload), payload };
+  const fallbackUser = userFromPayload(payload);
+  const fallback: Session = {
+    user: {
+      ...fallbackUser,
+      role: isPlatformAdminEmail(fallbackUser.email) ? "platform_admin" : fallbackUser.role
+    },
+    payload
+  };
 
   for (let attempt = 0; attempt < 4; attempt += 1) {
     try {
       const dbUser = await repositories.users.findById(payload.sub);
-      if (dbUser) return { user: dbUser, payload };
+      if (dbUser) {
+        return {
+          user: {
+            ...dbUser,
+            role: isPlatformAdminEmail(dbUser.email) ? "platform_admin" : dbUser.role
+          },
+          payload
+        };
+      }
       return fallback;
     } catch (error) {
       console.error(`[auth] user lookup failed (attempt ${attempt + 1}/4)`, error);
@@ -112,8 +128,6 @@ export async function requirePageSession(loginNext?: string) {
     throw error;
   }
 }
-
-import { isPlatformAdminEmail } from "@/lib/auth/platform-admin";
 
 export function isPlatformAdmin(user: User) {
   return isPlatformAdminEmail(user.email);

@@ -6,7 +6,7 @@ import "@/styles/praesentia-app.css";
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const session = await requirePageSession("/admin");
   if (!isPlatformAdmin(session.user)) {
-    redirect("/dashboard");
+    redirect("/login?next=%2Fadmin&error=not-admin");
   }
 
   return (

@@ -2279,6 +2279,16 @@ p + a.btn,
   display: block;
 }
 
+.login-admin-banner {
+  margin-bottom: 14px;
+  border-color: rgba(242, 107, 90, 0.35);
+  background: linear-gradient(180deg, #fff8f3 0%, #fbf8f0 100%);
+}
+
+.login-page-notice {
+  margin: 0 0 14px;
+}
+
 .storage-actions-row,
 .settings-actions-row {
   display: flex;
