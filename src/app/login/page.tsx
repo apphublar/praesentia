@@ -3,7 +3,6 @@ import { DevLoginForm } from "@/components/auth/dev-login-form";
 import { LoginShowcase } from "@/components/auth/login-showcase";
 import { SupabaseLoginForm } from "@/components/auth/supabase-login-form";
 import { AppNav } from "@/components/layout/app-nav";
-import { establishPraesentiaSessionForUser } from "@/lib/auth/establish-session";
 import { loginRequiresMfaVerification } from "@/lib/auth/mfa";
 import { resolvePostLoginPath } from "@/lib/auth/post-login-path";
 import { isPlatformAdmin, getCurrentSession } from "@/lib/auth/session";
@@ -71,10 +70,7 @@ export default async function LoginPage({
       const mfa = await loginRequiresMfaVerification(supabase);
       if (!mfa.required) {
         const destination = await resolvePostLoginPath(authUser.id, nextPath);
-        const established = await establishPraesentiaSessionForUser(authUser.id, authUser.email, destination);
-        if (established.ok) {
-          redirect(established.nextPath);
-        }
+        redirect(`/api/auth/establish-session?next=${encodeURIComponent(destination)}`);
       }
     }
   }

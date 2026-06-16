@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { repositories } from "@/lib/db";
-import { establishPraesentiaSessionForUser } from "@/lib/auth/establish-session";
 import { loginRequiresMfaVerification } from "@/lib/auth/mfa";
 import { resolvePostLoginPath } from "@/lib/auth/post-login-path";
 
@@ -42,10 +41,7 @@ export async function GET(request: Request) {
   }
 
   const nextPath = await resolvePostLoginPath(data.user.id, requestedNext);
-  const established = await establishPraesentiaSessionForUser(data.user.id, data.user.email, nextPath);
-  if (!established.ok) {
-    return NextResponse.redirect(new URL(`/login?error=profile-pending&next=${encodeURIComponent(nextPath)}`, requestUrl.origin));
-  }
-
-  return NextResponse.redirect(new URL(established.nextPath, requestUrl.origin));
+  const establishUrl = new URL("/api/auth/establish-session", requestUrl.origin);
+  establishUrl.searchParams.set("next", nextPath);
+  return NextResponse.redirect(establishUrl);
 }

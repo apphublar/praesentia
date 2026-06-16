@@ -1,5 +1,16 @@
-const CACHE = "praesentia-shell-v1";
-const SHELL = ["/", "/dashboard", "/manifest.webmanifest"];
+const CACHE = "praesentia-shell-v2";
+const SHELL = ["/", "/manifest.webmanifest"];
+
+function isProtectedAppPath(pathname) {
+  return (
+    pathname === "/dashboard" ||
+    pathname.startsWith("/dashboard/") ||
+    pathname === "/admin" ||
+    pathname.startsWith("/admin/") ||
+    pathname === "/criar" ||
+    pathname.startsWith("/criar/")
+  );
+}
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(SHELL)).then(() => self.skipWaiting()));
@@ -21,6 +32,11 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  if (request.mode === "navigate" && isProtectedAppPath(url.pathname)) {
+    event.respondWith(fetch(request));
+    return;
+  }
+
   if (request.mode === "navigate") {
     event.respondWith(
       fetch(request)
@@ -29,7 +45,7 @@ self.addEventListener("fetch", (event) => {
           caches.open(CACHE).then((cache) => cache.put(request, copy));
           return response;
         })
-        .catch(() => caches.match(request).then((r) => r || caches.match("/dashboard")))
+        .catch(() => caches.match(request).then((r) => r || caches.match("/")))
     );
     return;
   }

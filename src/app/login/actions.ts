@@ -30,10 +30,8 @@ async function resolveLoginDestination(formNext: FormDataEntryValue | null, user
   return resolvePostLoginPath(userId, requested);
 }
 
-async function issuePraesentiaSession(userId: string, email: string, nextPath: string): Promise<AuthActionState> {
-  const result = await establishPraesentiaSessionForUser(userId, email, nextPath);
-  if (!result.ok) return { error: result.error };
-  redirect(result.nextPath);
+function issuePraesentiaSession(_userId: string, _email: string, nextPath: string): never {
+  redirect(`/api/auth/establish-session?next=${encodeURIComponent(nextPath)}`);
 }
 
 function appBaseUrl() {

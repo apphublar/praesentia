@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { SESSION_COOKIE_NAME, sessionCookieOptions } from "@/lib/auth/session-cookie";
+import { SESSION_COOKIE_NAME, buildSessionCookieOptions } from "@/lib/auth/session-cookie";
 import { assertTrustedOrigin } from "@/lib/security/origin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -9,7 +9,7 @@ async function clearSession() {
   await supabase.auth.signOut();
 
   const cookieStore = await cookies();
-  cookieStore.set(SESSION_COOKIE_NAME, "", { ...sessionCookieOptions, maxAge: 0 });
+  cookieStore.set(SESSION_COOKIE_NAME, "", { ...buildSessionCookieOptions(), maxAge: 0 });
 }
 
 export async function GET(request: Request) {

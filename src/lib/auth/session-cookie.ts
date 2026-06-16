@@ -89,11 +89,30 @@ export function isRecentlyReauthenticated(payload: SessionPayload, maxAgeSeconds
   return Math.floor(Date.now() / 1000) - payload.reauthTime <= maxAgeSeconds;
 }
 
-export const sessionCookieOptions = {
-  httpOnly: true,
-  sameSite: "lax" as const,
-  secure: isProductionEnvironment(),
-  path: "/",
-  domain: sessionCookieDomain(),
-  maxAge: SESSION_TTL_SECONDS
+type SessionCookieOptions = {
+  httpOnly: boolean;
+  sameSite: "lax";
+  secure: boolean;
+  path: string;
+  maxAge: number;
+  domain?: string;
 };
+
+export function buildSessionCookieOptions(overrides: Partial<SessionCookieOptions> = {}): SessionCookieOptions {
+  const options: SessionCookieOptions = {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: isProductionEnvironment(),
+    path: "/",
+    maxAge: SESSION_TTL_SECONDS,
+    ...overrides
+  };
+
+  const domain = overrides.domain ?? sessionCookieDomain();
+  if (domain) options.domain = domain;
+
+  return options;
+}
+
+/** @deprecated Prefer buildSessionCookieOptions() so empty domain is omitted. */
+export const sessionCookieOptions = buildSessionCookieOptions();

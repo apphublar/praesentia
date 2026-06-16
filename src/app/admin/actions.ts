@@ -11,7 +11,7 @@ import {
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { AiInviteUpgradePlan } from "@/lib/plans/ai-invite-plans";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { createSessionToken, SESSION_COOKIE_NAME, sessionCookieOptions } from "@/lib/auth/session-cookie";
+import { createSessionToken, SESSION_COOKIE_NAME, buildSessionCookieOptions } from "@/lib/auth/session-cookie";
 import { cookies } from "next/headers";
 
 export type AdminActionState = {
@@ -205,7 +205,7 @@ export async function adminUpdatePassword(_state: AdminActionState, formData: Fo
         email: user.email,
         reauth: true
       });
-      cookieStore.set(SESSION_COOKIE_NAME, token, sessionCookieOptions);
+      cookieStore.set(SESSION_COOKIE_NAME, token, buildSessionCookieOptions());
     }
 
     return { ok: true, message: "Senha atualizada com sucesso." };

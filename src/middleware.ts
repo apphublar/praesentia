@@ -1,9 +1,9 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { isProtectedRoute } from "@/lib/auth/routes";
-import { SESSION_COOKIE_NAME } from "@/lib/auth/session-token-edge";
+import { SESSION_COOKIE_NAME, verifySessionTokenEdge } from "@/lib/auth/session-token-edge";
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   if (!isProtectedRoute(pathname)) return NextResponse.next();
 
@@ -11,7 +11,10 @@ export function middleware(request: NextRequest) {
   if (!isProduction) return NextResponse.next();
 
   const token = request.cookies.get(SESSION_COOKIE_NAME)?.value;
-  if (token) return NextResponse.next();
+  if (token) {
+    const payload = await verifySessionTokenEdge(token);
+    if (payload) return NextResponse.next();
+  }
 
   const url = request.nextUrl.clone();
   url.pathname = "/login";
@@ -20,5 +23,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/admin", "/admin/:path*", "/criar", "/criar/:path*"]
+  matcher: ["/dashboard", "/dashboard/:path*", "/admin", "/admin/:path*", "/criar", "/criar/:path*"]
 };

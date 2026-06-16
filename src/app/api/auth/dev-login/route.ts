@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { repositories } from "@/lib/db";
-import { createSessionToken, SESSION_COOKIE_NAME, sessionCookieOptions } from "@/lib/auth/session-cookie";
+import { createSessionToken, SESSION_COOKIE_NAME, buildSessionCookieOptions } from "@/lib/auth/session-cookie";
 import { isDevelopmentBypassAllowed } from "@/lib/env";
 import { assertTrustedOrigin } from "@/lib/security/origin";
 import { sanitizeText } from "@/lib/security/sanitize";
@@ -29,7 +29,7 @@ export async function POST(request: Request) {
     reauth
   });
   const cookieStore = await cookies();
-  cookieStore.set(SESSION_COOKIE_NAME, token, sessionCookieOptions);
+  cookieStore.set(SESSION_COOKIE_NAME, token, buildSessionCookieOptions());
 
   return NextResponse.json({ user: { id: user.id, name: user.name, email: user.email, role: user.role } });
 }

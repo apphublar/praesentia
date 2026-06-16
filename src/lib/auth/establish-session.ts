@@ -3,7 +3,7 @@ import { revalidatePath } from "next/cache";
 import { repositories } from "@/lib/db";
 import { isPlatformAdminEmail } from "@/lib/auth/platform-admin";
 import { syncPlatformAdminRole } from "@/lib/auth/sync-platform-admin-role";
-import { createSessionToken, SESSION_COOKIE_NAME, sessionCookieOptions } from "@/lib/auth/session-cookie";
+import { createSessionToken, SESSION_COOKIE_NAME, buildSessionCookieOptions } from "@/lib/auth/session-cookie";
 
 export type EstablishSessionResult =
   | { ok: true; nextPath: string }
@@ -41,7 +41,7 @@ export async function establishPraesentiaSessionForUser(
     email: user.email,
     reauth: true
   });
-  cookieStore.set(SESSION_COOKIE_NAME, token, sessionCookieOptions);
+  cookieStore.set(SESSION_COOKIE_NAME, token, buildSessionCookieOptions());
   revalidatePath("/", "layout");
 
   return { ok: true, nextPath };
