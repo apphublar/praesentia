@@ -13,7 +13,7 @@ export function AdminShell({ user, children }: { user: User; children: React.Rea
     <div className="platform-admin">
       <aside className="platform-admin-sidebar">
         <div className="platform-admin-brand">
-          <PraesentiaLogo href="/admin" markHeight={36} wordmarkSize={20} withTape withShadow={false} />
+          <PraesentiaLogo href="/admin" variant="dark" markHeight={36} wordmarkSize={20} withTape withShadow={false} />
           <p className="mono">super admin</p>
         </div>
         <nav className="platform-admin-nav">

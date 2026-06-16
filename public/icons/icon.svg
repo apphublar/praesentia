@@ -1,11 +1,3 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" fill="#fcfaf5"/>
-  <g transform="translate(136 116) scale(1)">
-    <g transform="rotate(-5 120 134)">
-      <rect x="58" y="50" width="124" height="168" rx="5" fill="#fcfaf5" stroke="#d8c7ad" stroke-width="1.5"/>
-      <rect x="70" y="64" width="100" height="100" rx="3" fill="#ef6351"/>
-      <text x="120" y="116" text-anchor="middle" dominant-baseline="central"
-        font-family="'Playfair Display', Georgia, serif" font-weight="600" font-size="74" fill="#f7f0e2">P</text>
-    </g>
-  </g>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 22000 20320">
+  <image xlink:href="/brand/logo-praesentia-fundo-claro.svg" width="60854.14" height="20320" preserveAspectRatio="xMinYMid meet" />
 </svg>

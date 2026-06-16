@@ -1,16 +1,22 @@
 import Link from "next/link";
-import { useId, type CSSProperties } from "react";
-import {
-  PRAESENTIA_MARK_LOCKUP_VIEWBOX,
-  PRAESENTIA_MARK_VIEWBOX,
-  praesentiaTapePath,
-  resolvePraesentiaMarkColors,
-  resolvePraesentiaMarkGeometry,
-  type PraesentiaMarkOptions
-} from "@/lib/brand/praesentia-mark";
+import type { CSSProperties } from "react";
+import type { PraesentiaMarkOptions } from "@/lib/brand/praesentia-mark";
+
+export type PraesentiaLogoVariant = "light" | "dark";
+
+export const PRAESENTIA_LOGO_SRC = {
+  light: "/brand/logo-praesentia-fundo-claro.svg",
+  dark: "/brand/logo-praesentia-fundo-escuro.svg"
+} as const;
+
+export const PRAESENTIA_LOGO_ASPECT = 60854.14 / 20320;
+export const PRAESENTIA_MARK_WIDTH_RATIO = 22000 / 60854.14;
+export const PRAESENTIA_MARK_ASPECT = 22000 / 20320;
 
 export type PraesentiaLogoProps = {
   href?: string;
+  /** `light` = fundo claro (header). `dark` = fundo escuro (rodapé). */
+  variant?: PraesentiaLogoVariant;
   markHeight?: number;
   showWordmark?: boolean;
   wordmarkSize?: number;
@@ -24,231 +30,97 @@ export type PraesentiaLogoProps = {
   "aria-label"?: string;
 };
 
-function PraesentiaMark({
-  height = 34,
-  withTape = true,
-  withShadow = false,
-  blurId,
-  markOptions,
-  crop = "lockup"
-}: {
-  height?: number;
-  withTape?: boolean;
-  withShadow?: boolean;
-  blurId: string;
-  markOptions?: PraesentiaMarkOptions;
-  crop?: "full" | "lockup";
-}) {
-  const isLockup = crop === "lockup";
-  const width = isLockup
-    ? (height * PRAESENTIA_MARK_LOCKUP_VIEWBOX.width) / PRAESENTIA_MARK_LOCKUP_VIEWBOX.height
-    : (height * PRAESENTIA_MARK_VIEWBOX.width) / PRAESENTIA_MARK_VIEWBOX.height;
-  const viewBox = isLockup
-    ? `${PRAESENTIA_MARK_LOCKUP_VIEWBOX.x} ${PRAESENTIA_MARK_LOCKUP_VIEWBOX.y} ${PRAESENTIA_MARK_LOCKUP_VIEWBOX.width} ${PRAESENTIA_MARK_LOCKUP_VIEWBOX.height}`
-    : `0 0 ${PRAESENTIA_MARK_VIEWBOX.width} ${PRAESENTIA_MARK_VIEWBOX.height}`;
-  const tilt = markOptions?.tilt ?? -5;
-  const geometry = resolvePraesentiaMarkGeometry();
-  const colors = resolvePraesentiaMarkColors(markOptions);
-
-  const {
-    frameX,
-    frameY,
-    frameWidth,
-    frameHeight,
-    frameRadius,
-    photoX,
-    photoY,
-    photoWidth,
-    photoHeight,
-    letterX,
-    letterY,
-    rotateX,
-    rotateY,
-    letterSize
-  } = geometry;
-
-  const tapePath = praesentiaTapePath(78, 40);
-
-  return (
-    <svg
-      viewBox={viewBox}
-      width={width}
-      height={height}
-      aria-hidden="true"
-      focusable="false"
-      className="praesentia-mark"
-      style={{ display: "block", flexShrink: 0 }}
-    >
-      <defs>
-        <filter id={blurId} x="-20%" y="-20%" width="140%" height="160%">
-          <feGaussianBlur stdDeviation="5" />
-        </filter>
-      </defs>
-
-      {withShadow && !colors.mono ? (
-        <g transform={`rotate(${tilt} ${rotateX} ${rotateY})`}>
-          <rect
-            x={frameX + 5}
-            y={frameY + 8}
-            width={frameWidth}
-            height={frameHeight}
-            rx={frameRadius}
-            fill="rgba(60,45,30,0.16)"
-            filter={`url(#${blurId})`}
-          />
-        </g>
-      ) : null}
-
-      <g transform={`rotate(${tilt} ${rotateX} ${rotateY})`}>
-        {colors.mono ? (
-          <rect
-            x={frameX}
-            y={frameY}
-            width={frameWidth}
-            height={frameHeight}
-            rx={frameRadius}
-            fill="none"
-            stroke={colors.border}
-            strokeWidth={3}
-          />
-        ) : (
-          <rect
-            x={frameX}
-            y={frameY}
-            width={frameWidth}
-            height={frameHeight}
-            rx={frameRadius}
-            fill={colors.frame}
-            stroke={colors.border}
-            strokeWidth={1.5}
-          />
-        )}
-
-        <rect
-          x={photoX}
-          y={photoY}
-          width={photoWidth}
-          height={photoHeight}
-          rx={3}
-          fill={colors.photo}
-          stroke={colors.photoLine ? colors.frame : undefined}
-          strokeWidth={colors.photoLine ? 2 : undefined}
-        />
-
-        <text
-          x={letterX}
-          y={letterY}
-          textAnchor="middle"
-          dominantBaseline="central"
-          fontFamily="'Outfit', 'Plus Jakarta Sans', system-ui, sans-serif"
-          fontWeight={600}
-          fontSize={letterSize}
-          fill={colors.letter}
-        >
-          P
-        </text>
-
-        {withTape ? (
-          <g transform={`translate(${rotateX - 2} ${frameY - 4}) rotate(8)`}>
-            <path d={tapePath} fill={colors.tape} />
-            <path d={tapePath} fill="none" stroke={colors.tapeEdge} strokeWidth={1} opacity={0.5} />
-          </g>
-        ) : null}
-      </g>
-    </svg>
-  );
+function resolveLogoHeight({
+  markHeight = 34,
+  wordmarkSize = 18,
+  showWordmark = true
+}: Pick<PraesentiaLogoProps, "markHeight" | "wordmarkSize" | "showWordmark">) {
+  if (!showWordmark) return markHeight;
+  return Math.max(markHeight, Math.round(wordmarkSize * 1.65));
 }
 
-function PraesentiaWordmark({
-  size = 18,
+function LogoAsset({
+  height,
+  variant = "light",
+  showWordmark = true,
   muted = false,
+  className,
   style
 }: {
-  size?: number;
+  height: number;
+  variant?: PraesentiaLogoVariant;
+  showWordmark?: boolean;
   muted?: boolean;
+  className?: string;
   style?: CSSProperties;
 }) {
+  const src = PRAESENTIA_LOGO_SRC[variant];
+  const fullWidth = Math.round(height * PRAESENTIA_LOGO_ASPECT);
+  const imageStyle: CSSProperties = {
+    display: "block",
+    height,
+    width: fullWidth,
+    maxWidth: "none",
+    opacity: muted ? 0.72 : 1
+  };
+
+  if (showWordmark) {
+    return (
+      <img
+        src={src}
+        alt=""
+        width={fullWidth}
+        height={height}
+        className={className ? `praesentia-logo-svg is-${variant} ${className}` : `praesentia-logo-svg is-${variant}`}
+        style={{ ...imageStyle, width: "auto", maxWidth: "100%", ...style }}
+      />
+    );
+  }
+
+  const markWidth = Math.round(height * PRAESENTIA_MARK_ASPECT);
+
   return (
     <span
-      className="praesentia-wordmark"
+      className={className ? `praesentia-mark-crop is-${variant} ${className}` : `praesentia-mark-crop is-${variant}`}
       style={{
-        fontFamily: "'Outfit', 'Plus Jakarta Sans', system-ui, sans-serif",
-        fontStyle: "normal",
-        fontWeight: 600,
-        fontSize: size,
-        letterSpacing: "-0.01em",
-        lineHeight: 1,
-        color: muted ? "var(--muted, #8a7c6a)" : "inherit",
+        display: "inline-block",
+        height,
+        width: markWidth,
+        overflow: "hidden",
+        flexShrink: 0,
+        opacity: muted ? 0.72 : 1,
         ...style
       }}
     >
-      Praesentia
-    </span>
-  );
-}
-
-function PraesentiaLogoContent({
-  markHeight = 34,
-  showWordmark = true,
-  wordmarkSize = 18,
-  withTape = true,
-  withShadow = false,
-  layout = "horizontal",
-  muted = false,
-  markOptions,
-  blurId
-}: Omit<PraesentiaLogoProps, "href" | "className" | "style" | "aria-label"> & { blurId: string }) {
-  const isVertical = layout === "vertical";
-
-  return (
-    <span
-      className={`praesentia-logo-lockup${isVertical ? " is-vertical" : ""}`}
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        flexDirection: isVertical ? "column" : "row"
-      }}
-    >
-      <PraesentiaMark
-        height={markHeight}
-        withTape={withTape}
-        withShadow={withShadow}
-        blurId={blurId}
-        markOptions={markOptions}
-        crop="lockup"
-      />
-      {showWordmark ? <PraesentiaWordmark size={wordmarkSize} muted={muted} /> : null}
+      <img src={src} alt="" width={fullWidth} height={height} style={imageStyle} />
     </span>
   );
 }
 
 export function PraesentiaLogo({
   href,
+  variant = "light",
   markHeight = 34,
   showWordmark = true,
   wordmarkSize = 18,
-  withTape = true,
-  withShadow = false,
   layout = "horizontal",
   muted = false,
   className,
   style,
-  markOptions,
   "aria-label": ariaLabel = "Praesentia"
 }: PraesentiaLogoProps) {
-  const blurId = useId().replace(/:/g, "");
+  const height = resolveLogoHeight({ markHeight, wordmarkSize, showWordmark });
   const content = (
-    <PraesentiaLogoContent
-      markHeight={markHeight}
-      showWordmark={showWordmark}
-      wordmarkSize={wordmarkSize}
-      withTape={withTape}
-      withShadow={withShadow}
-      layout={layout}
-      muted={muted}
-      markOptions={markOptions}
-      blurId={blurId}
-    />
+    <span
+      className={`praesentia-logo-lockup${layout === "vertical" ? " is-vertical" : ""}`}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        flexDirection: layout === "vertical" ? "column" : "row"
+      }}
+    >
+      <LogoAsset height={height} variant={variant} showWordmark={showWordmark} muted={muted} />
+    </span>
   );
 
   if (href) {
@@ -281,13 +153,7 @@ export function PraesentiaBrandFooter({
         {kicker}
       </div>
       <div style={{ display: "flex", justifyContent: "center" }}>
-        <PraesentiaLogo
-          markHeight={markHeight}
-          wordmarkSize={wordmarkSize}
-          withTape={false}
-          withShadow={false}
-          muted
-        />
+        <PraesentiaLogo variant="dark" markHeight={markHeight} wordmarkSize={wordmarkSize} />
       </div>
     </div>
   );
@@ -295,24 +161,19 @@ export function PraesentiaBrandFooter({
 
 export function PraesentiaMarkOnly({
   height = 34,
-  withTape = false,
-  withShadow = false,
-  markOptions,
+  variant = "light",
+  muted = false,
   className,
   style
 }: {
   height?: number;
+  variant?: PraesentiaLogoVariant;
   withTape?: boolean;
   withShadow?: boolean;
   markOptions?: PraesentiaMarkOptions;
+  muted?: boolean;
   className?: string;
   style?: CSSProperties;
 }) {
-  const blurId = useId().replace(/:/g, "");
-
-  return (
-    <span className={className} style={style}>
-      <PraesentiaMark height={height} withTape={withTape} withShadow={withShadow} blurId={blurId} markOptions={markOptions} crop="full" />
-    </span>
-  );
+  return <LogoAsset height={height} variant={variant} showWordmark={false} muted={muted} className={className} style={style} />;
 }

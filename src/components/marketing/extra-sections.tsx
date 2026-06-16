@@ -418,7 +418,7 @@ export function SiteFooter() {
     <footer className="site-footer">
       <div className="shell footer-grid">
         <div className="footer-brand">
-          <PraesentiaLogo markHeight={34} wordmarkSize={22} withTape withShadow={false} />
+          <PraesentiaLogo variant="dark" markHeight={34} wordmarkSize={22} withTape withShadow={false} />
           <p>Eventos particulares, memórias permanentes e cápsulas do tempo com controle do responsável.</p>
           <Link className="btn" href={SITE_CTA.href}>{SITE_CTA.label}</Link>
         </div>

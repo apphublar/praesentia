@@ -224,19 +224,17 @@ p + a.btn,
 }
 
 .praesentia-logo-lockup {
-  gap: 4px;
+  gap: 0;
+  line-height: 0;
 }
 
 .praesentia-logo-lockup.is-vertical {
   gap: 8px;
 }
 
-.praesentia-logo-lockup .praesentia-mark {
-  margin-right: -3px;
-}
-
-.praesentia-logo-lockup .praesentia-wordmark {
-  margin-left: -1px;
+.praesentia-logo-lockup .praesentia-logo-svg,
+.praesentia-logo-lockup .praesentia-mark-crop {
+  vertical-align: middle;
 }
 
 .polaroid-photo {
