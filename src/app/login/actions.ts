@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { establishPraesentiaSessionForUser } from "@/lib/auth/establish-session";
 import { loginRequiresMfaVerification, verifyTotpCode } from "@/lib/auth/mfa";
+import { disposableEmailErrorMessage, isDisposableEmail } from "@/lib/auth/disposable-email";
 import { sanitizeText } from "@/lib/security/sanitize";
 import { resolvePostLoginPath } from "@/lib/auth/post-login-path";
 
@@ -153,6 +154,10 @@ export async function signUpWithSupabase(_state: AuthActionState, formData: Form
 
   if (!name || !email || password.length < 8) {
     return { error: "Informe nome, email e uma senha com pelo menos 8 caracteres." };
+  }
+
+  if (isDisposableEmail(email)) {
+    return { error: disposableEmailErrorMessage() };
   }
 
   const formNext = formData.get("next");

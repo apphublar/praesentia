@@ -93,6 +93,7 @@ export interface AdminRepository {
   getUserDetail(userId: string): Promise<{ user: AdminUserRow; events: AdminUserEventRow[] } | null>;
   setUserBlocked(userId: string, blocked: boolean, actorUserId: string): Promise<void>;
   setUserNotes(userId: string, notes: string, actorUserId: string): Promise<void>;
+  deleteUserAccount(userId: string): Promise<void>;
   listTransactions(options?: { limit?: number; offset?: number }): Promise<{ rows: AdminTransactionRow[]; total: number }>;
   listAiUsage(options?: { limit?: number; offset?: number }): Promise<{ rows: AdminAiUsageRow[]; total: number }>;
 }

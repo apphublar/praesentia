@@ -97,6 +97,10 @@ export const inMemoryAdmin: AdminRepository = {
 
   async setUserBlocked() {},
   async setUserNotes() {},
+  async deleteUserAccount(userId) {
+    const index = users.findIndex((user) => user.id === userId);
+    if (index >= 0) users.splice(index, 1);
+  },
   async listTransactions() {
     return { rows: [], total: 0 };
   },

@@ -114,9 +114,44 @@ export async function adminDeleteUser(userId: string): Promise<AdminActionState>
     const session = await assertAdmin();
     if (session.user.id === userId) return { error: "Você não pode excluir a própria conta." };
 
-    const supabase = createSupabaseAdminClient();
-    const { error } = await supabase.auth.admin.deleteUser(userId);
-    if (error) return { error: "Não foi possível excluir a conta no Supabase." };
+    const detail = await adminRepository.getUserDetail(userId);
+    if (!detail) return { error: "Cliente não encontrado." };
+    if (detail.user.role === "platform_admin") {
+      return { error: "Não é possível excluir uma conta de administrador." };
+    }
+
+    try {
+      await adminRepository.deleteUserAccount(userId);
+    } catch (error) {
+      console.error("[admin] deleteUserAccount failed", error);
+      return {
+        error:
+          "Não foi possível remover os dados do cliente. Rode a migration 016-user-delete-cascade.sql no Supabase e tente novamente."
+      };
+    }
+
+    if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      try {
+        const supabase = createSupabaseAdminClient();
+        const { error } = await supabase.auth.admin.deleteUser(userId);
+        if (error) {
+          console.error("[admin] supabase.auth.admin.deleteUser failed", error);
+          const notFound = /not found|404/i.test(error.message);
+          if (!notFound) {
+            return {
+              error:
+                "Dados do cliente removidos, mas o login no Supabase falhou. Exclua manualmente em Authentication → Users."
+            };
+          }
+        }
+      } catch (error) {
+        console.error("[admin] supabase admin client failed", error);
+        return {
+          error:
+            "Dados do cliente removidos, mas o login no Supabase não pôde ser excluído. Verifique SUPABASE_SERVICE_ROLE_KEY."
+        };
+      }
+    }
 
     await repositories.audit.record({
       actorUserId: session.user.id,
@@ -124,7 +159,7 @@ export async function adminDeleteUser(userId: string): Promise<AdminActionState>
       action: "admin.user_deleted",
       targetType: "user",
       targetId: userId,
-      metadata: {}
+      metadata: { email: detail.user.email }
     });
     revalidatePath("/admin/clientes");
     return { ok: true, message: "Conta excluída." };

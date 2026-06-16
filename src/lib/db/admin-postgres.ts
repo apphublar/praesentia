@@ -339,6 +339,25 @@ export const postgresAdmin: AdminRepository = {
     `;
   },
 
+  async deleteUserAccount(userId) {
+    const sql = getSql();
+
+    await sql.begin(async (tx) => {
+      await tx`update audit_logs set actor_user_id = null where actor_user_id = ${userId}`;
+      await tx`
+        update audit_logs
+        set event_id = null
+        where event_id in (select id from events where owner_id = ${userId})
+      `;
+      await tx`update event_members set blocked_by_user_id = null where blocked_by_user_id = ${userId}`;
+      await tx`delete from media_likes where user_id = ${userId}`;
+      await tx`delete from media_items where user_id = ${userId}`;
+      await tx`delete from event_members where user_id = ${userId}`;
+      await tx`delete from events where owner_id = ${userId}`;
+      await tx`delete from users where id = ${userId}`;
+    });
+  },
+
   async listTransactions({ limit = 100, offset = 0 } = {}) {
     const sql = getSql();
     const [{ total }] = await sql`
