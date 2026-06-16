@@ -1,11 +1,8 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { repositories } from "@/lib/db";
+import { establishPraesentiaSessionForUser } from "@/lib/auth/establish-session";
 import { loginRequiresMfaVerification } from "@/lib/auth/mfa";
-import { isPlatformAdminEmail } from "@/lib/auth/platform-admin";
-import { syncPlatformAdminRole } from "@/lib/auth/sync-platform-admin-role";
-import { createSessionToken, SESSION_COOKIE_NAME, sessionCookieOptions } from "@/lib/auth/session-cookie";
 import { resolvePostLoginPath } from "@/lib/auth/post-login-path";
 
 export async function GET(request: Request) {
@@ -20,7 +17,7 @@ export async function GET(request: Request) {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
-  if (error || !data.user) {
+  if (error || !data.user?.email) {
     return NextResponse.redirect(new URL("/login?error=auth-callback", requestUrl.origin));
   }
 
@@ -33,10 +30,8 @@ export async function GET(request: Request) {
     return NextResponse.redirect(new URL("/login?error=account-blocked", requestUrl.origin));
   }
 
-  await syncPlatformAdminRole(user.id, user.email);
-
-  const supabaseAfterSync = await createSupabaseServerClient();
-  const mfa = await loginRequiresMfaVerification(supabaseAfterSync);
+  const supabaseAfterExchange = await createSupabaseServerClient();
+  const mfa = await loginRequiresMfaVerification(supabaseAfterExchange);
   if (mfa.required) {
     const next = requestedNext ?? "/dashboard";
     const url = new URL("/login", requestUrl.origin);
@@ -46,19 +41,11 @@ export async function GET(request: Request) {
     return NextResponse.redirect(url);
   }
 
-  const refreshedUser = (await repositories.users.findById(data.user.id)) ?? user;
-  const role = isPlatformAdminEmail(refreshedUser.email) ? "platform_admin" : refreshedUser.role;
+  const nextPath = await resolvePostLoginPath(data.user.id, requestedNext);
+  const established = await establishPraesentiaSessionForUser(data.user.id, data.user.email, nextPath);
+  if (!established.ok) {
+    return NextResponse.redirect(new URL(`/login?error=profile-pending&next=${encodeURIComponent(nextPath)}`, requestUrl.origin));
+  }
 
-  const cookieStore = await cookies();
-  const token = createSessionToken({
-    userId: refreshedUser.id,
-    role,
-    name: refreshedUser.name,
-    email: refreshedUser.email,
-    reauth: true
-  });
-  cookieStore.set(SESSION_COOKIE_NAME, token, sessionCookieOptions);
-
-  const nextPath = await resolvePostLoginPath(refreshedUser.id, requestedNext);
-  return NextResponse.redirect(new URL(nextPath, requestUrl.origin));
+  return NextResponse.redirect(new URL(established.nextPath, requestUrl.origin));
 }

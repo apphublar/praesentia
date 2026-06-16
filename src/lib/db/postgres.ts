@@ -211,19 +211,35 @@ function rowToMedia(row: Record<string, unknown>): MediaItem {
 export const postgresUsers: UserRepository = {
   async findById(id) {
     const sql = getSql();
-    const rows = await sql`
-      select id, name, email, role, blocked_at, ai_invite_free_used, ai_invite_pool_remaining, ai_invite_pool_plan
-      from users where id = ${id} limit 1
-    `;
-    return rows[0] ? rowToUser(rows[0]) : null;
+    try {
+      const rows = await sql`
+        select id, name, email, role, blocked_at, ai_invite_free_used, ai_invite_pool_remaining, ai_invite_pool_plan
+        from users where id = ${id} limit 1
+      `;
+      return rows[0] ? rowToUser(rows[0]) : null;
+    } catch {
+      const rows = await sql`
+        select id, name, email, role, ai_invite_free_used, ai_invite_pool_remaining, ai_invite_pool_plan
+        from users where id = ${id} limit 1
+      `;
+      return rows[0] ? rowToUser(rows[0]) : null;
+    }
   },
   async findByEmail(email) {
     const sql = getSql();
-    const rows = await sql`
-      select id, name, email, role, blocked_at, ai_invite_free_used, ai_invite_pool_remaining, ai_invite_pool_plan
-      from users where email = ${email} limit 1
-    `;
-    return rows[0] ? rowToUser(rows[0]) : null;
+    try {
+      const rows = await sql`
+        select id, name, email, role, blocked_at, ai_invite_free_used, ai_invite_pool_remaining, ai_invite_pool_plan
+        from users where email = ${email} limit 1
+      `;
+      return rows[0] ? rowToUser(rows[0]) : null;
+    } catch {
+      const rows = await sql`
+        select id, name, email, role, ai_invite_free_used, ai_invite_pool_remaining, ai_invite_pool_plan
+        from users where email = ${email} limit 1
+      `;
+      return rows[0] ? rowToUser(rows[0]) : null;
+    }
   },
   async purchaseAiInvitePlan(userId, plan) {
     const sql = getSql();

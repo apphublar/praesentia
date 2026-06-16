@@ -3,8 +3,12 @@ import { DevLoginForm } from "@/components/auth/dev-login-form";
 import { LoginShowcase } from "@/components/auth/login-showcase";
 import { SupabaseLoginForm } from "@/components/auth/supabase-login-form";
 import { AppNav } from "@/components/layout/app-nav";
+import { establishPraesentiaSessionForUser } from "@/lib/auth/establish-session";
+import { loginRequiresMfaVerification } from "@/lib/auth/mfa";
+import { resolvePostLoginPath } from "@/lib/auth/post-login-path";
 import { isPlatformAdmin, getCurrentSession } from "@/lib/auth/session";
 import { PLATFORM_ADMIN_EMAIL } from "@/lib/auth/platform-admin";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { isDevelopmentBypassAllowed } from "@/lib/env";
 
 function sanitizeNextParam(value: string | string[] | undefined) {
@@ -55,6 +59,23 @@ export default async function LoginPage({
       redirect("/admin");
     } else {
       redirect("/dashboard");
+    }
+  }
+
+  if (!session && !showDevLogin && !initialMfaFactorId) {
+    const supabase = await createSupabaseServerClient();
+    const { data: authData } = await supabase.auth.getUser();
+    const authUser = authData.user;
+
+    if (authUser?.email) {
+      const mfa = await loginRequiresMfaVerification(supabase);
+      if (!mfa.required) {
+        const destination = await resolvePostLoginPath(authUser.id, nextPath);
+        const established = await establishPraesentiaSessionForUser(authUser.id, authUser.email, destination);
+        if (established.ok) {
+          redirect(established.nextPath);
+        }
+      }
     }
   }
 

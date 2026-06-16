@@ -2,13 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { repositories } from "@/lib/db";
+import { establishPraesentiaSessionForUser } from "@/lib/auth/establish-session";
 import { loginRequiresMfaVerification, verifyTotpCode } from "@/lib/auth/mfa";
-import { isPlatformAdminEmail } from "@/lib/auth/platform-admin";
-import { syncPlatformAdminRole } from "@/lib/auth/sync-platform-admin-role";
-import { createSessionToken, SESSION_COOKIE_NAME, sessionCookieOptions } from "@/lib/auth/session-cookie";
 import { sanitizeText } from "@/lib/security/sanitize";
 import { resolvePostLoginPath } from "@/lib/auth/post-login-path";
 
@@ -34,33 +30,9 @@ async function resolveLoginDestination(formNext: FormDataEntryValue | null, user
 }
 
 async function issuePraesentiaSession(userId: string, email: string, nextPath: string): Promise<AuthActionState> {
-  await syncPlatformAdminRole(userId, email);
-
-  const user = await repositories.users.findById(userId);
-  if (!user) {
-    return {
-      error: "Perfil ainda não está pronto. Aguarde alguns segundos e tente novamente."
-    };
-  }
-
-  if (user.blockedAt) {
-    return { error: "Esta conta está bloqueada. Entre em contato com o suporte." };
-  }
-
-  const role = isPlatformAdminEmail(user.email) ? "platform_admin" : user.role;
-
-  const cookieStore = await cookies();
-  const token = createSessionToken({
-    userId: user.id,
-    role,
-    name: user.name,
-    email: user.email,
-    reauth: true
-  });
-  cookieStore.set(SESSION_COOKIE_NAME, token, sessionCookieOptions);
-
-  revalidatePath("/", "layout");
-  redirect(nextPath);
+  const result = await establishPraesentiaSessionForUser(userId, email, nextPath);
+  if (!result.ok) return { error: result.error };
+  redirect(result.nextPath);
 }
 
 function appBaseUrl() {
