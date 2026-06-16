@@ -26,8 +26,19 @@ function getSessionSecret() {
 function sessionCookieDomain() {
   const explicit = process.env.SESSION_COOKIE_DOMAIN?.trim();
   if (explicit) return explicit;
-  // Host-only cookie evita perda de sessão entre www / apex quando mal configurado.
-  return undefined;
+  if (!isProductionEnvironment()) return undefined;
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+  if (!appUrl) return ".praesentia.com.br";
+
+  try {
+    const hostname = new URL(appUrl).hostname;
+    if (hostname === "localhost" || hostname.endsWith(".vercel.app")) return undefined;
+    const root = hostname.startsWith("www.") ? hostname.slice(4) : hostname;
+    return `.${root}`;
+  } catch {
+    return ".praesentia.com.br";
+  }
 }
 
 function base64url(input: string) {

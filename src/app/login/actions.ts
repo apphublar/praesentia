@@ -1,5 +1,6 @@
 "use server";
 
+import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { establishPraesentiaSessionForUser } from "@/lib/auth/establish-session";
@@ -16,7 +17,6 @@ export type AuthActionState = {
   pendingNext?: string;
   mfaQrCode?: string;
   mfaFactorId?: string;
-  redirectTo?: string;
 };
 
 function sanitizeRedirectPath(value: FormDataEntryValue | null, fallback: string) {
@@ -33,7 +33,7 @@ async function resolveLoginDestination(formNext: FormDataEntryValue | null, user
 async function issuePraesentiaSession(userId: string, email: string, nextPath: string): Promise<AuthActionState> {
   const result = await establishPraesentiaSessionForUser(userId, email, nextPath);
   if (!result.ok) return { error: result.error };
-  return { redirectTo: result.nextPath };
+  redirect(result.nextPath);
 }
 
 function appBaseUrl() {
