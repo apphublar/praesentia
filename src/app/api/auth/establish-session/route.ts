@@ -1,11 +1,9 @@
 import { NextResponse } from "next/server";
-import { isPlatformAdminEmail } from "@/lib/auth/platform-admin";
-import { resolvePostLoginPath } from "@/lib/auth/post-login-path";
-import { createSessionToken, SESSION_COOKIE_NAME, buildSessionCookieOptions } from "@/lib/auth/session-cookie";
-import { syncPlatformAdminRole } from "@/lib/auth/sync-platform-admin-role";
+import { createSessionForUserId, redirectWithSessionCookie } from "@/lib/auth/establish-session";
 import { loginRequiresMfaVerification } from "@/lib/auth/mfa";
-import { repositories } from "@/lib/db";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+
+export const dynamic = "force-dynamic";
 
 function sanitizeNextPath(value: string | null) {
   if (!value || !value.startsWith("/") || value.startsWith("//")) return "/dashboard";
@@ -34,38 +32,13 @@ export async function GET(request: Request) {
     return NextResponse.redirect(loginUrl);
   }
 
-  const userId = authData.user.id;
-  const email = authData.user.email;
-
-  try {
-    await syncPlatformAdminRole(userId, email);
-  } catch (error) {
-    console.error("[auth] syncPlatformAdminRole failed", error);
-  }
-
-  const user = await repositories.users.findById(userId);
-  if (!user) {
+  const session = await createSessionForUserId(authData.user.id, nextPath);
+  if (!session.ok) {
     const loginUrl = new URL("/login", requestUrl.origin);
     loginUrl.searchParams.set("error", "profile-pending");
     loginUrl.searchParams.set("next", nextPath);
     return NextResponse.redirect(loginUrl);
   }
 
-  if (user.blockedAt) {
-    return NextResponse.redirect(new URL("/login?error=account-blocked", requestUrl.origin));
-  }
-
-  const role = isPlatformAdminEmail(user.email) ? "platform_admin" : user.role;
-  const token = createSessionToken({
-    userId: user.id,
-    role,
-    name: user.name,
-    email: user.email,
-    reauth: true
-  });
-
-  const destination = await resolvePostLoginPath(userId, nextPath);
-  const response = NextResponse.redirect(new URL(destination, requestUrl.origin));
-  response.cookies.set(SESSION_COOKIE_NAME, token, buildSessionCookieOptions());
-  return response;
+  return redirectWithSessionCookie(requestUrl.origin, session.nextPath, session.token);
 }

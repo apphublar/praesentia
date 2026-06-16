@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
+import { createSessionForUserId, redirectWithSessionCookie } from "@/lib/auth/establish-session";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { repositories } from "@/lib/db";
 import { loginRequiresMfaVerification } from "@/lib/auth/mfa";
 import { resolvePostLoginPath } from "@/lib/auth/post-login-path";
+
+export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
@@ -41,7 +44,10 @@ export async function GET(request: Request) {
   }
 
   const nextPath = await resolvePostLoginPath(data.user.id, requestedNext);
-  const establishUrl = new URL("/api/auth/establish-session", requestUrl.origin);
-  establishUrl.searchParams.set("next", nextPath);
-  return NextResponse.redirect(establishUrl);
+  const session = await createSessionForUserId(data.user.id, nextPath);
+  if (!session.ok) {
+    return NextResponse.redirect(new URL(`/login?error=profile-pending&next=${encodeURIComponent(nextPath)}`, requestUrl.origin));
+  }
+
+  return redirectWithSessionCookie(requestUrl.origin, session.nextPath, session.token);
 }

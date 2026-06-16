@@ -43,6 +43,14 @@ export function SupabaseLoginForm({
     }
   }, [loginState, nextPath]);
 
+  useEffect(() => {
+    const redirectTo =
+      loginState.redirectTo ?? signupState.redirectTo ?? mfaState.redirectTo;
+    if (redirectTo) {
+      window.location.assign(redirectTo);
+    }
+  }, [loginState.redirectTo, signupState.redirectTo, mfaState.redirectTo]);
+
   return (
     <section className="card auth-form-card">
       {mode === "mfa" ? (
