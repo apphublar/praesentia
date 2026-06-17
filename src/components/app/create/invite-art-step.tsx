@@ -61,6 +61,26 @@ function placeLabel(event: Event) {
   return event.venueName;
 }
 
+/** Fora de InviteArtStep — componente interno remonta inputs e perde foco a cada tecla. */
+function InviteArtSubStepShell({
+  step,
+  currentStep,
+  visible,
+  children
+}: {
+  step: InviteArtSubStep;
+  currentStep: InviteArtSubStep;
+  visible: boolean;
+  children: ReactNode;
+}) {
+  if (!visible) return null;
+  return (
+    <div className={`invite-art-substep${currentStep === step ? " is-current" : ""}`} data-step={step}>
+      {children}
+    </div>
+  );
+}
+
 function FieldWithAi({
   label,
   hint,
@@ -299,15 +319,6 @@ export function InviteArtStep({
 
   function handlePhotoInclude() {
     setPhotoChoice("include");
-  }
-
-  function SubStepShell({ step, children }: { step: InviteArtSubStep; children: ReactNode }) {
-    if (!isStepVisible(step)) return null;
-    return (
-      <div className={`invite-art-substep${subStep === step ? " is-current" : ""}`} data-step={step}>
-        {children}
-      </div>
-    );
   }
 
   const currentPhoto = photoUrl
@@ -575,7 +586,7 @@ export function InviteArtStep({
           </div>
         ) : null}
 
-        <SubStepShell step="mode">
+        <InviteArtSubStepShell step="mode" currentStep={subStep} visible={isStepVisible("mode")}>
         <div className="card" style={{ padding: 16, marginBottom: 18 }}>
           <span className="fl">Como você quer a imagem do convite?</span>
           <Segmented
@@ -604,11 +615,11 @@ export function InviteArtStep({
             </button>
           ) : null}
         </div>
-        </SubStepShell>
+        </InviteArtSubStepShell>
 
         {isAiMode ? (
         <>
-        <SubStepShell step="photo">
+        <InviteArtSubStepShell step="photo" currentStep={subStep} visible={isStepVisible("photo")}>
         {/* 1 — Foto do homenageado */}
         <div className="card" style={{ padding: 18, marginBottom: 18 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
@@ -809,9 +820,9 @@ export function InviteArtStep({
             </div>
           ) : null}
         </div>
-        </SubStepShell>
+        </InviteArtSubStepShell>
 
-        <SubStepShell step="art">
+        <InviteArtSubStepShell step="art" currentStep={subStep} visible={isStepVisible("art")}>
         {/* 2 — Arte do convite */}
         <div className="card" style={{ padding: 18, marginBottom: 18 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
@@ -911,10 +922,10 @@ export function InviteArtStep({
             </div>
           ) : null}
         </div>
-        </SubStepShell>
+        </InviteArtSubStepShell>
         </>
         ) : (
-        <SubStepShell step="art">
+        <InviteArtSubStepShell step="art" currentStep={subStep} visible={isStepVisible("art")}>
         <div className="card" style={{ padding: 18, marginBottom: 18 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
             <Icon name="image" size={17} style={{ color: "var(--coral)" }} />
@@ -1004,10 +1015,10 @@ export function InviteArtStep({
             </div>
           ) : null}
         </div>
-        </SubStepShell>
+        </InviteArtSubStepShell>
         )}
 
-        <SubStepShell step="text">
+        <InviteArtSubStepShell step="text" currentStep={subStep} visible={isStepVisible("text")}>
         {/* 3 — Texto enviado com o convite */}
         <div className="card" style={{ padding: 18 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
@@ -1038,7 +1049,7 @@ export function InviteArtStep({
             </div>
           ) : null}
         </div>
-        </SubStepShell>
+        </InviteArtSubStepShell>
 
         {error ? <p style={{ color: "var(--coral-deep)", fontSize: 13, marginTop: 12 }}>{error}</p> : null}
       </div>
