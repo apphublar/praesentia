@@ -1376,6 +1376,49 @@ export const postgresAiCoverArtifacts: AiCoverArtifactRepository = {
     `;
     return String(rows[0].id);
   },
+  async findById(artifactId) {
+    const sql = getSql();
+    const rows = await sql`
+      select id, event_id, user_id, usage_type, status, image_data_url, created_at, completed_at
+      from ai_cover_artifacts
+      where id = ${artifactId}
+      limit 1
+    `;
+    const row = rows[0];
+    if (!row) return null;
+    return {
+      id: String(row.id),
+      eventId: String(row.event_id),
+      userId: String(row.user_id),
+      usageType: row.usage_type === "edit" ? "edit" : "generation",
+      status: row.status === "completed" ? "completed" : row.status === "refunded" ? "refunded" : "reserved",
+      imageDataUrl: row.image_data_url ? String(row.image_data_url) : undefined,
+      createdAt: new Date(String(row.created_at)).toISOString(),
+      completedAt: row.completed_at ? new Date(String(row.completed_at)).toISOString() : undefined
+    };
+  },
+  async findLatestReservedByEvent(eventId) {
+    const sql = getSql();
+    const rows = await sql`
+      select id, event_id, user_id, usage_type, status, image_data_url, created_at, completed_at
+      from ai_cover_artifacts
+      where event_id = ${eventId} and status = 'reserved'
+      order by created_at desc
+      limit 1
+    `;
+    const row = rows[0];
+    if (!row) return null;
+    return {
+      id: String(row.id),
+      eventId: String(row.event_id),
+      userId: String(row.user_id),
+      usageType: row.usage_type === "edit" ? "edit" : "generation",
+      status: "reserved" as const,
+      imageDataUrl: row.image_data_url ? String(row.image_data_url) : undefined,
+      createdAt: new Date(String(row.created_at)).toISOString(),
+      completedAt: row.completed_at ? new Date(String(row.completed_at)).toISOString() : undefined
+    };
+  },
   async complete(artifactId, input) {
     const sql = getSql();
     await sql`

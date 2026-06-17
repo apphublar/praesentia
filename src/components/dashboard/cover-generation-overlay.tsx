@@ -104,7 +104,20 @@ export function CoverGenerationOverlay({
     };
 
     window.addEventListener("beforeunload", warnBeforeLeave);
-    return () => window.removeEventListener("beforeunload", warnBeforeLeave);
+
+    let wakeLock: WakeLockSentinel | null = null;
+    if ("wakeLock" in navigator) {
+      void navigator.wakeLock.request("screen").then((lock) => {
+        wakeLock = lock;
+      }).catch(() => {
+        // unsupported or denied
+      });
+    }
+
+    return () => {
+      window.removeEventListener("beforeunload", warnBeforeLeave);
+      void wakeLock?.release();
+    };
   }, [active]);
 
   if (!active) return null;
@@ -155,11 +168,11 @@ export function CoverGenerationOverlay({
 
         {!capsuleActive ? (
           <p className="cover-gen-overlay-tip">
-            <strong>Próximo passo:</strong> ative a Cápsula Praesentia para liberar mural ao vivo, telão e memórias (mínimo de 36 meses, ampliável depois).
+            <strong>Pode responder o WhatsApp:</strong> a imagem continua sendo criada no servidor. Ao voltar, ela aparecerá aqui automaticamente.
           </p>
         ) : (
           <p className="cover-gen-overlay-tip cover-gen-overlay-tip-muted">
-            Isso pode levar até 4 minutos. Não feche esta página — avisaremos quando a imagem estiver pronta.
+            Isso pode levar alguns minutos. Você pode sair do app — quando voltar, retomamos de onde parou.
           </p>
         )}
       </div>

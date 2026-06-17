@@ -735,9 +735,24 @@ type InMemoryAiCoverArtifact = {
   status: "reserved" | "completed" | "refunded";
   imageDataUrl?: string;
   artifact?: Record<string, unknown>;
+  createdAt: string;
+  completedAt?: string;
 };
 
 const aiCoverArtifacts = new Map<string, InMemoryAiCoverArtifact>();
+
+function toArtifactRecord(artifact: InMemoryAiCoverArtifact) {
+  return {
+    id: artifact.id,
+    eventId: artifact.eventId,
+    userId: artifact.userId,
+    usageType: artifact.usageType,
+    status: artifact.status,
+    imageDataUrl: artifact.imageDataUrl,
+    createdAt: artifact.createdAt,
+    completedAt: artifact.completedAt
+  };
+}
 
 const inMemoryAiCoverArtifacts: AiCoverArtifactRepository = {
   async createReserved(input) {
@@ -749,15 +764,27 @@ const inMemoryAiCoverArtifacts: AiCoverArtifactRepository = {
       usageType: input.usageType,
       promptVersion: input.promptVersion,
       requestSummary: input.requestSummary,
-      status: "reserved"
+      status: "reserved",
+      createdAt: new Date().toISOString()
     });
     return id;
+  },
+  async findById(artifactId) {
+    const artifact = aiCoverArtifacts.get(artifactId);
+    return artifact ? toArtifactRecord(artifact) : null;
+  },
+  async findLatestReservedByEvent(eventId) {
+    const reserved = [...aiCoverArtifacts.values()]
+      .filter((item) => item.eventId === eventId && item.status === "reserved")
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    return reserved[0] ? toArtifactRecord(reserved[0]) : null;
   },
   async complete(artifactId, input) {
     const artifact = aiCoverArtifacts.get(artifactId);
     if (!artifact) throw new Error("ARTIFACT_NOT_FOUND");
     artifact.status = "completed";
     artifact.imageDataUrl = input.imageDataUrl;
+    artifact.completedAt = new Date().toISOString();
     artifact.artifact = {
       prompt: input.prompt,
       model: input.model,

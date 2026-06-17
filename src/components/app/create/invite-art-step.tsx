@@ -11,8 +11,15 @@ import { Mono, Segmented, Shimmer, Tag, Toggle } from "@/components/app/ui/primi
 import { CoverGenerationOverlay } from "@/components/dashboard/cover-generation-overlay";
 import type { CoverQuota } from "@/components/dashboard/cover-generator";
 import type { TextQuota } from "@/components/dashboard/invite-text-editor";
-import { generateEventCoverImageClient, selectCoverVersionClient } from "@/lib/api/generate-cover";
+import { generateEventCoverImageClient, fetchCoverGenerationStatus, resumeCoverGenerationClient, selectCoverVersionClient } from "@/lib/api/generate-cover";
 import { apiErrorMessage, dashboardFetchJson } from "@/lib/api/dashboard-fetch";
+import {
+  loadInviteArtDraft,
+  loadPendingCoverArtifact,
+  saveInviteArtDraft,
+  savePendingCoverArtifact
+} from "@/lib/create/invite-art-draft";
+import { shouldPromptCoverUpgrade } from "@/lib/plans/cover-upgrade-prompt";
 import { downloadCoverImage } from "@/lib/images/download-cover-image";
 import { buildPhotoZoneInstructions, type PhotoOverlayConfig, type PhotoShape, type PhotoSize } from "@/lib/images/photo-zone-instructions";
 import { formatEventDateLine } from "@/lib/events/format-event-date";
@@ -207,6 +214,143 @@ export function InviteArtStep({
   const [themeDraft, setThemeDraft] = useState(event.theme);
   const [themeEditing, setThemeEditing] = useState(false);
   const [savingTheme, setSavingTheme] = useState(false);
+  const [resumeMessage, setResumeMessage] = useState("");
+
+  useEffect(() => {
+    const draft = loadInviteArtDraft(event.id);
+    if (!draft) return;
+    setCoverMode(draft.coverMode);
+    setSubStep(draft.subStep);
+    setArtStyle(draft.artStyle);
+    setCoverPrompt(draft.coverPrompt);
+    setPromptEnhancedByAi(draft.promptEnhancedByAi);
+    setIncludeInfo(draft.includeInfo);
+    if (draft.inviteText.trim()) setInviteText(draft.inviteText);
+    setPhotoChoice(draft.photoChoice);
+    setPhotoShape(draft.photoShape);
+    setPhotoPos(draft.photoPos as (typeof PHOTO_POSITIONS)[number]);
+    setPhotoSize(draft.photoSize);
+    setRemoveBackground(draft.removeBackground);
+    setPhotoNotes(draft.photoNotes);
+    if (!event.coverImageUrl) setArtApproved(draft.artApproved);
+  }, [event.id, event.coverImageUrl]);
+
+  useEffect(() => {
+    saveInviteArtDraft(event.id, {
+      coverMode,
+      subStep,
+      artStyle,
+      coverPrompt,
+      promptEnhancedByAi,
+      includeInfo,
+      inviteText,
+      photoChoice,
+      photoShape,
+      photoPos,
+      photoSize,
+      removeBackground,
+      photoNotes,
+      artApproved
+    });
+  }, [
+    event.id,
+    coverMode,
+    subStep,
+    artStyle,
+    coverPrompt,
+    promptEnhancedByAi,
+    includeInfo,
+    inviteText,
+    photoChoice,
+    photoShape,
+    photoPos,
+    photoSize,
+    removeBackground,
+    photoNotes,
+    artApproved
+  ]);
+
+  function applyCoverGenerationResult(result: {
+    coverImageUrl?: string;
+    pendingUrls?: string[];
+    quota?: CoverQuota;
+    status?: string;
+    error?: string;
+    needsUpgrade?: boolean;
+  }) {
+    if (result.status === "processing") {
+      setResumeMessage(result.error ?? "Sua imagem ainda está sendo criada. Volte em instantes.");
+      setImgState("loading");
+      return false;
+    }
+    setResumeMessage("");
+    if (result.error) {
+      const promptUpgrade = result.needsUpgrade || shouldPromptCoverUpgrade(result.error);
+      if (promptUpgrade) {
+        setUpgradeSource("retry_without_pack");
+        setShowUpgradeModal(true);
+      }
+      setError(result.error);
+      setImgState(coverUrl ? "done" : "empty");
+      return false;
+    }
+    const finalUrl = result.coverImageUrl;
+    if (!finalUrl) return false;
+    if (Array.isArray(result.pendingUrls)) {
+      setPendingUrls(result.pendingUrls);
+    } else if (quota.showVersionCarousel) {
+      setPendingUrls((current) => [...current, finalUrl].slice(-(quota.perEventMax ?? 3)));
+    }
+    if (result.quota) setQuota(result.quota);
+    setCoverUrl(finalUrl);
+    onCoverChange(finalUrl);
+    setImgState("done");
+    setArtApproved(false);
+    setShowArtApproval(true);
+    return true;
+  }
+
+  useEffect(() => {
+    if (event.coverImageUrl && artApproved) return;
+
+    let cancelled = false;
+
+    async function tryResume() {
+      let artifactId = loadPendingCoverArtifact(event.id);
+      if (!artifactId) {
+        try {
+          const status = await fetchCoverGenerationStatus(event.id);
+          if (status.status === "processing" && status.artifactId) {
+            artifactId = status.artifactId;
+            savePendingCoverArtifact(event.id, artifactId);
+          } else if (status.status === "completed" && status.coverImageUrl) {
+            applyCoverGenerationResult({
+              status: "completed",
+              coverImageUrl: status.coverImageUrl,
+              pendingUrls: status.pendingUrls,
+              quota: status.quota
+            });
+            return;
+          }
+        } catch {
+          return;
+        }
+      }
+      if (!artifactId || cancelled) return;
+
+      setImgState("loading");
+      setResumeMessage("Retomando a criação da sua imagem…");
+      const result = await resumeCoverGenerationClient(event.id, artifactId);
+      if (!cancelled) applyCoverGenerationResult(result);
+    }
+
+    void tryResume();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [event.id]);
 
   const flowSteps = inviteArtSteps(coverMode);
   const isAiMode = coverMode === "ai";
@@ -303,11 +447,6 @@ export function InviteArtStep({
 
   function handleGenerateNew() {
     setShowArtApproval(false);
-    if (!quota.canGenerate) {
-      setUpgradeSource("retry_without_pack");
-      setShowUpgradeModal(true);
-      return;
-    }
     void generateImage();
   }
 
@@ -418,15 +557,27 @@ export function InviteArtStep({
   }
 
   async function generateImage() {
-    if (!quota.canGenerate) {
-      setUpgradeSource("retry_without_pack");
-      setShowUpgradeModal(true);
-      return;
-    }
-
-    setImgState("loading");
     setError("");
     try {
+      const liveStatus = await fetchCoverGenerationStatus(event.id);
+      if (liveStatus.quota) setQuota(liveStatus.quota);
+
+      if (liveStatus.status === "processing" && liveStatus.artifactId) {
+        setImgState("loading");
+        savePendingCoverArtifact(event.id, liveStatus.artifactId);
+        const resumed = await resumeCoverGenerationClient(event.id, liveStatus.artifactId);
+        applyCoverGenerationResult(resumed);
+        return;
+      }
+
+      const activeQuota = liveStatus.quota ?? quota;
+      if (!activeQuota.canGenerate) {
+        setUpgradeSource("retry_without_pack");
+        setShowUpgradeModal(true);
+        return;
+      }
+
+    setImgState("loading");
       const fields = includeInfo ? coverFields : withoutCoverInfoFields(coverFields);
       const hasPhoto = Boolean(photoUrl);
       const photoConfig = hasPhoto
@@ -455,30 +606,7 @@ export function InviteArtStep({
         primaryPhotoDataUrl,
         coverFields: coverEditableFieldsToOverride(fields)
       });
-      if (result.error) {
-        if (result.error.toLowerCase().includes("limite") || result.error.toLowerCase().includes("versão")) {
-          setUpgradeSource("retry_without_pack");
-          setShowUpgradeModal(true);
-        }
-        setError(result.error);
-        setImgState(coverUrl ? "done" : "empty");
-        return;
-      }
-      const finalUrl = result.coverImageUrl;
-      if (!finalUrl) return;
-      if (Array.isArray(result.pendingUrls)) {
-        setPendingUrls(result.pendingUrls);
-      } else if (quota.showVersionCarousel) {
-        setPendingUrls((current) => [...current, finalUrl].slice(-(quota.perEventMax ?? 3)));
-      }
-      if (result.quota) {
-        setQuota(result.quota);
-      }
-      setCoverUrl(finalUrl);
-      onCoverChange(finalUrl);
-      setImgState("done");
-      setArtApproved(false);
-      setShowArtApproval(true);
+      applyCoverGenerationResult(result);
     } catch (err) {
       setError(apiErrorMessage(err, "Erro de conexão."));
       setImgState(coverUrl ? "done" : "empty");

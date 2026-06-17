@@ -239,6 +239,8 @@ export interface AiCoverArtifactRepository {
     promptVersion: string;
     requestSummary: Record<string, unknown>;
   }): Promise<string>;
+  findById(artifactId: string): Promise<AiCoverArtifactRecord | null>;
+  findLatestReservedByEvent(eventId: string): Promise<AiCoverArtifactRecord | null>;
   complete(
     artifactId: string,
     input: {
@@ -252,6 +254,17 @@ export interface AiCoverArtifactRepository {
   ): Promise<void>;
   delete(artifactId: string): Promise<void>;
 }
+
+export type AiCoverArtifactRecord = {
+  id: string;
+  eventId: string;
+  userId: string;
+  usageType: "generation" | "edit";
+  status: AiCoverArtifactStatus;
+  imageDataUrl?: string;
+  createdAt: string;
+  completedAt?: string;
+};
 
 export interface AuditRepository {
   record(input: {

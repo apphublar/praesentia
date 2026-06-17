@@ -24,7 +24,8 @@ export type ReserveAiCoverUsageResult = {
 
 export async function reserveAiCoverUsage(input: ReserveAiCoverUsageInput): Promise<ReserveAiCoverUsageResult> {
   const account = await loadAiCoverAccountContext(input.userId);
-  const quota = getAiCoverQuota(input.event, account);
+  const event = (await repositories.events.findById(input.event.id)) ?? input.event;
+  const quota = getAiCoverQuota(event, account);
   const skipCharge = input.skipCharge || isAiCoverTestingUnlimited();
 
   if (!skipCharge) {
@@ -45,7 +46,7 @@ export async function reserveAiCoverUsage(input: ReserveAiCoverUsageInput): Prom
   }
 
   const artifactId = await repositories.aiCoverArtifacts.createReserved({
-    eventId: input.event.id,
+    eventId: event.id,
     userId: input.userId,
     usageType: input.usageType,
     promptVersion: input.promptVersion,
@@ -55,7 +56,7 @@ export async function reserveAiCoverUsage(input: ReserveAiCoverUsageInput): Prom
   let charged = false;
   if (!skipCharge) {
     const reserved = await repositories.events.tryReserveAiCoverUsage(
-      input.event.id,
+      event.id,
       input.userId,
       input.usageType,
       input.usageType === "generation" ? quota.maxGenerations : quota.maxEdits
@@ -70,12 +71,12 @@ export async function reserveAiCoverUsage(input: ReserveAiCoverUsageInput): Prom
       };
     }
     if (input.usageType === "generation") {
-      await repositories.users.consumeAiInviteGeneration(input.userId, input.event);
+      await repositories.users.consumeAiInviteGeneration(input.userId, event);
     }
     charged = true;
   }
 
-  const updatedEvent = await repositories.events.findById(input.event.id);
+  const updatedEvent = await repositories.events.findById(event.id);
   const updatedAccount = await loadAiCoverAccountContext(input.userId);
   return {
     allowed: true,
