@@ -840,6 +840,9 @@ const inMemoryGuestMessages: GuestMessageRepository = {
   },
   async listPublicByEvent(eventId) {
     return guestMessageStore.filter((item) => item.eventId === eventId && item.visibility === "public");
+  },
+  async listPrivateByEvent(eventId) {
+    return guestMessageStore.filter((item) => item.eventId === eventId && item.visibility === "private");
   }
 };
 

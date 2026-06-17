@@ -1464,6 +1464,15 @@ export const postgresGuestMessages: GuestMessageRepository = {
       order by created_at desc
     `;
     return rows.map(rowToGuestMessage);
+  },
+  async listPrivateByEvent(eventId) {
+    const sql = getSql();
+    const rows = await sql`
+      select * from guest_messages
+      where event_id = ${eventId} and visibility = 'private'
+      order by created_at desc
+    `;
+    return rows.map(rowToGuestMessage);
   }
 };
 

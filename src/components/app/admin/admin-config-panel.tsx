@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { Event, EventMember } from "@/types/domain";
 import { ConfBlock, ConfigRow, Field2 } from "@/components/app/admin/conf-block";
 import { GiftSuggestionsAdminEditor } from "@/components/app/admin/gift-suggestions-admin-editor";
+import { PrivateGuestMessagesPanel } from "@/components/app/admin/private-guest-messages-panel";
 import type { GiftSuggestion } from "@/types/domain";
 import { apiErrorMessage, dashboardFetchJson } from "@/lib/api/dashboard-fetch";
 
@@ -135,6 +136,10 @@ export function AdminConfigPanel({
           message={giftState.message}
           tone={giftState.tone}
         />
+      </ConfBlock>
+
+      <ConfBlock title="Recados privados" desc="Mensagens enviadas como privadas no link do convite.">
+        <PrivateGuestMessagesPanel eventId={event.id} />
       </ConfBlock>
 
       {capsuleActive ? (

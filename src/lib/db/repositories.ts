@@ -206,6 +206,7 @@ export interface GuestMessageRepository {
     visibility: "public" | "private";
   }): Promise<import("@/types/domain").GuestMessage>;
   listPublicByEvent(eventId: string): Promise<import("@/types/domain").GuestMessage[]>;
+  listPrivateByEvent(eventId: string): Promise<import("@/types/domain").GuestMessage[]>;
 }
 
 export interface GuestRsvpRepository {

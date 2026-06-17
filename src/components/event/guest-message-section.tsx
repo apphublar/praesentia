@@ -2,11 +2,8 @@
 
 import { useState } from "react";
 import type { GuestMessage } from "@/types/domain";
-import { Avatar } from "@/components/app/ui/primitives";
 import { Icon } from "@/components/app/ui/icon";
-import { Mono } from "@/components/app/ui/primitives";
-
-const AVATAR_COLORS = ["#E7C9B9", "#C6D4E2", "#CCE0CE", "#D9CEE8", "#F3D7BC"];
+import { GuestMessagesCarousel } from "@/components/event/guest-messages-carousel";
 
 export function GuestMessageSection({
   eventId,
@@ -66,6 +63,12 @@ export function GuestMessageSection({
           </span>
         </div>
 
+        {publicMessages.length ? (
+          <div style={{ marginBottom: 16 }}>
+            <GuestMessagesCarousel messages={publicMessages} />
+          </div>
+        ) : null}
+
         <div className="public-message-visibility" role="tablist" aria-label="Visibilidade do recado" style={{ marginBottom: 14 }}>
           <button
             type="button"
@@ -95,15 +98,6 @@ export function GuestMessageSection({
           </button>
         </div>
 
-        {publicMessages.map((message, i) => (
-          <div key={message.id} style={{ display: "flex", gap: 10, marginBottom: 13 }}>
-            <Avatar name={message.authorName} color={AVATAR_COLORS[i % AVATAR_COLORS.length]} size={30} />
-            <div style={{ flex: 1, background: "var(--card-2)", borderRadius: "4px 14px 14px 14px", padding: "9px 12px" }}>
-              <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 2 }}>{message.authorName}</div>
-              <div style={{ fontSize: 12.5, color: "var(--ink-2)", lineHeight: 1.45 }}>{message.body}</div>
-            </div>
-          </div>
-        ))}
         <div style={{ display: "flex", gap: 8, marginTop: 6, flexDirection: "column" }}>
           <input
             className="input"
@@ -196,14 +190,7 @@ export function GuestMessageSection({
       {publicMessages.length ? (
         <div className="public-message-feed">
           <h3 className="public-event-section-title public-message-feed-title">Recados públicos</h3>
-          <ul>
-            {publicMessages.map((message) => (
-              <li key={message.id} className="public-message-item">
-                <strong>{message.authorName}</strong>
-                <p>{message.body}</p>
-              </li>
-            ))}
-          </ul>
+          <GuestMessagesCarousel messages={publicMessages} />
         </div>
       ) : null}
     </article>

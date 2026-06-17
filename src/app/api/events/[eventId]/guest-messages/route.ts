@@ -1,7 +1,34 @@
 import { NextResponse } from "next/server";
+import { canManageEventById } from "@/lib/auth/event-access";
+import { getCurrentSession } from "@/lib/auth/session";
 import { repositories } from "@/lib/db";
 import { assertTrustedOrigin } from "@/lib/security/origin";
 import { sanitizeText } from "@/lib/security/sanitize";
+
+export async function GET(request: Request, { params }: { params: Promise<{ eventId: string }> }) {
+  const session = await getCurrentSession();
+  if (!session) return NextResponse.json({ error: "Conta obrigatória." }, { status: 401 });
+
+  const { eventId } = await params;
+  const event = await repositories.events.findById(eventId);
+  if (!event) return NextResponse.json({ error: "Evento não encontrado" }, { status: 404 });
+
+  if (!(await canManageEventById(session.user, eventId))) {
+    return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
+  }
+
+  const visibility = new URL(request.url).searchParams.get("visibility");
+  if (visibility === "private") {
+    const messages = await repositories.guestMessages.listPrivateByEvent(eventId);
+    return NextResponse.json({ messages });
+  }
+  if (visibility === "public") {
+    const messages = await repositories.guestMessages.listPublicByEvent(eventId);
+    return NextResponse.json({ messages });
+  }
+
+  return NextResponse.json({ error: "Informe visibility=public ou visibility=private." }, { status: 400 });
+}
 
 export async function POST(request: Request, { params }: { params: Promise<{ eventId: string }> }) {
   const originError = assertTrustedOrigin(request);
