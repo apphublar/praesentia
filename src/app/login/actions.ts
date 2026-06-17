@@ -9,8 +9,7 @@ import { disposableEmailErrorMessage, isDisposableEmail } from "@/lib/auth/dispo
 import { sanitizeText } from "@/lib/security/sanitize";
 import { resolvePostLoginPath } from "@/lib/auth/post-login-path";
 import { SESSION_COOKIE_NAME } from "@/lib/auth/session-cookie";
-import { getAuthCallbackUrl } from "@/lib/app-url";
-import { createPasswordRecoveryLink, sendPasswordResetEmail } from "@/lib/auth/password-reset-email";
+import { createPasswordRecoveryLink, createSignupAccount, sendPasswordResetEmail, sendSignupConfirmationEmail } from "@/lib/auth/auth-email";
 
 export type AuthActionState = {
   error?: string;
@@ -36,10 +35,6 @@ async function resolveLoginDestination(formNext: FormDataEntryValue | null, user
 /** Cookie é gravado na resposta HTTP de redirect (mesmo fluxo do OAuth callback). */
 function issuePraesentiaSession(_userId: string, _email: string, nextPath: string): never {
   redirect(`/api/auth/establish-session?next=${encodeURIComponent(nextPath)}`);
-}
-
-function isExistingAccountSignup(data: { user: { identities?: { id: string }[] } | null }) {
-  return Boolean(data.user && (!data.user.identities || data.user.identities.length === 0));
 }
 
 function passwordResetErrorMessage(message: string) {
@@ -190,37 +185,36 @@ export async function signUpWithSupabase(_state: AuthActionState, formData: Form
     return { error: disposableEmailErrorMessage() };
   }
 
-  const formNext = formData.get("next");
-  const emailRedirectPath = sanitizeRedirectPath(formNext, "/dashboard/criar");
-
-  const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase.auth.signUp({
+  const emailRedirectPath = sanitizeRedirectPath(formData.get("next"), "/dashboard/criar");
+  const signupResult = await createSignupAccount({
     email,
     password,
-    options: {
-      data: { name },
-      emailRedirectTo: getAuthCallbackUrl(emailRedirectPath)
-    }
+    name,
+    nextPath: emailRedirectPath
   });
 
-  if (error) {
-    const message = error.message.toLowerCase();
-    if (message.includes("already") || message.includes("registered") || message.includes("exists")) {
+  if (!signupResult.ok) {
+    if (signupResult.error === "exists") {
       return { error: "Este email já possui uma conta. Faça login ou recupere sua senha." };
     }
+    console.error("[auth] createSignupAccount failed", signupResult.error);
     return { error: "Não foi possível criar sua conta agora." };
   }
 
-  if (isExistingAccountSignup(data)) {
-    return { error: "Este email já possui uma conta. Faça login ou recupere sua senha." };
+  const sendResult = await sendSignupConfirmationEmail({
+    to: email,
+    name,
+    confirmLink: signupResult.confirmLink
+  });
+
+  if (!sendResult.ok) {
+    console.error("[auth] sendSignupConfirmationEmail failed", sendResult.error);
+    return {
+      error: "Conta criada, mas não foi possível enviar o email de confirmação. Tente entrar ou recupere sua senha."
+    };
   }
 
-  if (!data.session || !data.user?.email) {
-    return { notice: "Conta criada. Confira seu email para confirmar o acesso." };
-  }
-
-  const nextPath = await resolveLoginDestination(formNext, data.user.id);
-  return issuePraesentiaSession(data.user.id, data.user.email, nextPath);
+  return { notice: "Conta criada. Confira seu email para confirmar o acesso." };
 }
 
 export async function startMfaEnrollment(): Promise<AuthActionState> {

@@ -33,7 +33,7 @@ This is the production authentication plan for Praesentia.
 12. After first login, open `/admin/configuracoes` and configure Google Authenticator.
 13. Keep the service role key server-only. Never expose it in client components.
 
-Password recovery emails are sent by the app via **Resend API** (`RESEND_API_KEY`), not Supabase SMTP. Supabase custom SMTP can remain configured for signup confirmation, but recovery uses `auth.admin.generateLink` + Resend.
+Password recovery and signup confirmation emails are sent by the app via **Resend API** (`RESEND_API_KEY`), not Supabase SMTP. Supabase custom SMTP is optional for other auth emails.
 
 ## Vercel Variables
 
