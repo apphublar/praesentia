@@ -170,6 +170,7 @@ export const inMemoryEvents: EventRepository = {
       venueAddress: input.venueAddress,
       venueZip: input.venueZip,
       venueComplement: input.venueComplement,
+      venueReference: input.venueReference,
       city: input.city,
       rsvpEnabled: input.rsvpEnabled !== false,
       rsvpDeadline: input.rsvpDeadline,
@@ -209,6 +210,7 @@ export const inMemoryEvents: EventRepository = {
     if (input.organizerName !== undefined) event.organizerName = input.organizerName;
     if (input.venueZip !== undefined) event.venueZip = input.venueZip;
     if (input.venueComplement !== undefined) event.venueComplement = input.venueComplement;
+    if (input.venueReference !== undefined) event.venueReference = input.venueReference;
     if (input.rsvpEnabled !== undefined) event.rsvpEnabled = input.rsvpEnabled;
     if (input.giftSuggestions !== undefined) event.giftSuggestions = input.giftSuggestions;
     if (input.hostName !== undefined) event.hostName = input.hostName;

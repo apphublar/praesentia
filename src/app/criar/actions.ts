@@ -97,9 +97,12 @@ export async function createEventAction(_prev: CreateEventState, formData: FormD
   const venueAddress = required(formData.get("venueAddress"), 220);
   const venueZip = optional(formData.get("venueZip"), 12);
   const venueComplement = optional(formData.get("venueComplement"), 120);
+  const venueReference = optional(formData.get("venueReference"), 160);
   const city = required(formData.get("city"), 120);
   const giftSuggestions = parseGiftSuggestions(formData);
-  const rsvpDeadline = optional(formData.get("rsvpDeadline"), 20);
+  const rsvpDeadlineRaw = optional(formData.get("rsvpDeadline"), 20);
+  const rsvpDeadlineEnabled = formData.get("rsvpDeadlineEnabled") === "1";
+  const rsvpDeadline = rsvpDeadlineEnabled ? rsvpDeadlineRaw : undefined;
   const rsvpEnabled = profile.isFundraising ? formData.get("rsvpEnabled") === "1" : true;
   const locationMode = optional(formData.get("locationMode"), 20);
   const locationTbd = locationMode === "tbd";
@@ -166,6 +169,7 @@ export async function createEventAction(_prev: CreateEventState, formData: FormD
               : venueAddress,
       venueZip: eventFormat === "in_person" ? venueZip : undefined,
       venueComplement: eventFormat === "in_person" ? venueComplement : undefined,
+      venueReference: eventFormat === "in_person" ? venueReference : undefined,
       city:
         eventFormat === "fundraising"
           ? "Online"

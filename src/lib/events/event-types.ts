@@ -9,6 +9,7 @@ export type EventTypeOption = {
 
 export const EVENT_TYPE_OPTIONS: EventTypeOption[] = [
   { value: "aniversario", label: "Festa de Aniversário", emoji: "🎂", popular: true },
+  { value: "mesversario", label: "Mesversário", emoji: "🎈", popular: true },
   { value: "festa_infantil", label: "Festa Infantil", emoji: "🎈", popular: true },
   { value: "cha_fraldas", label: "Chá de Fraldas / Bebê", emoji: "👶", popular: true },
   { value: "cha_revelacao", label: "Chá Revelação", emoji: "🎁", popular: true },

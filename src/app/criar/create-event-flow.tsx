@@ -1,9 +1,10 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createEventAction } from "@/app/criar/actions";
 import { createEventFieldErrorMessage, type CreateEventState } from "@/app/criar/create-event-state";
+import { EventTypeEmojiGrid } from "@/components/criar/event-type-picker";
 import { GiftSuggestionsEditor } from "@/components/criar/gift-suggestions-editor";
 import { createEventContinuePath } from "@/lib/auth/routes";
 import { getEventProfile } from "@/lib/events/event-profile";
@@ -17,13 +18,9 @@ export function CreateEventFlow() {
   const [selectedType, setSelectedType] = useState<EventType | "">("");
   const [eventFormat, setEventFormat] = useState<"in_person" | "online">("in_person");
   const [showAllTypes, setShowAllTypes] = useState(false);
+  const [rsvpDeadlineEnabled, setRsvpDeadlineEnabled] = useState(false);
 
   const profile = selectedType ? getEventProfile(selectedType) : null;
-
-  const visibleTypes = useMemo(
-    () => (showAllTypes ? EVENT_TYPE_OPTIONS : EVENT_TYPE_OPTIONS.filter((item) => item.popular || item.value === "outros")),
-    [showAllTypes]
-  );
 
   const selectedLabel = EVENT_TYPE_OPTIONS.find((item) => item.value === selectedType)?.label;
   const actionError = state?.error ?? createEventFieldErrorMessage(state?.fieldError) ?? "";
@@ -56,27 +53,13 @@ export function CreateEventFlow() {
       {step === 1 && (
         <section>
           <p className="create-step-lead">Escolha o tipo de evento *</p>
-          <div className="event-type-grid">
-            {visibleTypes.map((type) => {
-              const selected = selectedType === type.value;
-              return (
-                <button
-                  key={type.value}
-                  type="button"
-                  onClick={() => setSelectedType(type.value)}
-                  className={`event-type-option${selected ? " is-selected" : ""}`}
-                >
-                  {selected && <span className="event-type-check" aria-hidden>✓</span>}
-                  <span className="event-type-emoji">{type.emoji}</span>
-                  <span className="event-type-label">{type.label}</span>
-                </button>
-              );
-            })}
-          </div>
+          <EventTypeEmojiGrid
+            value={selectedType}
+            onChange={setSelectedType}
+            showAll={showAllTypes}
+            onToggleShowAll={() => setShowAllTypes((value) => !value)}
+          />
           <div className="create-step-actions">
-            <button type="button" className="btn secondary" onClick={() => setShowAllTypes((value) => !value)}>
-              {showAllTypes ? "Ver menos ↑" : "Ver mais opções ↓"}
-            </button>
             <button type="button" className="btn" disabled={!selectedType} onClick={goToDetailsStep}>
               Continuar →
             </button>
@@ -234,8 +217,17 @@ export function CreateEventFlow() {
                       <input name="date" type="date" required className="native-picker-field" />
                     </label>
                     <label className="field field-span-full">
-                      <span>Confirmar presença até (opcional)</span>
-                      <input name="rsvpDeadline" type="date" className="native-picker-field" />
+                      <span>Prazo para confirmação de presença</span>
+                      <label className="create-checkbox-field" style={{ marginTop: 8 }}>
+                        <input type="checkbox" checked={rsvpDeadlineEnabled} onChange={(e) => setRsvpDeadlineEnabled(e.target.checked)} />
+                        <span>Definir data limite para os convidados confirmarem presença</span>
+                      </label>
+                      {rsvpDeadlineEnabled ? (
+                        <>
+                          <input type="hidden" name="rsvpDeadlineEnabled" value="1" />
+                          <input name="rsvpDeadline" type="date" className="native-picker-field" style={{ marginTop: 10 }} />
+                        </>
+                      ) : null}
                       <p className="cover-field-help">Após essa data o link mostra a contagem para o evento.</p>
                     </label>
                     <label className="field">
@@ -277,6 +269,10 @@ export function CreateEventFlow() {
                         <label className="field">
                           <span>Complemento</span>
                           <input name="venueComplement" maxLength={120} placeholder="Apto, bloco, salão..." />
+                        </label>
+                        <label className="field">
+                          <span>Referência</span>
+                          <input name="venueReference" maxLength={160} placeholder="Ex.: em frente ao mercado X" />
                         </label>
                       </div>
                       <label className="field">

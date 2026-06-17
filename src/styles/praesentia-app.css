@@ -2085,7 +2085,143 @@
   transition: background 0.12s ease, color 0.12s ease;
 }
 
+.event-type-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-bottom: 4px;
+}
+
+.event-type-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 15px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 13.5px;
+  background: var(--card);
+  color: var(--ink-2);
+  border: 1.5px solid var(--line-2);
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.event-type-pill:hover {
+  border-color: var(--coral);
+  color: var(--ink);
+}
+
+.event-type-pill.is-selected {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+  box-shadow: 0 8px 18px -12px rgba(58, 49, 39, 0.45);
+}
+
+.event-type-more-btn {
+  margin-top: 12px;
+}
+
+.invite-art-substep-indicator {
+  margin-bottom: 14px;
+}
+
+.invite-art-substep-next,
+.invite-art-substep-nav {
+  margin-top: 14px;
+}
+
+.invite-art-substep-nav {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.invite-art-substep-nav .btn-dark {
+  margin-left: auto;
+}
+
+.invite-art-approval-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: rgba(58, 49, 39, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.invite-art-approval-modal {
+  position: relative;
+  width: min(100%, 420px);
+  max-height: min(92vh, 760px);
+  overflow: auto;
+  background: var(--paper);
+  border-radius: 18px;
+  padding: 22px 20px 20px;
+  box-shadow: var(--shadow-card);
+}
+
+.invite-art-approval-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--muted);
+}
+
+.invite-art-approval-preview {
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  margin-bottom: 16px;
+  background: var(--card-2);
+}
+
+.invite-art-approval-preview img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.invite-art-approval-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.create-pronto-share-text {
+  margin-bottom: 12px;
+}
+
+.create-pronto-share-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+@media (min-width: 901px) {
+  .invite-art-preview {
+    display: block !important;
+  }
+}
+
 @media (max-width: 900px) {
+  .invite-art-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .invite-art-preview {
+    order: -1;
+    position: static !important;
+    margin-bottom: 16px;
+  }
+
   .my-events-page {
     padding: 24px 18px calc(72px + env(safe-area-inset-bottom));
   }

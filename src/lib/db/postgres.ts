@@ -141,6 +141,7 @@ function rowToEvent(row: Record<string, unknown>): Event {
     venueAddress: String(row.venue_address),
     venueZip: row.venue_zip ? String(row.venue_zip) : undefined,
     venueComplement: row.venue_complement ? String(row.venue_complement) : undefined,
+    venueReference: row.venue_reference ? String(row.venue_reference) : undefined,
     city: String(row.city),
     rsvpEnabled: row.rsvp_enabled !== false,
     rsvpDeadline: row.rsvp_deadline ? normalizeEventDateString(row.rsvp_deadline) : undefined,
@@ -440,14 +441,14 @@ export const postgresEvents: EventRepository = {
         const rows = await sql`
           insert into events (
             owner_id, slug, free_code, title, theme, event_type, host_name, organizer_name, date, starts_at, ends_at,
-            venue_name, venue_address, venue_zip, venue_complement, city, event_format, online_meeting_url,
+            venue_name, venue_address, venue_zip, venue_complement, venue_reference, city, event_format, online_meeting_url,
             rsvp_enabled, rsvp_deadline, gift_suggestions, plan_tier, storage_limit_bytes, retention_until
           )
           values (
             ${input.ownerId}, ${slug}, ${freeCode}, ${input.title},
             ${input.theme}, ${input.eventType}, ${input.hostName}, ${input.organizerName ?? null},
             ${input.date}, ${input.startsAt}, ${input.endsAt}, ${input.venueName}, ${input.venueAddress},
-            ${input.venueZip ?? null}, ${input.venueComplement ?? null}, ${input.city},
+            ${input.venueZip ?? null}, ${input.venueComplement ?? null}, ${input.venueReference ?? null}, ${input.city},
             ${input.eventFormat}, ${input.onlineMeetingUrl ?? null},
             ${input.rsvpEnabled !== false}, ${input.rsvpDeadline ?? null},
             ${sql.json(JSON.parse(JSON.stringify(input.giftSuggestions ?? [])))},
@@ -480,6 +481,7 @@ export const postgresEvents: EventRepository = {
         organizer_name = ${input.organizerName ?? event.organizerName ?? null},
         venue_zip = ${input.venueZip ?? event.venueZip ?? null},
         venue_complement = ${input.venueComplement ?? event.venueComplement ?? null},
+        venue_reference = ${input.venueReference ?? event.venueReference ?? null},
         rsvp_enabled = ${input.rsvpEnabled ?? event.rsvpEnabled},
         gift_suggestions = ${sql.json(JSON.parse(JSON.stringify(input.giftSuggestions ?? event.giftSuggestions)))},
         host_name = ${input.hostName ?? event.hostName},
@@ -507,6 +509,7 @@ export const postgresEvents: EventRepository = {
         venue_address = ${input.venueAddress ?? event.venueAddress},
         venue_zip = ${input.venueZip !== undefined ? input.venueZip : event.venueZip ?? null},
         venue_complement = ${input.venueComplement !== undefined ? input.venueComplement : event.venueComplement ?? null},
+        venue_reference = ${input.venueReference !== undefined ? input.venueReference : event.venueReference ?? null},
         city = ${input.city ?? event.city},
         rsvp_enabled = ${input.rsvpEnabled ?? event.rsvpEnabled},
         rsvp_deadline = ${input.rsvpDeadline !== undefined ? input.rsvpDeadline : event.rsvpDeadline ?? null},

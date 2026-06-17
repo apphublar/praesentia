@@ -84,6 +84,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ event
       venueAddress: sanitizeText(d.venueAddress, 220),
       venueZip: d.venueZip ? sanitizeText(d.venueZip, 12) : undefined,
       venueComplement: d.venueComplement ? sanitizeText(d.venueComplement, 120) : undefined,
+      venueReference: d.venueReference ? sanitizeText(d.venueReference, 160) : undefined,
       city: sanitizeText(d.city, 120),
       onlineMeetingUrl: d.onlineMeetingUrl ? sanitizeText(d.onlineMeetingUrl, 400) : undefined,
       rsvpEnabled: typeof d.rsvpEnabled === "boolean" ? d.rsvpEnabled : undefined,

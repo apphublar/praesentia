@@ -2,6 +2,7 @@ export type EventVisibility = "private" | "public";
 export type EventPhase = "before" | "live" | "memory";
 export type EventType =
   | "aniversario"
+  | "mesversario"
   | "cha_fraldas"
   | "cha_revelacao"
   | "batizado"
@@ -118,6 +119,7 @@ export type Event = {
   venueAddress: string;
   venueZip?: string;
   venueComplement?: string;
+  venueReference?: string;
   city: string;
   rsvpEnabled: boolean;
   rsvpDeadline?: string;

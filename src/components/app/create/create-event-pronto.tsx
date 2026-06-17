@@ -9,6 +9,7 @@ import { Mono } from "@/components/app/ui/primitives";
 import type { PlanId } from "@/components/app/plans/plan-cards";
 import { formatEventDateLine } from "@/lib/events/format-event-date";
 import { fillInviteLink } from "@/lib/openai/invite-text";
+import { buildInviteShareText, buildWhatsAppUrl, fetchImageFile, shareInviteWithImage } from "@/lib/share/invite-share";
 
 function formatTimeShort(time: string) {
   const [h, m] = time.split(":");
@@ -35,18 +36,58 @@ export function CreateEventPronto({
   const appUrl = typeof window !== "undefined" ? window.location.origin : "https://www.praesentia.com.br";
   const fullLink = `${appUrl}/evento/${event.slug}`;
   const [copied, setCopied] = useState(false);
+  const [sharing, setSharing] = useState(false);
+  const [shareNote, setShareNote] = useState("");
 
-  const whatsappText = useMemo(
-    () => fillInviteLink(inviteCopy?.whatsapp ?? `Você está convidado(a)! Confirme aqui: {{link}}`, fullLink),
-    [inviteCopy?.whatsapp, fullLink]
-  );
-  const whatsapp = `https://wa.me/?text=${encodeURIComponent(whatsappText)}`;
   const message = inviteCopy?.message?.trim() || event.inviteCopy?.message?.trim() || "";
+  const whatsappTemplate = inviteCopy?.whatsapp ?? event.inviteCopy?.whatsapp;
+  const shareText = useMemo(
+    () => buildInviteShareText(message, whatsappTemplate, fullLink),
+    [message, whatsappTemplate, fullLink]
+  );
+  const whatsapp = buildWhatsAppUrl(shareText);
+  const resolvedCover = coverUrl || event.coverImageUrl || undefined;
 
-  async function copyLink() {
-    await navigator.clipboard.writeText(fullLink);
+  async function copyAll() {
+    await navigator.clipboard.writeText(shareText);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
+  }
+
+  async function handleWhatsAppShare() {
+    setSharing(true);
+    setShareNote("");
+    try {
+      const shared = await shareInviteWithImage({ text: shareText, coverUrl: resolvedCover, filename: `convite-${event.slug}.jpg` });
+      if (shared) return;
+      window.open(whatsapp, "_blank", "noopener,noreferrer");
+      if (resolvedCover) {
+        setShareNote("Abra o WhatsApp e anexe a imagem do convite (use Baixar convite, se preferir).");
+      }
+    } catch {
+      window.open(whatsapp, "_blank", "noopener,noreferrer");
+      if (resolvedCover) {
+        try {
+          await fetchImageFile(resolvedCover, `convite-${event.slug}.jpg`);
+          setShareNote("Se a imagem não foi anexada, baixe o convite e envie manualmente no WhatsApp.");
+        } catch {
+          setShareNote("Não foi possível anexar a imagem automaticamente. Use Baixar convite e envie no WhatsApp.");
+        }
+      }
+    } finally {
+      setSharing(false);
+    }
+  }
+
+  async function downloadCover() {
+    if (!resolvedCover) return;
+    const file = await fetchImageFile(resolvedCover, `convite-${event.slug}.jpg`);
+    const url = URL.createObjectURL(file);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = file.name;
+    anchor.click();
+    URL.revokeObjectURL(url);
   }
 
   return (
@@ -86,7 +127,7 @@ export function CreateEventPronto({
               dateShort={formatEventDateLine(event.date) ?? event.date}
               time={formatTimeShort(event.startsAt)}
               place={placeLabel(event)}
-              coverUrl={coverUrl || event.coverImageUrl || undefined}
+              coverUrl={resolvedCover}
               compact
               width="100%"
             />
@@ -103,27 +144,31 @@ export function CreateEventPronto({
 
         <section className="create-pronto-share">
           <Mono style={{ display: "block", marginBottom: 12 }}>Compartilhar</Mono>
-          <div className="card-flat create-pronto-link-row">
-            <Icon name="link" size={16} style={{ color: "var(--muted)", flexShrink: 0 }} />
-            <span className="create-pronto-link-text">{fullLink.replace(/^https?:\/\//, "")}</span>
-            <button type="button" className="btn btn-dark btn-sm" onClick={copyLink}>
-              {copied ? "Copiado!" : "Copiar"}
-            </button>
+          <div className="card-flat create-pronto-message create-pronto-share-text">
+            <Mono style={{ display: "block", marginBottom: 8, fontSize: 9 }}>Texto + link</Mono>
+            <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.55, color: "var(--ink-2)", whiteSpace: "pre-wrap" }}>{shareText}</p>
           </div>
-          <a className="btn btn-coral" href={whatsapp} target="_blank" rel="noopener noreferrer">
-            <Icon name="share" size={16} />
-            Enviar no WhatsApp
-          </a>
-          <Link className="btn btn-ghost" href={`/evento/${event.slug}`} target="_blank">
-            <Icon name="eye" size={16} />
-            Ver como convidado
-          </Link>
-          {whatsappText !== message ? (
-            <div className="card-flat create-pronto-message create-pronto-whatsapp-preview">
-              <Mono style={{ display: "block", marginBottom: 8, fontSize: 9 }}>Mensagem do WhatsApp</Mono>
-              <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.55, color: "var(--ink-2)", whiteSpace: "pre-wrap" }}>{whatsappText}</p>
-            </div>
-          ) : null}
+          <div className="create-pronto-share-actions">
+            <button type="button" className="btn btn-dark" onClick={copyAll}>
+              <Icon name="link" size={16} />
+              {copied ? "Copiado!" : "Copiar texto + link"}
+            </button>
+            <button type="button" className="btn btn-coral" disabled={sharing} onClick={() => void handleWhatsAppShare()}>
+              <Icon name="share" size={16} />
+              {sharing ? "Abrindo…" : "Enviar no WhatsApp"}
+            </button>
+            {resolvedCover ? (
+              <button type="button" className="btn btn-ghost" onClick={() => void downloadCover()}>
+                <Icon name="download" size={16} />
+                Baixar convite
+              </button>
+            ) : null}
+            <Link className="btn btn-ghost" href={`/evento/${event.slug}`} target="_blank">
+              <Icon name="eye" size={16} />
+              Ver como convidado
+            </Link>
+          </div>
+          {shareNote ? <p style={{ margin: "10px 0 0", fontSize: 12.5, color: "var(--muted)", lineHeight: 1.45 }}>{shareNote}</p> : null}
         </section>
       </div>
     </div>

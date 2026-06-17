@@ -7,9 +7,10 @@ import type { Event, InviteCopy, UserSubscription } from "@/types/domain";
 import { createEventAction } from "@/app/criar/actions";
 import { createEventFieldErrorMessage, type CreateEventState } from "@/app/criar/create-event-state";
 import { CreateEventPronto } from "@/components/app/create/create-event-pronto";
+import { EventTypeQuickPicker } from "@/components/criar/event-type-picker";
 import { CREATE_PLANS, PlanCard, type PlanId } from "@/components/app/plans/plan-cards";
-import { Icon, type IconName } from "@/components/app/ui/icon";
-import { Field, Mono, Segmented } from "@/components/app/ui/primitives";
+import { Icon } from "@/components/app/ui/icon";
+import { Field, Mono, Segmented, Toggle } from "@/components/app/ui/primitives";
 import { validateInviteCopyForContinue } from "@/lib/events/invite-text-validation";
 import { handleBillingApiResponse } from "@/lib/billing/checkout-client";
 import type { CoverQuota } from "@/components/dashboard/cover-generator";
@@ -24,15 +25,6 @@ const InviteArtStep = dynamic(
     loading: () => <p style={{ color: "var(--muted)", fontSize: 14, margin: 0 }}>Carregando editor do convite…</p>
   }
 );
-
-const CREATE_TYPES: { label: string; value: EventType; icon: IconName }[] = [
-  { label: "Aniversário", value: "aniversario", icon: "gift" },
-  { label: "Casamento", value: "casamento", icon: "heart" },
-  { label: "Chá de bebê", value: "cha_fraldas", icon: "spark" },
-  { label: "Formatura", value: "formatura", icon: "check" },
-  { label: "Batizado", value: "batizado", icon: "spark" },
-  { label: "Outro", value: "outros", icon: "plus" }
-];
 
 type LocMode = "presencial" | "tbd" | "online";
 
@@ -126,6 +118,8 @@ export function CreateEventWizard({
     endTime: "20:00",
     place: "",
     address: "",
+    complement: "",
+    reference: "",
     city: "",
     host: "",
     online: ""
@@ -136,6 +130,8 @@ export function CreateEventWizard({
   const [copy, setCopy] = useState<InviteCopy | undefined>(initialEvent?.inviteCopy);
   const [coverUrl, setCoverUrl] = useState(initialEvent?.coverImageUrl ?? "");
   const [continueError, setContinueError] = useState("");
+  const [inviteReady, setInviteReady] = useState(false);
+  const [rsvpDeadlineEnabled, setRsvpDeadlineEnabled] = useState(false);
   const [plan, setPlan] = useState<PlanId>("cap");
   const [planLoading, setPlanLoading] = useState<"capsule" | "plus" | null>(null);
   const [planMessage, setPlanMessage] = useState("");
@@ -155,9 +151,13 @@ export function CreateEventWizard({
 
   function next() {
     if (step === 1) {
+      if (!inviteReady) {
+        setContinueError("Complete a arte e o texto do convite antes de continuar.");
+        return;
+      }
       const validation = validateInviteCopyForContinue(copy);
       if (!validation.ok && !copy?.message?.trim()) {
-        setContinueError("Gere ou escreva o texto do convite antes de continuar.");
+        setContinueError("Escreva ou gere o texto do convite antes de continuar.");
         return;
       }
       setContinueError("");
@@ -221,36 +221,8 @@ export function CreateEventWizard({
               </h1>
               <p style={{ color: "var(--muted)", fontSize: 15, margin: "0 0 26px" }}>O básico para montar o convite. Leva um minuto.</p>
               <Mono style={{ display: "block", marginBottom: 10 }}>Tipo de evento</Mono>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 9, marginBottom: 26 }}>
-                {CREATE_TYPES.map((t) => {
-                  const on = eventType === t.value;
-                  return (
-                    <button
-                      key={t.value}
-                      type="button"
-                      onClick={() => setEventType(t.value)}
-                      style={{
-                        display: "flex",
-                        gap: 8,
-                        alignItems: "center",
-                        padding: "10px 15px",
-                        borderRadius: 999,
-                        cursor: "pointer",
-                        fontFamily: "var(--font-sans)",
-                        fontWeight: 600,
-                        fontSize: 13.5,
-                        background: on ? "var(--ink)" : "var(--card)",
-                        color: on ? "var(--paper)" : "var(--ink-2)",
-                        border: `1.5px solid ${on ? "var(--ink)" : "var(--line-2)"}`
-                      }}
-                    >
-                      <Icon name={t.icon} size={15} />
-                      {t.label}
-                    </button>
-                  );
-                })}
-              </div>
-              <form action={formAction} className="app-create-grid">
+              <EventTypeQuickPicker value={eventType} onChange={setEventType} />
+              <form action={formAction} className="app-create-grid" style={{ marginTop: 26 }}>
                 <input type="hidden" name="eventType" value={eventType} />
                 <input type="hidden" name="eventFormat" value={locMode === "online" ? "online" : "in_person"} />
                 <input type="hidden" name="locationMode" value={locMode === "tbd" ? "tbd" : ""} />
@@ -288,6 +260,8 @@ export function CreateEventWizard({
                     <div className="app-create-grid" style={{ marginTop: 12 }}>
                       <input className="input" name="venueName" required placeholder="Local" value={form.place} onChange={(e) => setF("place", e.target.value)} />
                       <input className="input" name="venueAddress" required placeholder="Endereço" value={form.address} onChange={(e) => setF("address", e.target.value)} />
+                      <input className="input" name="venueComplement" placeholder="Complemento (apto, salão…)" value={form.complement} onChange={(e) => setF("complement", e.target.value)} />
+                      <input className="input" name="venueReference" placeholder="Referência (ex.: em frente ao mercado X)" value={form.reference} onChange={(e) => setF("reference", e.target.value)} />
                       <input className="input" name="city" required placeholder="Cidade" value={form.city} onChange={(e) => setF("city", e.target.value)} style={{ gridColumn: "1 / -1" }} />
                     </div>
                   )}
@@ -305,6 +279,23 @@ export function CreateEventWizard({
                 <Field label="Organizador(a)" span={2}>
                   <input className="input" name="organizerName" required value={form.host} onChange={(e) => setF("host", e.target.value)} />
                 </Field>
+                <div style={{ gridColumn: "1 / -1" }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 10 }}>
+                    <span className="fl" style={{ marginBottom: 0 }}>Prazo para confirmação de presença</span>
+                    <Toggle on={rsvpDeadlineEnabled} onChange={setRsvpDeadlineEnabled} />
+                  </div>
+                  {rsvpDeadlineEnabled ? (
+                    <>
+                      <input type="hidden" name="rsvpDeadlineEnabled" value="1" />
+                      <Field label="Confirmar presença até">
+                        <input type="date" className="input" name="rsvpDeadline" />
+                      </Field>
+                      <p style={{ margin: "8px 0 0", fontSize: 12.5, color: "var(--muted)", lineHeight: 1.45 }}>
+                        Após essa data, o convite mostra a contagem regressiva até o evento.
+                      </p>
+                    </>
+                  ) : null}
+                </div>
                 <div style={{ gridColumn: "1 / -1", marginTop: 8 }}>
                   <button type="submit" className="btn btn-coral" disabled={pending}>
                     {pending ? "Salvando…" : "Continuar para o convite →"}
@@ -320,8 +311,15 @@ export function CreateEventWizard({
               <h1 className="display" style={{ fontSize: 38, marginBottom: 6 }}>
                 Crie o <span className="coral">convite</span>.
               </h1>
-              <p style={{ color: "var(--muted)", fontSize: 15, margin: "0 0 24px" }}>Gere a arte com IA ou envie a imagem que você já criou — e escreva o texto que vai com o link.</p>
-              <InviteArtStep event={ev} textQuota={textQuota} coverQuota={coverQuota} onCoverChange={setCoverUrl} onCopyChange={setCopy} />
+              <p style={{ color: "var(--muted)", fontSize: 15, margin: "0 0 24px" }}>Crie a imagem com IA ou envie a sua — depois escreva o texto que vai com o link.</p>
+              <InviteArtStep
+                event={ev}
+                textQuota={textQuota}
+                coverQuota={coverQuota}
+                onCoverChange={setCoverUrl}
+                onCopyChange={setCopy}
+                onReadyChange={setInviteReady}
+              />
               {continueError ? <p style={{ color: "var(--coral-deep)", marginTop: 16 }}>{continueError}</p> : null}
             </>
           )}
@@ -366,7 +364,7 @@ export function CreateEventWizard({
                 <Icon name="arrowR" size={15} />
               </button>
             ) : (
-              <button type="button" className="btn btn-coral" onClick={next}>
+              <button type="button" className="btn btn-coral" onClick={next} disabled={step === 1 && !inviteReady}>
                 Continuar
                 <Icon name="arrowR" size={15} />
               </button>

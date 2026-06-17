@@ -24,11 +24,11 @@ function PhotoOverlay({ ph, compact }: { ph: PhotoOverlayConfig; compact?: boole
   const m = compact ? "8%" : "6%";
   const widthPct = `${photoSizePercent(ph.size) * 100}%`;
   const isOriginal = ph.shape === "original";
+  const isRound = ph.shape === "round";
   const st: CSSProperties = {
     position: "absolute",
-    width: widthPct,
     zIndex: 4,
-    ...(isOriginal ? {} : { aspectRatio: "1 / 1" })
+    ...(isOriginal ? { width: widthPct } : { width: widthPct, aspectRatio: "1 / 1", height: "auto" })
   };
   let tx = "0";
   let ty = "0";
@@ -48,7 +48,14 @@ function PhotoOverlay({ ph, compact }: { ph: PhotoOverlayConfig; compact?: boole
   const ring = ph.shape !== "original";
   const radius: CSSProperties["borderRadius"] = ph.shape === "round" ? "50%" : ph.shape === "square" ? "12%" : 8;
   const frame: CSSProperties = ring
-    ? { border: "3px solid rgba(255,255,255,.92)", boxShadow: "0 10px 22px -8px rgba(0,0,0,.5)", overflow: "hidden", borderRadius: radius }
+    ? {
+        border: "3px solid rgba(255,255,255,.92)",
+        boxShadow: "0 10px 22px -8px rgba(0,0,0,.5)",
+        overflow: "hidden",
+        borderRadius: radius,
+        width: "100%",
+        aspectRatio: isRound || ph.shape === "square" ? "1 / 1" : undefined
+      }
     : { filter: "drop-shadow(0 8px 14px rgba(0,0,0,.28))", borderRadius: radius };
 
   return (

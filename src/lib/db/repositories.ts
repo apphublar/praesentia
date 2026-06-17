@@ -15,6 +15,7 @@ export type CreateEventInput = {
   venueAddress: string;
   venueZip?: string;
   venueComplement?: string;
+  venueReference?: string;
   city: string;
   organizerName?: string;
   rsvpEnabled?: boolean;
@@ -66,6 +67,7 @@ export type UpdateEventInput = {
   venueAddress?: string;
   venueZip?: string;
   venueComplement?: string;
+  venueReference?: string;
   city?: string;
   rsvpEnabled?: boolean;
   rsvpDeadline?: string | null;
@@ -102,6 +104,7 @@ export interface EventRepository {
       organizerName?: string;
       venueZip?: string;
       venueComplement?: string;
+      venueReference?: string;
       rsvpEnabled?: boolean;
       giftSuggestions?: GiftSuggestion[];
       hostName?: string;
