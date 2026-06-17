@@ -20,11 +20,12 @@ This is the production authentication plan for Praesentia.
 5. In Authentication settings, enable email authentication.
 6. Enable email confirmation before public launch.
 7. Configure Site URL:
-   - `https://your-production-domain`
-8. Configure redirect URLs:
-   - `https://your-production-domain/auth/callback`
-   - `https://your-production-domain/login`
-   - `https://your-production-domain/login/redefinir-senha`
+   - `https://www.praesentia.com.br`
+8. Configure redirect URLs (Authentication → URL Configuration):
+   - `https://www.praesentia.com.br/auth/callback`
+   - `https://www.praesentia.com.br/auth/recovery`
+   - `https://www.praesentia.com.br/auth/callback/**` (confirmação de email com `?next=...`)
+   - `http://localhost:3000/auth/callback` e `http://localhost:3000/auth/recovery` (local)
    - Vercel preview URLs only if you want preview auth testing.
 9. Create the super admin account with email `adm.praesentia@gmail.com` through the normal signup flow.
 10. Run migration `docs/migrations/015-platform-admin-email.sql` (only this email becomes `platform_admin`).
@@ -32,18 +33,22 @@ This is the production authentication plan for Praesentia.
 12. After first login, open `/admin/configuracoes` and configure Google Authenticator.
 13. Keep the service role key server-only. Never expose it in client components.
 
+Password recovery emails are sent by the app via **Resend API** (`RESEND_API_KEY`), not Supabase SMTP. Supabase custom SMTP can remain configured for signup confirmation, but recovery uses `auth.admin.generateLink` + Resend.
+
 ## Vercel Variables
 
 Set these in Vercel:
 
 ```txt
 APP_ENV=production
-NEXT_PUBLIC_APP_URL=https://your-production-domain
+NEXT_PUBLIC_APP_URL=https://www.praesentia.com.br
 DATABASE_URL=...
 NEXT_PUBLIC_SUPABASE_URL=...
 NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 SUPABASE_SERVICE_ROLE_KEY=...
 SESSION_SECRET=...
+RESEND_API_KEY=...
+RESEND_FROM_EMAIL=Praesentia <noreply@praesentia.com.br>
 PLATFORM_ADMIN_EMAIL=adm.praesentia@gmail.com
 ALLOW_DEV_AUTH_BYPASS=false
 ```

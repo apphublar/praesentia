@@ -9,6 +9,8 @@ import { disposableEmailErrorMessage, isDisposableEmail } from "@/lib/auth/dispo
 import { sanitizeText } from "@/lib/security/sanitize";
 import { resolvePostLoginPath } from "@/lib/auth/post-login-path";
 import { SESSION_COOKIE_NAME } from "@/lib/auth/session-cookie";
+import { getAuthCallbackUrl } from "@/lib/app-url";
+import { createPasswordRecoveryLink, sendPasswordResetEmail } from "@/lib/auth/password-reset-email";
 
 export type AuthActionState = {
   error?: string;
@@ -36,12 +38,22 @@ function issuePraesentiaSession(_userId: string, _email: string, nextPath: strin
   redirect(`/api/auth/establish-session?next=${encodeURIComponent(nextPath)}`);
 }
 
-function appBaseUrl() {
-  return process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-}
-
 function isExistingAccountSignup(data: { user: { identities?: { id: string }[] } | null }) {
   return Boolean(data.user && (!data.user.identities || data.user.identities.length === 0));
+}
+
+function passwordResetErrorMessage(message: string) {
+  const normalized = message.toLowerCase();
+  if (normalized.includes("rate") || normalized.includes("seconds") || normalized.includes("too many")) {
+    return "Aguarde um minuto antes de solicitar outro link.";
+  }
+  if (normalized.includes("redirect")) {
+    return "Não foi possível enviar o link agora. Verifique a configuração de URLs no Supabase.";
+  }
+  if (normalized.includes("email") || normalized.includes("smtp") || normalized.includes("mail")) {
+    return "Não foi possível enviar o email agora. Tente novamente em instantes.";
+  }
+  return "Não foi possível enviar o link agora. Tente novamente em instantes.";
 }
 
 export async function requestPasswordReset(_state: AuthActionState, formData: FormData): Promise<AuthActionState> {
@@ -51,14 +63,22 @@ export async function requestPasswordReset(_state: AuthActionState, formData: Fo
     return { error: "Informe seu email para recuperar a senha." };
   }
 
-  const supabase = await createSupabaseServerClient();
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${appBaseUrl()}/auth/callback?next=${encodeURIComponent("/login/redefinir-senha")}`
-  });
+  const linkResult = await createPasswordRecoveryLink(email);
+  if (!linkResult.ok) {
+    console.error("[auth] createPasswordRecoveryLink failed", linkResult.error);
+    return { error: passwordResetErrorMessage(linkResult.error) };
+  }
 
-  if (error) {
-    console.error("[auth] resetPasswordForEmail failed", error.message);
-    return { error: "Não foi possível enviar o link agora. Tente novamente em instantes." };
+  if (linkResult.unknownUser) {
+    return {
+      notice: "Se este email estiver cadastrado, você receberá um link para redefinir sua senha."
+    };
+  }
+
+  const sendResult = await sendPasswordResetEmail({ to: email, resetLink: linkResult.resetLink });
+  if (!sendResult.ok) {
+    console.error("[auth] sendPasswordResetEmail failed", sendResult.error);
+    return { error: "Não foi possível enviar o email agora. Tente novamente em instantes." };
   }
 
   return {
@@ -179,7 +199,7 @@ export async function signUpWithSupabase(_state: AuthActionState, formData: Form
     password,
     options: {
       data: { name },
-      emailRedirectTo: `${appBaseUrl()}/auth/callback?next=${encodeURIComponent(emailRedirectPath)}`
+      emailRedirectTo: getAuthCallbackUrl(emailRedirectPath)
     }
   });
 

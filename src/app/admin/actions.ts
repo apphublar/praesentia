@@ -8,8 +8,9 @@ import {
   fulfillCapsulePurchase,
   fulfillStoragePurchase
 } from "@/lib/billing/fulfill-checkout";
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { getAppBaseUrl, getAuthRecoveryCallbackUrl } from "@/lib/app-url";
 import type { AiInviteUpgradePlan } from "@/lib/plans/ai-invite-plans";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSessionToken, SESSION_COOKIE_NAME, buildSessionCookieOptions } from "@/lib/auth/session-cookie";
 import { cookies } from "next/headers";
@@ -21,10 +22,6 @@ export type AdminActionState = {
   resetLink?: string;
   whatsappUrl?: string;
 };
-
-function appBaseUrl() {
-  return process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-}
 
 async function assertAdmin() {
   const session = await requirePlatformAdmin();
@@ -125,7 +122,7 @@ export async function adminRequestPasswordReset(userId: string): Promise<AdminAc
     }
 
     const supabase = createSupabaseAdminClient();
-    const redirectTo = `${appBaseUrl()}/auth/callback?next=${encodeURIComponent("/login/redefinir-senha")}`;
+    const redirectTo = getAuthRecoveryCallbackUrl();
     const { data, error } = await supabase.auth.admin.generateLink({
       type: "recovery",
       email: detail.user.email,
@@ -138,7 +135,7 @@ export async function adminRequestPasswordReset(userId: string): Promise<AdminAc
       return { error: "Não foi possível gerar o link de redefinição de senha." };
     }
 
-    const whatsappMessage = `Olá ${detail.user.name}, aqui é da equipe Praesentia.\n\nClique no link abaixo para criar uma nova senha de acesso:\n\n${resetLink}\n\nDepois de salvar, entre com seu email e a nova senha em ${appBaseUrl()}/login\n\nSe não solicitou essa alteração, ignore esta mensagem.`;
+    const whatsappMessage = `Olá ${detail.user.name}, aqui é da equipe Praesentia.\n\nClique no link abaixo para criar uma nova senha de acesso:\n\n${resetLink}\n\nDepois de salvar, entre com seu email e a nova senha em ${getAppBaseUrl()}/login\n\nSe não solicitou essa alteração, ignore esta mensagem.`;
 
     await repositories.audit.record({
       actorUserId: session.user.id,
