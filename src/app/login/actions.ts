@@ -57,6 +57,7 @@ export async function requestPasswordReset(_state: AuthActionState, formData: Fo
   });
 
   if (error) {
+    console.error("[auth] resetPasswordForEmail failed", error.message);
     return { error: "Não foi possível enviar o link agora. Tente novamente em instantes." };
   }
 
