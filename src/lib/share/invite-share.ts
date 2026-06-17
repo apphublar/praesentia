@@ -19,6 +19,7 @@ export async function shareInviteWithImage(input: {
   coverUrl?: string;
   filename?: string;
 }) {
+  if (!shouldUseNativeShare()) return false;
   if (typeof navigator === "undefined" || !navigator.share) return false;
   const files: File[] = [];
   if (input.coverUrl) {
@@ -38,4 +39,10 @@ export async function shareInviteWithImage(input: {
 
 export function buildWhatsAppUrl(text: string) {
   return `https://wa.me/?text=${encodeURIComponent(text)}`;
+}
+
+/** Web Share no desktop abre o menu do sistema (Windows) em vez do WhatsApp. */
+export function shouldUseNativeShare() {
+  if (typeof navigator === "undefined" || !navigator.share) return false;
+  return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
 }

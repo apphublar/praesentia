@@ -8,8 +8,8 @@ import { Icon } from "@/components/app/ui/icon";
 import { Mono } from "@/components/app/ui/primitives";
 import type { PlanId } from "@/components/app/plans/plan-cards";
 import { formatEventDateLine } from "@/lib/events/format-event-date";
-import { fillInviteLink } from "@/lib/openai/invite-text";
-import { buildInviteShareText, buildWhatsAppUrl, fetchImageFile, shareInviteWithImage } from "@/lib/share/invite-share";
+import { downloadCoverImage } from "@/lib/images/download-cover-image";
+import { buildInviteShareText, buildWhatsAppUrl } from "@/lib/share/invite-share";
 
 function formatTimeShort(time: string) {
   const [h, m] = time.split(":");
@@ -38,6 +38,7 @@ export function CreateEventPronto({
   const [copied, setCopied] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [shareNote, setShareNote] = useState("");
+  const [downloadError, setDownloadError] = useState("");
 
   const message = inviteCopy?.message?.trim() || event.inviteCopy?.message?.trim() || "";
   const whatsappTemplate = inviteCopy?.whatsapp ?? event.inviteCopy?.whatsapp;
@@ -54,40 +55,25 @@ export function CreateEventPronto({
     setTimeout(() => setCopied(false), 1500);
   }
 
-  async function handleWhatsAppShare() {
+  function handleWhatsAppShare() {
     setSharing(true);
     setShareNote("");
-    try {
-      const shared = await shareInviteWithImage({ text: shareText, coverUrl: resolvedCover, filename: `convite-${event.slug}.jpg` });
-      if (shared) return;
-      window.open(whatsapp, "_blank", "noopener,noreferrer");
-      if (resolvedCover) {
-        setShareNote("Abra o WhatsApp e anexe a imagem do convite (use Baixar convite, se preferir).");
-      }
-    } catch {
-      window.open(whatsapp, "_blank", "noopener,noreferrer");
-      if (resolvedCover) {
-        try {
-          await fetchImageFile(resolvedCover, `convite-${event.slug}.jpg`);
-          setShareNote("Se a imagem não foi anexada, baixe o convite e envie manualmente no WhatsApp.");
-        } catch {
-          setShareNote("Não foi possível anexar a imagem automaticamente. Use Baixar convite e envie no WhatsApp.");
-        }
-      }
-    } finally {
-      setSharing(false);
+    window.open(whatsapp, "_blank", "noopener,noreferrer");
+    if (resolvedCover) {
+      setShareNote("Anexe a imagem do convite no WhatsApp (use Baixar convite, se preferir).");
     }
+    setSharing(false);
   }
 
   async function downloadCover() {
     if (!resolvedCover) return;
-    const file = await fetchImageFile(resolvedCover, `convite-${event.slug}.jpg`);
-    const url = URL.createObjectURL(file);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = file.name;
-    anchor.click();
-    URL.revokeObjectURL(url);
+    setDownloadError("");
+    try {
+      const ext = resolvedCover.includes("image/png") || resolvedCover.endsWith(".png") ? "png" : "jpg";
+      await downloadCoverImage(resolvedCover, `convite-${event.slug}.${ext}`);
+    } catch {
+      setDownloadError("Não foi possível baixar a imagem. Tente novamente.");
+    }
   }
 
   return (
@@ -153,7 +139,7 @@ export function CreateEventPronto({
               <Icon name="link" size={16} />
               {copied ? "Copiado!" : "Copiar texto + link"}
             </button>
-            <button type="button" className="btn btn-coral" disabled={sharing} onClick={() => void handleWhatsAppShare()}>
+            <button type="button" className="btn btn-coral" disabled={sharing} onClick={handleWhatsAppShare}>
               <Icon name="share" size={16} />
               {sharing ? "Abrindo…" : "Enviar no WhatsApp"}
             </button>
@@ -169,6 +155,7 @@ export function CreateEventPronto({
             </Link>
           </div>
           {shareNote ? <p style={{ margin: "10px 0 0", fontSize: 12.5, color: "var(--muted)", lineHeight: 1.45 }}>{shareNote}</p> : null}
+          {downloadError ? <p style={{ margin: "10px 0 0", fontSize: 12.5, color: "var(--coral-deep)", lineHeight: 1.45 }}>{downloadError}</p> : null}
         </section>
       </div>
     </div>

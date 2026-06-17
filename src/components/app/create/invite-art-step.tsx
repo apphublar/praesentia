@@ -18,7 +18,7 @@ import { buildPhotoZoneInstructions, type PhotoOverlayConfig, type PhotoShape, t
 import { formatEventDateLine } from "@/lib/events/format-event-date";
 import { resolveInviteCopy } from "@/lib/events/invite-copy";
 import { artStylePrompt, type ArtStyle } from "@/lib/openai/art-styles";
-import { buildInitialCoverEditableFields, coverEditableFieldsToOverride, toCoverFormEventInput } from "@/lib/openai/cover-invitation-spec";
+import { buildInitialCoverEditableFields, coverEditableFieldsToOverride, toCoverFormEventInput, withoutCoverInfoFields } from "@/lib/openai/cover-invitation-spec";
 import { resizeImageForCover, urlToDataUrlForCover } from "@/lib/images/resize-host-photo";
 import {
   inviteArtStepIndex,
@@ -401,7 +401,7 @@ export function InviteArtStep({
           draftOrientation: draft,
           draftPhotoInstructions: currentPhoto ? buildPhotoZoneInstructions(currentPhoto) : "",
           withHostPhoto: Boolean(photoUrl),
-          coverFields: coverEditableFieldsToOverride(coverFields)
+          coverFields: coverEditableFieldsToOverride(includeInfo ? coverFields : withoutCoverInfoFields(coverFields))
         })
       });
       if (!response.ok) {
@@ -427,13 +427,7 @@ export function InviteArtStep({
     setImgState("loading");
     setError("");
     try {
-      const fields = { ...coverFields };
-      if (!includeInfo) {
-        fields.date = "";
-        fields.startsAt = "";
-        fields.venueName = "";
-        fields.city = "";
-      }
+      const fields = includeInfo ? coverFields : withoutCoverInfoFields(coverFields);
       const hasPhoto = Boolean(photoUrl);
       const photoConfig = hasPhoto
         ? buildPhotoConfig({ photoUrl, photoShape, photoPos, photoSize, removeBackground, photoNotes })
@@ -444,9 +438,15 @@ export function InviteArtStep({
         setImgState(coverUrl ? "done" : "empty");
         return;
       }
+      const honoree = fields.hostName.trim();
+      const genericHonoree = ["homenageado(a)", "homenageado", "homenageada", "responsável", "responsavel"];
+      const honoreeHint =
+        honoree && !genericHonoree.includes(honoree.toLowerCase()) && !event.title.toLowerCase().includes(honoree.toLowerCase())
+          ? `Destaque o nome "${honoree}" na composição. `
+          : "";
       const orientation = coverPrompt.trim()
-        ? `${coverPrompt.trim()}. ${artStylePrompt(artStyle)}.`
-        : artStylePrompt(artStyle);
+        ? `${honoreeHint}${coverPrompt.trim()}. ${artStylePrompt(artStyle)}.`
+        : `${honoreeHint}${artStylePrompt(artStyle)}`;
       const result = await generateEventCoverImageClient({
         eventId: event.id,
         mode: "generate",

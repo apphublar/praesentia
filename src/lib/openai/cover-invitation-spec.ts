@@ -92,6 +92,24 @@ function isPlaceholderText(value?: string) {
   return !normalized || /^teste(\s|$)/.test(normalized) || normalized === "tema";
 }
 
+function isGenericHostName(value?: string) {
+  const normalized = value?.trim().toLowerCase() ?? "";
+  return (
+    normalized === "homenageado(a)" ||
+    normalized === "homenageado" ||
+    normalized === "homenageada" ||
+    normalized === "responsável" ||
+    normalized === "responsavel"
+  );
+}
+
+function honoreeAlreadyInText(hostName: string, title: string | null, theme: string | null) {
+  const h = hostName.toLowerCase();
+  if (title?.toLowerCase().includes(h)) return true;
+  if (theme?.toLowerCase().includes(h)) return true;
+  return title?.toLowerCase() === h || theme?.toLowerCase() === h;
+}
+
 function fieldOrNull(value?: string) {
   const trimmed = value?.trim() ?? "";
   if (!trimmed || isPlaceholderText(trimmed)) return null;
@@ -130,6 +148,10 @@ function buildLocationLine(summary: CoverRequestSummary) {
   const headline = parts.join(", ");
   const addressLine = addressParts.join(" — ");
 
+  if (!headline && addressLine && !address) {
+    return null;
+  }
+
   if (headline && addressLine) return `${headline} — ${addressLine}`;
   return headline || addressLine || null;
 }
@@ -150,7 +172,9 @@ export function buildCoverBottomTexts(summary: CoverRequestSummary) {
 
   if (title) lines.push(title);
   if (theme && theme !== title) lines.push(theme);
-  if (hostName) lines.push(`Venha celebrar com ${hostName}!`);
+  if (hostName && !isGenericHostName(hostName) && !honoreeAlreadyInText(hostName, title, theme)) {
+    lines.push(hostName);
+  }
   if (dateLine) lines.push(`DATA: ${dateLine}`);
   if (timeLine) lines.push(`HORÁRIO: ${timeLine}`);
   if (locationLine) lines.push(`LOCAL: ${locationLine}`);
@@ -230,6 +254,7 @@ LANGUAGE:
 - Preserve all accents exactly as written.
 - Do not add English words.
 - Do not invent fields the client left empty.
+- If a person's name appears in bottomTexts without the prefixes DATA:, HORÁRIO: or LOCAL:, render that name prominently and legibly — never omit honoree names.
 
 QUALITY:
 Professional invitation design, clear hierarchy, no watermarks, no app logos, no placeholder text.`;
@@ -254,6 +279,22 @@ export function buildInitialCoverEditableFields(input: CoverFormEventInput): Cov
 
 export function coverEditableFieldsToOverride(fields: CoverEditableFields): CoverFieldsOverride {
   return { ...fields };
+}
+
+/** Remove data, horário e local — usado quando o cliente desativa "Incluir informações na arte". */
+export function withoutCoverInfoFields(fields: CoverEditableFields): CoverEditableFields {
+  return {
+    ...fields,
+    date: "",
+    startsAt: "",
+    endsAt: "",
+    venueName: "",
+    venueAddress: "",
+    venueZip: "",
+    venueComplement: "",
+    city: "",
+    onlineMeetingUrl: ""
+  };
 }
 
 /** Orientação livre — sem texto pré-definido. */
