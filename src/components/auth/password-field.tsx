@@ -6,19 +6,21 @@ export function PasswordField({
   name,
   autoComplete,
   required = true,
-  minLength
+  minLength,
+  label = "Senha"
 }: {
   name: string;
   autoComplete: string;
   required?: boolean;
   minLength?: number;
+  label?: string;
 }) {
   const [visible, setVisible] = useState(false);
   const inputId = useId();
 
   return (
     <label className="field password-field">
-      <span>Senha</span>
+      <span>{label}</span>
       <div className="password-field-wrap">
         <input
           id={inputId}

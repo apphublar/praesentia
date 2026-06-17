@@ -1,19 +1,12 @@
 import { ResetPasswordForm } from "@/components/auth/reset-password-form";
 import { AppNav } from "@/components/layout/app-nav";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import Link from "next/link";
 
-function sanitizeNextParam(value: string | string[] | undefined) {
-  const next = Array.isArray(value) ? value[0] : value;
-  if (!next || !next.startsWith("/") || next.startsWith("//")) return "/dashboard";
-  return next;
-}
-
-export default async function ResetPasswordPage({
-  searchParams
-}: {
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
-}) {
-  const params = (await searchParams) ?? {};
-  const nextPath = sanitizeNextParam(params.next);
+export default async function ResetPasswordPage() {
+  const supabase = await createSupabaseServerClient();
+  const { data: authData } = await supabase.auth.getUser();
+  const hasRecoverySession = Boolean(authData.user?.email);
 
   return (
     <>
@@ -22,9 +15,20 @@ export default async function ResetPasswordPage({
         <section className="card login-intro">
           <span className="pill">acesso</span>
           <h1 className="display-i">Nova senha</h1>
-          <p>Defina uma nova senha para continuar usando sua conta.</p>
+          <p>Crie e confirme uma nova senha. Depois de salvar, entre com seu email e a nova senha.</p>
         </section>
-        <ResetPasswordForm nextPath={nextPath} />
+        {hasRecoverySession ? (
+          <ResetPasswordForm />
+        ) : (
+          <section className="card auth-form-card">
+            <p className="auth-status is-error" style={{ margin: 0 }}>
+              Link expirado ou inválido. Peça um novo link à equipe Praesentia.
+            </p>
+            <Link className="btn btn-secondary" href="/login" style={{ marginTop: 16, display: "inline-flex" }}>
+              Ir para o login
+            </Link>
+          </section>
+        )}
       </main>
     </>
   );

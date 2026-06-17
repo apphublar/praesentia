@@ -62,9 +62,39 @@ export function GuestMessageSection({
           <Icon name="msg" size={18} style={{ color: "var(--coral-deep)" }} />
           <strong style={{ fontSize: 14.5 }}>Recados</strong>
           <span className="mono" style={{ marginLeft: "auto", fontSize: 9 }}>
-            público
+            {visibility === "private" ? "privado" : "público"}
           </span>
         </div>
+
+        <div className="public-message-visibility" role="tablist" aria-label="Visibilidade do recado" style={{ marginBottom: 14 }}>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={visibility === "public"}
+            className={visibility === "public" ? "is-active" : ""}
+            onClick={() => {
+              setVisibility("public");
+              setSent(false);
+            }}
+          >
+            <span className="public-message-visibility-label">Público</span>
+            <span className="public-message-visibility-desc">Todos veem no convite</span>
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={visibility === "private"}
+            className={visibility === "private" ? "is-active" : ""}
+            onClick={() => {
+              setVisibility("private");
+              setSent(false);
+            }}
+          >
+            <span className="public-message-visibility-label">Privado</span>
+            <span className="public-message-visibility-desc">Só o organizador lê</span>
+          </button>
+        </div>
+
         {publicMessages.map((message, i) => (
           <div key={message.id} style={{ display: "flex", gap: 10, marginBottom: 13 }}>
             <Avatar name={message.authorName} color={AVATAR_COLORS[i % AVATAR_COLORS.length]} size={30} />
@@ -95,6 +125,11 @@ export function GuestMessageSection({
             </button>
           </div>
         </div>
+        {sent ? (
+          <p style={{ color: "var(--ink-2)", fontSize: 12.5, marginTop: 8, lineHeight: 1.45 }}>
+            {visibility === "private" ? "Recado privado enviado. Só o organizador poderá ler." : "Recado público enviado."}
+          </p>
+        ) : null}
         {error ? <p style={{ color: "var(--coral-deep)", fontSize: 12, marginTop: 8 }}>{error}</p> : null}
       </>
     );

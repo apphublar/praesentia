@@ -7,6 +7,7 @@ import {
   adminAddStorage,
   adminBlockUser,
   adminDeleteUser,
+  adminRequestPasswordReset,
   adminSaveUserNotes
 } from "@/app/admin/actions";
 import { formatBrl } from "@/lib/admin/constants";
@@ -28,6 +29,7 @@ export function AdminClientsPanel({
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [events, setEvents] = useState<AdminUserEventRow[]>([]);
+  const [resetLink, setResetLink] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   const selected = useMemo(() => users.find((u) => u.id === selectedId) ?? null, [users, selectedId]);
@@ -54,16 +56,20 @@ export function AdminClientsPanel({
     setSelectedId(userId);
     setMessage(null);
     setError(null);
+    setResetLink(null);
     void loadEvents(userId);
   }
 
-  function run(action: () => Promise<{ ok?: boolean; error?: string; message?: string }>) {
+  function run(action: () => Promise<{ ok?: boolean; error?: string; message?: string; resetLink?: string; whatsappUrl?: string }>) {
     startTransition(async () => {
       setMessage(null);
       setError(null);
+      setResetLink(null);
       const result = await action();
       if (result.error) setError(result.error);
       if (result.message) setMessage(result.message);
+      if (result.resetLink) setResetLink(result.resetLink);
+      if (result.whatsappUrl) window.open(result.whatsappUrl, "_blank", "noopener,noreferrer");
       if (selectedId) await loadEvents(selectedId);
     });
   }
@@ -138,6 +144,26 @@ export function AdminClientsPanel({
               <button type="button" className="btn btn-secondary" disabled={pending} onClick={() => run(() => adminAddCreativeAttempts(selected.id, "inspiracao"))}>
                 +5 tentativas inspiração
               </button>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                disabled={pending}
+                onClick={() => run(() => adminRequestPasswordReset(selected.id))}
+              >
+                Redefinir senha (WhatsApp)
+              </button>
+              {resetLink ? (
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => {
+                    void navigator.clipboard.writeText(resetLink);
+                    setMessage("Link de redefinição copiado.");
+                  }}
+                >
+                  Copiar link de senha
+                </button>
+              ) : null}
               <a
                 className="btn btn-secondary"
                 href={whatsAppLink(`Olá ${selected.name}, aqui é da equipe Praesentia.`)}

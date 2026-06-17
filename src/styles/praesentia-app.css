@@ -1989,7 +1989,41 @@
   margin: 0 -4px;
 }
 
+.gift-carousel-shell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.gift-carousel-nav {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 99px;
+  border: 1px solid var(--line-2);
+  background: #fff;
+  color: var(--ink);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 12px -8px rgba(58, 49, 39, 0.35);
+  transition: opacity 0.15s, background 0.15s;
+}
+
+.gift-carousel-nav:hover:not(:disabled) {
+  background: var(--card-2);
+}
+
+.gift-carousel-nav:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
 .gift-carousel-track {
+  flex: 1;
+  min-width: 0;
   display: flex;
   gap: 12px;
   overflow-x: auto;
@@ -2062,6 +2096,9 @@
   height: 6px;
   border-radius: 99px;
   background: var(--line-2);
+  border: none;
+  padding: 0;
+  cursor: pointer;
   transition: width 0.25s ease, background 0.25s ease;
 }
 

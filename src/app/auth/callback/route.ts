@@ -32,6 +32,15 @@ export async function GET(request: Request) {
     return NextResponse.redirect(new URL("/login?error=account-blocked", requestUrl.origin));
   }
 
+  const recoveryNext =
+    requestedNext === "/login/redefinir-senha" || requestedNext?.startsWith("/login/redefinir-senha?")
+      ? requestedNext
+      : null;
+
+  if (recoveryNext) {
+    return NextResponse.redirect(new URL(recoveryNext, requestUrl.origin));
+  }
+
   const supabaseAfterExchange = await createSupabaseServerClient();
   const mfa = await loginRequiresMfaVerification(supabaseAfterExchange);
   if (mfa.required) {

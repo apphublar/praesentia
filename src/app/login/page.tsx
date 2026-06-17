@@ -15,18 +15,25 @@ function sanitizeNextParam(value: string | string[] | undefined) {
   return next;
 }
 
-function loginNotice(error?: string) {
+function loginNotice(error?: string, success?: string) {
+  if (success === "password-updated") {
+    return {
+      text: "Senha atualizada com sucesso. Entre com seu email e a nova senha.",
+      tone: "success" as const
+    };
+  }
+
   switch (error) {
     case "account-blocked":
-      return "Esta conta está bloqueada. Entre em contato com o suporte.";
+      return { text: "Esta conta está bloqueada. Entre em contato com o suporte.", tone: "error" as const };
     case "profile-pending":
-      return "Perfil ainda sendo criado. Aguarde alguns segundos e tente novamente.";
+      return { text: "Perfil ainda sendo criado. Aguarde alguns segundos e tente novamente.", tone: "error" as const };
     case "auth-callback":
-      return "Não foi possível concluir o login. Tente novamente.";
+      return { text: "Não foi possível concluir o login. Tente novamente.", tone: "error" as const };
     case "missing-code":
-      return "Link de autenticação inválido ou expirado.";
+      return { text: "Link de autenticação inválido ou expirado.", tone: "error" as const };
     case "not-admin":
-      return `Acesso ao super admin restrito ao e-mail ${PLATFORM_ADMIN_EMAIL}.`;
+      return { text: `Acesso ao super admin restrito ao e-mail ${PLATFORM_ADMIN_EMAIL}.`, tone: "error" as const };
     default:
       return null;
   }
@@ -43,7 +50,8 @@ export default async function LoginPage({
   const initialMfaFactorId = typeof params.factorId === "string" ? params.factorId : undefined;
   const wantsAdmin = nextPath.startsWith("/admin");
   const errorCode = typeof params.error === "string" ? params.error : undefined;
-  const notice = loginNotice(errorCode);
+  const noticeCode = typeof params.notice === "string" ? params.notice : undefined;
+  const notice = loginNotice(errorCode, noticeCode);
 
   const session = await getCurrentSession();
   if (session && !initialMfaFactorId) {
@@ -105,7 +113,9 @@ export default async function LoginPage({
                 </p>
               )}
             </section>
-            {notice ? <p className="auth-status is-error login-page-notice">{notice}</p> : null}
+            {notice ? (
+              <p className={`auth-status login-page-notice${notice.tone === "success" ? " is-ok" : " is-error"}`}>{notice.text}</p>
+            ) : null}
             {showDevLogin ? (
               <DevLoginForm />
             ) : (

@@ -18,7 +18,13 @@ export type AdminActionState = {
   ok?: boolean;
   error?: string;
   message?: string;
+  resetLink?: string;
+  whatsappUrl?: string;
 };
+
+function appBaseUrl() {
+  return process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+}
 
 async function assertAdmin() {
   const session = await requirePlatformAdmin();
@@ -106,6 +112,56 @@ export async function adminAddCreativeAttempts(
     return { ok: true, message: "Tentativas criativas adicionadas." };
   } catch {
     return { error: "Falha ao adicionar tentativas." };
+  }
+}
+
+export async function adminRequestPasswordReset(userId: string): Promise<AdminActionState> {
+  try {
+    const session = await assertAdmin();
+    const detail = await adminRepository.getUserDetail(userId);
+    if (!detail) return { error: "Cliente não encontrado." };
+    if (detail.user.role === "platform_admin" && detail.user.id !== session.user.id) {
+      return { error: "Contas de administrador devem redefinir a senha em Configurações." };
+    }
+
+    const supabase = createSupabaseAdminClient();
+    const redirectTo = `${appBaseUrl()}/auth/callback?next=${encodeURIComponent("/login/redefinir-senha")}`;
+    const { data, error } = await supabase.auth.admin.generateLink({
+      type: "recovery",
+      email: detail.user.email,
+      options: { redirectTo }
+    });
+
+    const resetLink = data?.properties?.action_link;
+    if (error || !resetLink) {
+      console.error("[admin] generateLink recovery failed", error);
+      return { error: "Não foi possível gerar o link de redefinição de senha." };
+    }
+
+    const whatsappMessage = `Olá ${detail.user.name}, aqui é da equipe Praesentia.\n\nClique no link abaixo para criar uma nova senha de acesso:\n\n${resetLink}\n\nDepois de salvar, entre com seu email e a nova senha em ${appBaseUrl()}/login\n\nSe não solicitou essa alteração, ignore esta mensagem.`;
+
+    await repositories.audit.record({
+      actorUserId: session.user.id,
+      eventId: null,
+      action: "admin.password_reset_link",
+      targetType: "user",
+      targetId: userId,
+      metadata: { email: detail.user.email }
+    });
+
+    return {
+      ok: true,
+      message: "Link gerado. Abrimos o WhatsApp — envie a mensagem ao cliente.",
+      resetLink,
+      whatsappUrl: `https://wa.me/?text=${encodeURIComponent(whatsappMessage)}`
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "";
+    if (message.includes("SUPABASE_SERVICE_ROLE_KEY")) {
+      return { error: "Configure SUPABASE_SERVICE_ROLE_KEY no servidor para gerar links de senha." };
+    }
+    console.error("[admin] adminRequestPasswordReset failed", error);
+    return { error: "Não foi possível gerar o link de redefinição de senha." };
   }
 }
 

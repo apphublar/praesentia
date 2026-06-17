@@ -2,11 +2,13 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { loginRequiresMfaVerification, verifyTotpCode } from "@/lib/auth/mfa";
 import { disposableEmailErrorMessage, isDisposableEmail } from "@/lib/auth/disposable-email";
 import { sanitizeText } from "@/lib/security/sanitize";
 import { resolvePostLoginPath } from "@/lib/auth/post-login-path";
+import { SESSION_COOKIE_NAME } from "@/lib/auth/session-cookie";
 
 export type AuthActionState = {
   error?: string;
@@ -65,17 +67,21 @@ export async function requestPasswordReset(_state: AuthActionState, formData: Fo
 
 export async function updatePasswordAfterRecovery(_state: AuthActionState, formData: FormData): Promise<AuthActionState> {
   const password = String(formData.get("password") ?? "");
-  const nextPath = sanitizeRedirectPath(formData.get("next"), "/login/redefinir-senha");
+  const confirmPassword = String(formData.get("confirmPassword") ?? "");
 
   if (password.length < 8) {
     return { error: "Use uma senha com pelo menos 8 caracteres." };
+  }
+
+  if (password !== confirmPassword) {
+    return { error: "As senhas não coincidem." };
   }
 
   const supabase = await createSupabaseServerClient();
   const { data: authData, error: authError } = await supabase.auth.getUser();
 
   if (authError || !authData.user?.email) {
-    return { error: "Link expirado ou inválido. Solicite uma nova recuperação de senha." };
+    return { error: "Link expirado ou inválido. Peça um novo link à equipe Praesentia." };
   }
 
   const { error } = await supabase.auth.updateUser({ password });
@@ -84,7 +90,12 @@ export async function updatePasswordAfterRecovery(_state: AuthActionState, formD
     return { error: "Não foi possível atualizar sua senha agora." };
   }
 
-  return issuePraesentiaSession(authData.user.id, authData.user.email, nextPath);
+  await supabase.auth.signOut();
+  const cookieStore = await cookies();
+  cookieStore.delete(SESSION_COOKIE_NAME);
+  revalidatePath("/", "layout");
+
+  redirect("/login?notice=password-updated");
 }
 
 export async function loginWithSupabase(_state: AuthActionState, formData: FormData): Promise<AuthActionState> {
