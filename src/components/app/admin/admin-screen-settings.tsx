@@ -25,7 +25,6 @@ export function AdminScreenSettings({ event }: { event: Event }) {
   const [screenEnabled, setScreenEnabled] = useState(event.screen.enabled);
   const [showMessages, setShowMessages] = useState(event.screen.showMessages);
   const [showVideos, setShowVideos] = useState(event.screen.showVideos);
-  const [showQrCode, setShowQrCode] = useState(event.screen.showQrCode);
   const [screenState, setScreenState] = useState<RequestState>(idle);
 
   async function saveScreen() {
@@ -36,7 +35,7 @@ export function AdminScreenSettings({ event }: { event: Event }) {
         body: JSON.stringify({
           enabled: screenEnabled,
           paused: screenRefresh === "Curadoria",
-          showQrCode,
+          showQrCode: false,
           showVideos,
           showMessages
         })
@@ -64,7 +63,6 @@ export function AdminScreenSettings({ event }: { event: Event }) {
       <ConfigRow label="Telão ativo" on={screenEnabled} onChange={setScreenEnabled} />
       <ConfigRow label="Recados no telão" on={showMessages} onChange={setShowMessages} />
       <ConfigRow label="Vídeos no telão" on={showVideos} onChange={setShowVideos} />
-      <ConfigRow label="QR code no telão" on={showQrCode} onChange={setShowQrCode} />
       <button type="button" className="btn btn-dark btn-sm" disabled={screenState.loading} onClick={saveScreen}>
         {screenState.loading ? "Salvando…" : "Salvar configurações"}
       </button>

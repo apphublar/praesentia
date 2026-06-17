@@ -11,19 +11,29 @@ export function GiftSuggestionsCarousel({ suggestions }: { suggestions: GiftSugg
   const [activeIndex, setActiveIndex] = useState(0);
 
   useEffect(() => {
-    if (suggestions.length <= 1) return;
-    const timer = window.setInterval(() => {
-      setActiveIndex((current) => {
-        const next = (current + 1) % suggestions.length;
-        const track = trackRef.current;
-        if (track) {
-          const card = track.children[next] as HTMLElement | undefined;
-          card?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+    const track = trackRef.current;
+    if (!track || suggestions.length <= 1) return;
+
+    const syncActiveIndex = () => {
+      const cards = Array.from(track.children) as HTMLElement[];
+      if (!cards.length) return;
+      const trackCenter = track.scrollLeft + track.clientWidth / 2;
+      let closest = 0;
+      let minDistance = Infinity;
+      cards.forEach((card, index) => {
+        const cardCenter = card.offsetLeft + card.offsetWidth / 2;
+        const distance = Math.abs(cardCenter - trackCenter);
+        if (distance < minDistance) {
+          minDistance = distance;
+          closest = index;
         }
-        return next;
       });
-    }, 4200);
-    return () => window.clearInterval(timer);
+      setActiveIndex(closest);
+    };
+
+    syncActiveIndex();
+    track.addEventListener("scroll", syncActiveIndex, { passive: true });
+    return () => track.removeEventListener("scroll", syncActiveIndex);
   }, [suggestions.length]);
 
   if (!suggestions.length) return null;

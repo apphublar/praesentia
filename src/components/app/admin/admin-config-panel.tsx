@@ -140,7 +140,7 @@ export function AdminConfigPanel({
       {capsuleActive ? (
         <ConfBlock title="Telão & mural" desc="Projeção na festa e atualização do telão.">
           <p style={{ margin: "0 0 14px", fontSize: 13.5, color: "var(--muted)", lineHeight: 1.55 }}>
-            Configure o telão, QR code e o que aparece na projeção na tela dedicada.
+            Configure o telão e o que aparece na projeção na tela dedicada.
           </p>
           <Link className="btn btn-dark btn-sm" href={`/dashboard/eventos/${event.id}/telao`}>
             Configurar telão

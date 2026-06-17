@@ -56,7 +56,6 @@ export function EventSettingsForms({
 
   const [screenEnabled, setScreenEnabled] = useState(event.screen.enabled);
   const [screenPaused, setScreenPaused] = useState(event.screen.paused);
-  const [showQrCode, setShowQrCode] = useState(event.screen.showQrCode);
   const [showVideos, setShowVideos] = useState(event.screen.showVideos);
   const [showMessages, setShowMessages] = useState(event.screen.showMessages);
   const [screenState, setScreenState] = useState<RequestState>(idleState);
@@ -100,7 +99,7 @@ export function EventSettingsForms({
         body: JSON.stringify({
           enabled: screenEnabled,
           paused: screenPaused,
-          showQrCode,
+          showQrCode: false,
           showVideos,
           showMessages
         })
@@ -205,7 +204,6 @@ export function EventSettingsForms({
         <div className="praesentia-form praesentia-form-grid praesentia-form-compact settings-form">
           <label className="settings-switch"><input type="checkbox" checked={screenEnabled} onChange={(currentEvent) => setScreenEnabled(currentEvent.target.checked)} /><span>Telão ativo</span></label>
           <label className="settings-switch"><input type="checkbox" checked={screenPaused} onChange={(currentEvent) => setScreenPaused(currentEvent.target.checked)} /><span>Pausar atualização</span></label>
-          <label className="settings-switch"><input type="checkbox" checked={showQrCode} onChange={(currentEvent) => setShowQrCode(currentEvent.target.checked)} /><span>Mostrar QR Code</span></label>
           <label className="settings-switch"><input type="checkbox" checked={showVideos} onChange={(currentEvent) => setShowVideos(currentEvent.target.checked)} /><span>Mostrar vídeos</span></label>
           <label className="settings-switch"><input type="checkbox" checked={showMessages} onChange={(currentEvent) => setShowMessages(currentEvent.target.checked)} /><span>Mostrar recados</span></label>
           <button className="btn settings-primary-action" type="button" disabled={screenState.loading} onClick={submitScreen}>

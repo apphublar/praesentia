@@ -79,7 +79,7 @@ export function EventSetupChecklist({
     {
       id: "compartilhar",
       title: "Compartilhe o convite",
-      description: "Envie o link ou QR Code pelo WhatsApp.",
+      description: "Envie o link pelo WhatsApp.",
       done: hasText && hasCover,
       href: `${eventBase}#secao-compartilhar`,
       action: "Compartilhar"

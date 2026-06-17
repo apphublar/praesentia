@@ -16,39 +16,6 @@ import { GiftSuggestionsCarousel } from "@/components/event/gift-suggestions-car
 import { MavieInviteArt } from "@/components/marketing/mavie-invite-art";
 import { isDemoEventSlug } from "@/lib/marketing/demo-event";
 
-function FakeQr() {
-  return (
-    <div
-      style={{
-        width: 88,
-        height: 88,
-        flexShrink: 0,
-        borderRadius: 12,
-        background: "#fff",
-        border: "1px solid var(--line)",
-        display: "grid",
-        gridTemplateColumns: "repeat(6,1fr)",
-        gridTemplateRows: "repeat(6,1fr)",
-        gap: 2,
-        padding: 9
-      }}
-    >
-      {Array.from({ length: 36 }).map((_, i) => (
-        <span
-          key={i}
-          style={{
-            borderRadius: 1,
-            background:
-              [0, 1, 5, 6, 11, 12, 30, 31, 35, 18, 24, 8, 9, 15, 21, 27, 16, 22].includes(i) || (i * 5 + 2) % 3 === 0
-                ? "var(--ink)"
-                : "transparent"
-          }}
-        />
-      ))}
-    </div>
-  );
-}
-
 export function PrototypePublicInviteView({
   event,
   invitePhase,
@@ -204,7 +171,7 @@ export function PrototypePublicInviteView({
         {event.pix?.enabled ? (
           <div className="card" style={{ padding: 18, marginBottom: 14 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 6 }}>
-              <Icon name="qr" size={18} style={{ color: "var(--coral-deep)" }} />
+              <Icon name="card" size={18} style={{ color: "var(--coral-deep)" }} />
               <strong style={{ fontSize: 14.5 }}>Pix</strong>
             </div>
             <p style={{ margin: "0 0 14px", fontSize: 13, color: "var(--ink-2)", lineHeight: 1.5 }}>
@@ -216,33 +183,28 @@ export function PrototypePublicInviteView({
               style={{ width: "100%" }}
               onClick={() => setPixOpen((open) => !open)}
             >
-              <Icon name="qr" size={14} />
+              <Icon name="card" size={14} />
               {pixOpen ? "Ocultar Pix" : "Ver chave Pix"}
             </button>
 
             {pixOpen && event.pix ? (
               <div style={{ marginTop: 14, paddingTop: 16, borderTop: "1px solid var(--line)" }}>
-                <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
-                  <FakeQr />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <Mono style={{ display: "block", marginBottom: 4 }}>Chave Pix</Mono>
-                    <div style={{ fontFamily: "var(--font-mono)", fontSize: 12.5, fontWeight: 700, wordBreak: "break-all", marginBottom: 9 }}>
-                      {event.pix.key}
-                    </div>
-                    <button
-                      type="button"
-                      className="btn btn-coral btn-sm"
-                      style={{ width: "100%" }}
-                      onClick={() => {
-                        navigator.clipboard.writeText(event.pix!.key);
-                        setPixCopied(true);
-                        setTimeout(() => setPixCopied(false), 1500);
-                      }}
-                    >
-                      {pixCopied ? "Copiado!" : "Copiar chave"}
-                    </button>
-                  </div>
+                <Mono style={{ display: "block", marginBottom: 4 }}>Chave Pix</Mono>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: 12.5, fontWeight: 700, wordBreak: "break-all", marginBottom: 9 }}>
+                  {event.pix.key}
                 </div>
+                <button
+                  type="button"
+                  className="btn btn-coral btn-sm"
+                  style={{ width: "100%" }}
+                  onClick={() => {
+                    navigator.clipboard.writeText(event.pix!.key);
+                    setPixCopied(true);
+                    setTimeout(() => setPixCopied(false), 1500);
+                  }}
+                >
+                  {pixCopied ? "Copiado!" : "Copiar chave"}
+                </button>
               </div>
             ) : null}
           </div>

@@ -6,36 +6,6 @@ import { Icon } from "@/components/app/ui/icon";
 import { Avatar, Mono } from "@/components/app/ui/primitives";
 import { guestPartySize, sumPartySize } from "@/lib/guests/rsvp-display";
 
-function FakeQr() {
-  return (
-    <div
-      style={{
-        width: 120,
-        height: 120,
-        margin: "0 auto 14px",
-        borderRadius: 14,
-        background: "#fff",
-        border: "1px solid var(--line)",
-        display: "grid",
-        gridTemplateColumns: "repeat(6,1fr)",
-        gridTemplateRows: "repeat(6,1fr)",
-        gap: 2,
-        padding: 12
-      }}
-    >
-      {Array.from({ length: 36 }).map((_, i) => (
-        <span
-          key={i}
-          style={{
-            borderRadius: 1,
-            background: (i * 7 + 3) % 3 === 0 || [0, 1, 5, 6, 11, 12, 30, 31, 35, 18, 24].includes(i) ? "var(--ink)" : "transparent"
-          }}
-        />
-      ))}
-    </div>
-  );
-}
-
 export function AdminCheckinPanel({
   eventId,
   eventSlug,
@@ -106,7 +76,6 @@ export function AdminCheckinPanel({
         <p style={{ margin: "0 0 16px", fontSize: 13, color: "var(--ink-2)", lineHeight: 1.5 }}>
           Um link separado para quem recepciona — sem acesso ao painel.
         </p>
-        <FakeQr />
         <button type="button" className="btn btn-dark btn-sm" style={{ width: "100%" }} disabled={!portariaLink} onClick={copyLink}>
           <Icon name="link" size={14} />
           {copied ? "Link copiado!" : "Copiar link da portaria"}
