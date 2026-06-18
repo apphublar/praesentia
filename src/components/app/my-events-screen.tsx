@@ -132,10 +132,6 @@ export function MyEventsScreen({ userName, items }: { userName: string; items: E
               </span>
             </h1>
           </div>
-          <Link className="btn btn-coral" href={CREATE_EVENT_PATH}>
-            <Icon name="plus" size={16} />
-            Criar evento
-          </Link>
         </div>
 
         {items.length === 0 ? (

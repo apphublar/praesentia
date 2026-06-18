@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useImperativeHandle, useRef, useState, forwardRef, type ReactNode } from "react";
 import type { Event, InviteCopy } from "@/types/domain";
 import { ArtStylePicker } from "@/components/app/ui/art-style-picker";
 import { Icon } from "@/components/app/ui/icon";
@@ -28,10 +28,12 @@ import { artStylePrompt, type ArtStyle } from "@/lib/openai/art-styles";
 import { buildInitialCoverEditableFields, coverEditableFieldsToOverride, toCoverFormEventInput, withoutCoverInfoFields } from "@/lib/openai/cover-invitation-spec";
 import { resizeImageForCover, urlToDataUrlForCover } from "@/lib/images/resize-host-photo";
 import {
+  inviteArtContinueBlockedMessage,
   inviteArtStepIndex,
   inviteArtStepLabel,
   inviteArtSteps,
   useCompactInviteLayout,
+  type InviteArtContinueResult,
   type InviteArtSubStep
 } from "@/lib/create/invite-art-flow";
 
@@ -162,21 +164,56 @@ function FieldWithAi({
   );
 }
 
-export function InviteArtStep({
-  event,
-  textQuota,
-  coverQuota,
-  onCoverChange,
-  onCopyChange,
-  onReadyChange
-}: {
-  event: Event;
-  textQuota: TextQuota;
-  coverQuota: CoverQuota;
-  onCoverChange: (url: string) => void;
-  onCopyChange: (copy: InviteCopy) => void;
-  onReadyChange?: (ready: boolean) => void;
-}) {
+export type InviteArtStepHandle = {
+  tryContinue: () => InviteArtContinueResult;
+  tryBack: () => boolean;
+};
+
+function InviteModeDemo({ mode }: { mode: InviteCoverMode }) {
+  return (
+    <div className="invite-mode-demo" aria-hidden="true">
+      <div className={`invite-mode-demo-panel${mode === "ai" ? " is-active" : ""}`}>
+        <span className="invite-mode-demo-icon">
+          <Icon name="spark" size={18} />
+        </span>
+        <strong>Criar com IA</strong>
+        <p>Descreva a cena e a Praesentia gera a arte do convite para você.</p>
+        <div className="invite-mode-demo-mock invite-mode-demo-mock--ai">
+          <span />
+          <span />
+          <span />
+        </div>
+      </div>
+      <div className={`invite-mode-demo-panel${mode === "custom" ? " is-active" : ""}`}>
+        <span className="invite-mode-demo-icon">
+          <Icon name="image" size={18} />
+        </span>
+        <strong>Enviar imagem</strong>
+        <p>Faça upload do convite que você já preparou no celular ou no computador.</p>
+        <div className="invite-mode-demo-mock invite-mode-demo-mock--upload">
+          <Icon name="plus" size={16} />
+          <span>Upload</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export const InviteArtStep = forwardRef<
+  InviteArtStepHandle,
+  {
+    event: Event;
+    textQuota: TextQuota;
+    coverQuota: CoverQuota;
+    onCoverChange: (url: string) => void;
+    onCopyChange: (copy: InviteCopy) => void;
+    onReadyChange?: (ready: boolean) => void;
+    onNavStateChange?: (state: { canContinue: boolean; continueHint?: string; blockedMessage?: string }) => void;
+  }
+>(function InviteArtStep(
+  { event, textQuota, coverQuota, onCoverChange, onCopyChange, onReadyChange, onNavStateChange },
+  ref
+) {
   const [genText, setGenText] = useState(false);
   const [inviteText, setInviteText] = useState(event.inviteCopy?.message ?? "");
   const [artStyle, setArtStyle] = useState<ArtStyle>("Elegante");
@@ -206,8 +243,7 @@ export function InviteArtStep({
   const [error, setError] = useState("");
   const isCompact = useCompactInviteLayout();
   const [subStep, setSubStep] = useState<InviteArtSubStep>("mode");
-  const [maxReached, setMaxReached] = useState<InviteArtSubStep>("mode");
-  const [photoChoice, setPhotoChoice] = useState<"include" | "skip" | null>(event.hostPhotoUrl ? "include" : null);
+  const [photoChoice, setPhotoChoice] = useState<"include" | "skip" | null>(null);
   const [artApproved, setArtApproved] = useState(Boolean(event.coverImageUrl));
   const [showArtApproval, setShowArtApproval] = useState(false);
   const [promptEnhancedByAi, setPromptEnhancedByAi] = useState(false);
@@ -363,7 +399,9 @@ export function InviteArtStep({
       case "mode":
         return true;
       case "photo":
-        return photoChoice !== null;
+        if (photoChoice === null) return false;
+        if (photoChoice === "skip") return isAiMode ? artApproved && Boolean(coverUrl) : true;
+        return true;
       case "art":
         return isAiMode ? artApproved && Boolean(coverUrl) : Boolean(coverUrl);
       case "text":
@@ -372,32 +410,66 @@ export function InviteArtStep({
   }
 
   function isStepVisible(step: InviteArtSubStep) {
-    const idx = inviteArtStepIndex(flowSteps, step);
-    if (isCompact) return subStep === step;
-    return idx <= inviteArtStepIndex(flowSteps, maxReached);
+    if (step === "art" && isAiMode && photoChoice === "skip") return false;
+    return subStep === step;
   }
-
-  useEffect(() => {
-    if (isCompact) return;
-    let reachedIndex = 0;
-    for (let i = 0; i < flowSteps.length; i++) {
-      if (i === 0 || canAdvanceFromStep(flowSteps[i - 1]!)) reachedIndex = i;
-      else break;
-    }
-    setMaxReached(flowSteps[reachedIndex]!);
-  }, [isCompact, flowSteps, photoChoice, artApproved, coverUrl, coverMode, inviteText]);
 
   function goNextSubStep() {
     const idx = inviteArtStepIndex(flowSteps, subStep);
-    if (idx < flowSteps.length - 1 && canAdvanceFromStep(subStep)) {
-      setSubStep(flowSteps[idx + 1]!);
+    if (idx >= flowSteps.length - 1 || !canAdvanceFromStep(subStep)) return;
+    if (subStep === "photo" && photoChoice === "skip") {
+      setSubStep("text");
+      return;
     }
+    setSubStep(flowSteps[idx + 1]!);
   }
 
   function goPrevSubStep() {
     const idx = inviteArtStepIndex(flowSteps, subStep);
-    if (idx > 0) setSubStep(flowSteps[idx - 1]!);
+    if (idx <= 0) return;
+    if (subStep === "text" && isAiMode && photoChoice === "skip") {
+      setSubStep("photo");
+      return;
+    }
+    setSubStep(flowSteps[idx - 1]!);
   }
+
+  const isLastSubStep = inviteArtStepIndex(flowSteps, subStep) === flowSteps.length - 1;
+  const inviteReadyLocal =
+    Boolean(inviteText.trim()) && (isAiMode ? artApproved && Boolean(coverUrl) : Boolean(coverUrl));
+  const canExternalContinue = isLastSubStep ? inviteReadyLocal : canAdvanceFromStep(subStep);
+  const showInvitePreview = subStep !== "mode";
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      tryContinue: () => {
+        if (!canAdvanceFromStep(subStep)) return "blocked";
+        if (!isLastSubStep) {
+          goNextSubStep();
+          return "advanced";
+        }
+        return inviteReadyLocal ? "complete" : "blocked";
+      },
+      tryBack: () => {
+        if (inviteArtStepIndex(flowSteps, subStep) <= 0) return false;
+        goPrevSubStep();
+        return true;
+      }
+    }),
+    [subStep, flowSteps, photoChoice, artApproved, coverUrl, inviteText, isAiMode, isLastSubStep, inviteReadyLocal]
+  );
+
+  useEffect(() => {
+    onNavStateChange?.({
+      canContinue: canExternalContinue,
+      continueHint:
+        subStep === "mode"
+          ? "Escolha como deseja criar a imagem e clique em Continuar para seguir com o convite."
+          : undefined,
+      blockedMessage: inviteArtContinueBlockedMessage(subStep, photoChoice)
+    });
+  }, [canExternalContinue, subStep, photoChoice, onNavStateChange]);
 
   useEffect(() => {
     if (!inviteText.trim()) return;
@@ -442,7 +514,6 @@ export function InviteArtStep({
   function handleApproveArt() {
     setArtApproved(true);
     setShowArtApproval(false);
-    if (subStep === "art") goNextSubStep();
   }
 
   function handleGenerateNew() {
@@ -704,8 +775,8 @@ export function InviteArtStep({
   }
 
   return (
-    <div className="invite-art-grid">
-      <div>
+    <div className={`invite-art-grid${showInvitePreview ? "" : " invite-art-grid--no-preview"}`}>
+      <div className="invite-art-main">
         {isCompact ? (
           <div className="invite-art-substep-indicator">
             <Mono>
@@ -715,7 +786,7 @@ export function InviteArtStep({
         ) : null}
 
         <InviteArtSubStepShell step="mode" currentStep={subStep} visible={isStepVisible("mode")}>
-        <div className="card" style={{ padding: 16, marginBottom: 18 }}>
+        <div className="card invite-mode-card" style={{ padding: 16, marginBottom: 18 }}>
           <span className="fl">Como você quer a imagem do convite?</span>
           <Segmented
             full
@@ -731,18 +802,13 @@ export function InviteArtStep({
               { v: "custom" as const, l: "Enviar minha imagem" }
             ]}
           />
-          <p style={{ margin: "10px 0 0", fontSize: 11.5, color: "var(--muted)", lineHeight: 1.45 }}>
-            {isAiMode
-              ? "Descreva a cena e a IA cria a arte. Você escolhe estilo, prompt e foto do homenageado (opcional)."
-              : "Envie o convite que você já criou. Depois escreva o texto que acompanha o link."}
-          </p>
-          {isCompact ? (
-            <button type="button" className="btn btn-dark btn-sm invite-art-substep-next" disabled={!canAdvanceFromStep("mode")} onClick={goNextSubStep}>
-              Próximo
-              <Icon name="arrowR" size={14} />
-            </button>
-          ) : null}
+          <InviteModeDemo mode={coverMode} />
         </div>
+        {subStep === "mode" ? (
+          <p className="invite-art-continue-hint">
+            Escolha como deseja criar a imagem e clique em <strong>Continuar</strong> para seguir com o convite.
+          </p>
+        ) : null}
         </InviteArtSubStepShell>
 
         {isAiMode ? (
@@ -755,23 +821,29 @@ export function InviteArtStep({
             <strong style={{ fontSize: 14 }}>Foto do homenageado</strong>
           </div>
 
-          {photoChoice === null ? (
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              <p style={{ margin: 0, fontSize: 13, color: "var(--ink-2)", lineHeight: 1.5 }}>
-                Deseja incluir a foto do homenageado na arte do convite?
-              </p>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <button type="button" className="btn btn-dark btn-sm" onClick={handlePhotoInclude}>
-                  Sim, incluir foto
-                </button>
-                <button type="button" className="btn btn-ghost btn-sm" onClick={handlePhotoSkip}>
-                  Não incluir
-                </button>
-              </div>
-            </div>
-          ) : photoChoice === "skip" ? (
-            <p style={{ margin: 0, fontSize: 13, color: "var(--muted)" }}>Você optou por não incluir foto do homenageado.</p>
-          ) : photoUrl || uploadingPhoto ? (
+          <p style={{ margin: "0 0 12px", fontSize: 13, color: "var(--ink-2)", lineHeight: 1.5 }}>
+            Deseja incluir a foto do homenageado na arte do convite?
+          </p>
+          <div className="invite-photo-choice-grid">
+            <button
+              type="button"
+              className={`btn btn-sm${photoChoice === "include" ? " btn-dark" : " btn-ghost"}`}
+              onClick={handlePhotoInclude}
+            >
+              Sim, incluir foto
+            </button>
+            <button
+              type="button"
+              className={`btn btn-sm${photoChoice === "skip" ? " btn-dark" : " btn-ghost"}`}
+              onClick={handlePhotoSkip}
+            >
+              Não incluir
+            </button>
+          </div>
+
+          {photoChoice === "include" ? (
+            <div style={{ marginTop: 14 }}>
+            {photoUrl || uploadingPhoto ? (
             <>
               <div
                 style={{
@@ -934,17 +1006,96 @@ export function InviteArtStep({
               </span>
               {!uploadingPhoto ? <Icon name="plus" size={17} style={{ color: "var(--muted)" }} /> : null}
             </label>
-          )}
-          {isCompact ? (
-            <div className="invite-art-substep-nav">
-              <button type="button" className="btn btn-ghost btn-sm" onClick={goPrevSubStep}>
-                <Icon name="arrowL" size={14} />
-                Voltar
+            )}
+            </div>
+          ) : null}
+
+          {photoChoice === "skip" ? (
+            <div className="invite-photo-inline-art">
+              <div className="invite-photo-inline-divider" />
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <Icon name="image" size={17} style={{ color: "var(--coral)" }} />
+                  <strong style={{ fontSize: 14 }}>Arte do convite</strong>
+                </div>
+                <Tag>1 grátis</Tag>
+              </div>
+
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 8 }}>
+                <span className="fl" style={{ marginBottom: 0 }}>Tema da festa</span>
+                {!themeEditing ? (
+                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => setThemeEditing(true)}>
+                    Editar
+                  </button>
+                ) : null}
+              </div>
+              {themeEditing ? (
+                <div style={{ marginBottom: 14 }}>
+                  <input className="input" value={themeDraft} onChange={(e) => setThemeDraft(e.target.value)} style={{ marginBottom: 8 }} />
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button type="button" className="btn btn-dark btn-sm" disabled={savingTheme} onClick={() => void saveTheme()}>
+                      {savingTheme ? "Salvando…" : "Salvar tema"}
+                    </button>
+                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setThemeDraft(event.theme); setThemeEditing(false); }}>
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <input className="input" value={themeDraft} readOnly style={{ marginBottom: 14, background: "var(--card-2)" }} />
+              )}
+
+              <span className="fl">Estilo visual</span>
+              <div style={{ marginBottom: 14 }}>
+                <ArtStylePicker value={artStyle} onChange={setArtStyle} />
+              </div>
+
+              <FieldWithAi
+                label="Prompt da imagem"
+                hint="Escreva como imagina a cena (mínimo 50 caracteres) ou use Aprimorar prompt com IA."
+                value={coverPrompt}
+                onChange={(value) => {
+                  setCoverPrompt(value);
+                  if (value.trim().length >= 50) setPromptEnhancedByAi(false);
+                }}
+                placeholder="Descreva cores, elementos e clima da arte…"
+                rows={4}
+                loading={genPrompt}
+                onGenerate={generateProPrompt}
+                generateLabel="Aprimorar prompt com IA"
+                generateAgainLabel="Aprimorar novamente com IA"
+              />
+
+              {!promptReady ? (
+                <p style={{ margin: "10px 0 0", fontSize: 12.5, color: "var(--coral-deep)", lineHeight: 1.45 }}>
+                  Escreva pelo menos 50 caracteres no prompt ou clique em <strong>Aprimorar prompt com IA</strong> para continuar.
+                </p>
+              ) : null}
+
+              {promptEnhancedByAi && coverPrompt.trim() ? (
+                <p style={{ margin: "10px 0 0", fontSize: 12.5, color: "var(--ink-2)", lineHeight: 1.45, padding: "10px 12px", borderRadius: 10, background: "var(--card-2)", border: "1px solid var(--line)" }}>
+                  Leia o prompt abaixo com atenção e confirme se está de acordo antes de gerar o convite.
+                </p>
+              ) : null}
+
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 14, padding: "11px 14px", borderRadius: 12, background: "var(--card-2)", border: "1px solid var(--line)" }}>
+                <div style={{ paddingRight: 10 }}>
+                  <div style={{ fontWeight: 600, fontSize: 13 }}>Incluir informações na arte</div>
+                  <div style={{ fontSize: 11.5, color: "var(--muted)", marginTop: 1 }}>Data, horário e local impressos na imagem</div>
+                </div>
+                <Toggle on={includeInfo} onChange={setIncludeInfo} />
+              </div>
+
+              <button type="button" className="btn btn-dark" style={{ width: "100%", marginTop: 14 }} onClick={generateImage} disabled={!canGenerateImage}>
+                <Icon name="image" size={15} />
+                {imgState === "loading" ? "Desenhando…" : "Gerar convite com IA"}
               </button>
-              <button type="button" className="btn btn-dark btn-sm" disabled={!canAdvanceFromStep("photo")} onClick={goNextSubStep}>
-                Próximo
-                <Icon name="arrowR" size={14} />
-              </button>
+
+              {artApproved && coverUrl ? (
+                <p style={{ margin: "10px 0 0", fontSize: 12.5, color: "#7d9a6f", textAlign: "center" }}>
+                  Arte aprovada. Clique em Continuar para escrever o texto do convite.
+                </p>
+              ) : null}
             </div>
           ) : null}
         </div>
@@ -1033,21 +1184,8 @@ export function InviteArtStep({
 
           {artApproved && coverUrl ? (
             <p style={{ margin: "10px 0 0", fontSize: 12.5, color: "#7d9a6f", textAlign: "center" }}>
-              Arte aprovada. Clique em Próximo para escrever o texto do convite.
+              Arte aprovada. Clique em Continuar para escrever o texto do convite.
             </p>
-          ) : null}
-
-          {isCompact ? (
-            <div className="invite-art-substep-nav">
-              <button type="button" className="btn btn-ghost btn-sm" onClick={goPrevSubStep}>
-                <Icon name="arrowL" size={14} />
-                Voltar
-              </button>
-              <button type="button" className="btn btn-dark btn-sm" disabled={!canAdvanceFromStep("art")} onClick={goNextSubStep}>
-                Próximo
-                <Icon name="arrowR" size={14} />
-              </button>
-            </div>
           ) : null}
         </div>
         </InviteArtSubStepShell>
@@ -1130,18 +1268,6 @@ export function InviteArtStep({
               {!uploadingCover ? <Icon name="plus" size={17} style={{ color: "var(--muted)" }} /> : null}
             </label>
           )}
-          {isCompact ? (
-            <div className="invite-art-substep-nav">
-              <button type="button" className="btn btn-ghost btn-sm" onClick={goPrevSubStep}>
-                <Icon name="arrowL" size={14} />
-                Voltar
-              </button>
-              <button type="button" className="btn btn-dark btn-sm" disabled={!canAdvanceFromStep("art")} onClick={goNextSubStep}>
-                Próximo
-                <Icon name="arrowR" size={14} />
-              </button>
-            </div>
-          ) : null}
         </div>
         </InviteArtSubStepShell>
         )}
@@ -1168,21 +1294,14 @@ export function InviteArtStep({
             generateAgainLabel="Aprimorar novamente com IA"
             disabled={!textQuota.canGenerate}
           />
-          {isCompact ? (
-            <div className="invite-art-substep-nav">
-              <button type="button" className="btn btn-ghost btn-sm" onClick={goPrevSubStep}>
-                <Icon name="arrowL" size={14} />
-                Voltar
-              </button>
-            </div>
-          ) : null}
         </div>
         </InviteArtSubStepShell>
 
         {error ? <p style={{ color: "var(--coral-deep)", fontSize: 13, marginTop: 12 }}>{error}</p> : null}
       </div>
 
-      <div className="invite-art-preview" style={{ position: "sticky", top: 0 }}>
+      {showInvitePreview ? (
+      <div className={`invite-art-preview${isCompact ? " invite-art-preview--full" : ""}`} style={{ position: "sticky", top: 0 }}>
         <Mono style={{ display: "block", marginBottom: 10 }}>Prévia do convite</Mono>
         {previewBusy ? (
           <div
@@ -1284,6 +1403,7 @@ export function InviteArtStep({
           </p>
         ) : null}
       </div>
+      ) : null}
 
       <CoverGenerationOverlay
         active={isAiMode && imgState === "loading"}
@@ -1308,4 +1428,4 @@ export function InviteArtStep({
       />
     </div>
   );
-}
+});

@@ -334,12 +334,11 @@ export function PrintedAlbumSection() {
           <CheckList items={["Você escolhe quais fotos entram", "Layout limpo, assinado pela Praesentia", "Capa dura, formato A4", "Envio para todo o Brasil"]} />
           <div className="soft-note small"><b>Valor sob medida</b> pela quantidade de fotos selecionadas.</div>
         </div>
-        <div className="book-stage">
-          <div className="book back" />
-          <div className="book front"><small className="mono">Praesentia — álbum</small><b className="display-i">Mavie Fontinhas,<br />1 ano.</b><span>2026</span></div>
-          <div className="polaroid mini">
-            <MarketingPhoto src={marketingImages.timeline.favorite} alt="Foto favorita da Mavie Fontinhas no álbum impresso" height={64} />
-          </div>
+        <div className="album-product-visual">
+          <MarketingPhoto
+            src={marketingImages.printedAlbum}
+            alt="Álbum impresso Praesentia com capa personalizada Mavie Fontinhas — 1 ano"
+          />
         </div>
       </div>
     </section>

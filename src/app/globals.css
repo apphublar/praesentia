@@ -1142,6 +1142,30 @@ p + a.btn,
   transform: rotate(45deg);
 }
 
+.album-product-visual {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 340px;
+}
+
+.album-product-visual .marketing-photo {
+  width: min(100%, 380px);
+  height: auto;
+  aspect-ratio: 4 / 5;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 24px 48px -28px rgba(27, 18, 9, 0.45);
+  border: 1px solid rgba(27, 18, 9, 0.08);
+}
+
+.album-product-visual .marketing-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
 .book-stage {
   min-height: 340px;
   position: relative;

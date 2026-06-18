@@ -109,7 +109,8 @@ export default async function LoginPage({
                 </p>
               ) : (
                 <p>
-                  Entre ou crie sua conta. Recuperação de senha e Google Authenticator disponíveis na aba Entrar.
+                  Entre com seu email ou crie sua conta para montar convites, acompanhar confirmações e gerenciar seus
+                  eventos em um só lugar.
                 </p>
               )}
             </section>

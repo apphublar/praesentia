@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import type { Event, InviteCopy, UserSubscription } from "@/types/domain";
 import { createEventAction } from "@/app/criar/actions";
 import { createEventFieldErrorMessage, type CreateEventState } from "@/app/criar/create-event-state";
@@ -15,6 +15,7 @@ import { validateInviteCopyForContinue } from "@/lib/events/invite-text-validati
 import { handleBillingApiResponse } from "@/lib/billing/checkout-client";
 import type { CoverQuota } from "@/components/dashboard/cover-generator";
 import type { TextQuota } from "@/components/dashboard/invite-text-editor";
+import type { InviteArtStepHandle } from "@/components/app/create/invite-art-step";
 import type { EventType } from "@/types/domain";
 
 const STEPS = ["Detalhes", "Convite", "Plano", "Pronto"] as const;
@@ -131,6 +132,9 @@ export function CreateEventWizard({
   const [coverUrl, setCoverUrl] = useState(initialEvent?.coverImageUrl ?? "");
   const [continueError, setContinueError] = useState("");
   const [inviteReady, setInviteReady] = useState(false);
+  const [inviteCanContinue, setInviteCanContinue] = useState(false);
+  const [inviteBlockedMessage, setInviteBlockedMessage] = useState("");
+  const inviteArtRef = useRef<InviteArtStepHandle>(null);
   const [rsvpDeadlineEnabled, setRsvpDeadlineEnabled] = useState(false);
   const [plan, setPlan] = useState<PlanId>("cap");
   const [planLoading, setPlanLoading] = useState<"capsule" | "plus" | null>(null);
@@ -151,6 +155,16 @@ export function CreateEventWizard({
 
   function next() {
     if (step === 1) {
+      const result = inviteArtRef.current?.tryContinue();
+      if (result === "advanced") {
+        setContinueError("");
+        document.querySelector(".app-create-layout .scroll")?.scrollTo({ top: 0, behavior: "smooth" });
+        return;
+      }
+      if (result === "blocked") {
+        setContinueError(inviteBlockedMessage || "Complete esta etapa antes de continuar.");
+        return;
+      }
       if (!inviteReady) {
         setContinueError("Complete a arte e o texto do convite antes de continuar.");
         return;
@@ -167,6 +181,11 @@ export function CreateEventWizard({
   }
 
   function back() {
+    if (step === 1 && inviteArtRef.current?.tryBack()) {
+      setContinueError("");
+      document.querySelector(".app-create-layout .scroll")?.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
     setStep(Math.max(0, step - 1));
   }
 
@@ -313,12 +332,17 @@ export function CreateEventWizard({
               </h1>
               <p style={{ color: "var(--muted)", fontSize: 15, margin: "0 0 24px" }}>Crie a imagem com IA ou envie a sua — depois escreva o texto que vai com o link.</p>
               <InviteArtStep
+                ref={inviteArtRef}
                 event={ev}
                 textQuota={textQuota}
                 coverQuota={coverQuota}
                 onCoverChange={setCoverUrl}
                 onCopyChange={setCopy}
                 onReadyChange={setInviteReady}
+                onNavStateChange={({ canContinue, blockedMessage }) => {
+                  setInviteCanContinue(canContinue);
+                  setInviteBlockedMessage(blockedMessage ?? "");
+                }}
               />
               {continueError ? <p style={{ color: "var(--coral-deep)", marginTop: 16 }}>{continueError}</p> : null}
             </>
@@ -364,7 +388,7 @@ export function CreateEventWizard({
                 <Icon name="arrowR" size={15} />
               </button>
             ) : (
-              <button type="button" className="btn btn-coral" onClick={next} disabled={step === 1 && !inviteReady}>
+              <button type="button" className="btn btn-coral" onClick={next} disabled={step === 1 && !inviteCanContinue}>
                 Continuar
                 <Icon name="arrowR" size={15} />
               </button>

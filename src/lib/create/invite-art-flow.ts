@@ -38,3 +38,20 @@ export function inviteArtStepLabel(step: InviteArtSubStep) {
       return "Texto do convite";
   }
 }
+
+export type InviteArtContinueResult = "advanced" | "complete" | "blocked";
+
+export function inviteArtContinueBlockedMessage(step: InviteArtSubStep, photoChoice: "include" | "skip" | null) {
+  switch (step) {
+    case "mode":
+      return "Escolha como deseja criar a imagem do convite.";
+    case "photo":
+      if (photoChoice === null) return "Escolha se deseja incluir a foto do homenageado.";
+      if (photoChoice === "skip") return "Configure e gere a arte do convite antes de continuar.";
+      return "Escolha uma opção de foto do homenageado.";
+    case "art":
+      return "Gere ou envie a arte do convite antes de continuar.";
+    case "text":
+      return "Escreva ou gere o texto do convite antes de continuar.";
+  }
+}

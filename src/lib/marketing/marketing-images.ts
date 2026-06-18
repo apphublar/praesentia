@@ -17,7 +17,8 @@ export const marketingImages = {
     years5: "/marketing/sections/mavie-5years.jpg",
     years7: "/marketing/sections/mavie-7years.jpg",
     favorite: "/marketing/sections/mavie-favorite.jpg"
-  }
+  },
+  printedAlbum: "/marketing/sections/praesentia-printed-album.jpg"
 } as const;
 
 /** Datas de exemplo da jornada Mavie Fontinhas — convite → festa (+30d) → cápsula (+1 ano). */
