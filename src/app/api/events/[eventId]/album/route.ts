@@ -59,8 +59,23 @@ export async function PUT(request: Request, context: { params: Promise<{ eventId
     }
 
     const existing = await repositories.photoAlbumOrders.findByEventId(eventId);
-    if (existing && (existing.status === "paid" || existing.status === "in_production" || existing.status === "shipped")) {
-      return NextResponse.json({ error: "Este álbum já foi pago e não pode ser alterado.", order: existing }, { status: 409 });
+    if (
+      existing &&
+      (existing.status === "submitted" ||
+        existing.status === "paid" ||
+        existing.status === "in_production" ||
+        existing.status === "shipped")
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            existing.status === "submitted"
+              ? "Este pedido já foi enviado e não pode ser alterado."
+              : "Este álbum já foi pago e não pode ser alterado.",
+          order: existing
+        },
+        { status: 409 }
+      );
     }
 
     const draft = body.draft as PhotoAlbumDraft;

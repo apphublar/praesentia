@@ -1,9 +1,15 @@
 import Link from "next/link";
-import { AdminPhotoAlbumExperience } from "@/components/app/admin/admin-photo-album-experience";
+import dynamic from "next/dynamic";
+import { AlbumSkeleton } from "@/components/app/ui/page-skeleton";
 import { loadManagedEventPage } from "@/lib/app/load-managed-event";
 import { repositories } from "@/lib/db";
 import { safeRepositoryCall } from "@/lib/db/safe";
 import { hasCapsuleAccess } from "@/lib/plans/features";
+
+const AdminPhotoAlbumExperience = dynamic(
+  () => import("@/components/app/admin/admin-photo-album-experience").then((mod) => mod.AdminPhotoAlbumExperience),
+  { loading: () => <AlbumSkeleton /> }
+);
 
 export default async function AdminPhotoAlbumPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -26,16 +32,16 @@ export default async function AdminPhotoAlbumPage({ params }: { params: Promise<
     );
   }
 
-  const media = await safeRepositoryCall(
-    () => repositories.media.listPublishedByEvent(event.id),
-    [],
-    "media.listPublishedByEvent"
-  );
-
   const order = await safeRepositoryCall(
     () => repositories.photoAlbumOrders.findByEventId(event.id),
     null,
     "photoAlbumOrders.findByEventId"
+  );
+
+  const media = await safeRepositoryCall(
+    () => repositories.media.listPublishedByEvent(event.id),
+    [],
+    "media.listPublishedByEvent"
   );
 
   return <AdminPhotoAlbumExperience event={event} media={media} initialOrder={order} />;

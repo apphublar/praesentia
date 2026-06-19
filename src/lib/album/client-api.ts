@@ -20,19 +20,30 @@ export async function savePhotoAlbumDraftRemote(eventId: string, draft: PhotoAlb
   return (data as { order: PhotoAlbumOrder }).order;
 }
 
-export async function purchasePhotoAlbum(eventId: string): Promise<{ ok: boolean; error?: string; redirected?: boolean }> {
+export async function purchasePhotoAlbum(eventId: string): Promise<{
+  ok: boolean;
+  error?: string;
+  redirected?: boolean;
+  order?: PhotoAlbumOrder;
+  message?: string;
+}> {
   const response = await fetch("/api/billing/purchase-album", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ eventId })
   });
   const data = (await response.json().catch(() => ({}))) as Record<string, unknown>;
-  if (typeof data.checkoutUrl === "string" && data.mode === "checkout") {
-    window.location.assign(data.checkoutUrl);
-    return { ok: true, redirected: true };
+  if (!response.ok) {
+    return { ok: false, error: String(data.error ?? "Não foi possível enviar o pedido.") };
   }
-  if (data.mode === "fulfilled" || data.order) {
-    return { ok: true };
+  if (typeof data.whatsappUrl === "string" && data.mode === "whatsapp") {
+    window.open(data.whatsappUrl, "_blank", "noopener,noreferrer");
+    return {
+      ok: true,
+      redirected: true,
+      order: data.order as PhotoAlbumOrder | undefined,
+      message: typeof data.message === "string" ? data.message : undefined
+    };
   }
-  return { ok: false, error: String(data.error ?? "Não foi possível iniciar o pagamento.") };
+  return { ok: false, error: "Resposta inesperada ao enviar o pedido." };
 }

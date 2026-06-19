@@ -85,8 +85,9 @@ export function AdminPhotoAlbumExperience({
     return () => window.removeEventListener("resize", check);
   }, []);
 
+  const isSubmitted = order?.status === "submitted";
   const isPaid = order?.status === "paid" || order?.status === "in_production" || order?.status === "shipped";
-  const isLocked = isPaid;
+  const isLocked = isSubmitted || isPaid;
 
   const reloadOrder = useCallback(async () => {
     const remote = await fetchPhotoAlbumOrder(event.id);
@@ -97,15 +98,6 @@ export function AdminPhotoAlbumExperience({
   }, [event.id]);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("checkout") === "success") {
-      void reloadOrder();
-      window.history.replaceState({}, "", `/dashboard/eventos/${event.id}/album`);
-    }
-  }, [event.id, reloadOrder]);
-
-  useEffect(() => {
     if (hydratedRef.current) return;
     hydratedRef.current = true;
     if (initialOrder) return;
@@ -113,7 +105,7 @@ export function AdminPhotoAlbumExperience({
       const local = loadPhotoAlbumDraft(event.id);
       if (local) setDraft(local);
     });
-  }, [initialOrder, reloadOrder]);
+  }, [event.id, initialOrder, reloadOrder]);
 
   useEffect(() => {
     if (isLocked) return;
@@ -266,10 +258,14 @@ export function AdminPhotoAlbumExperience({
     try {
       await savePhotoAlbumDraftRemote(event.id, { ...draft, step: "review" });
       const result = await purchasePhotoAlbum(event.id);
-      if (!result.ok && !result.redirected) {
-        setSubmitError(result.error ?? "Não foi possível iniciar o pagamento.");
+      if (!result.ok) {
+        setSubmitError(result.error ?? "Não foi possível enviar o pedido.");
+        return;
       }
-      if (result.ok && !result.redirected) {
+      if (result.order) {
+        setOrder(result.order);
+        setDraft(result.order.draft);
+      } else {
         await reloadOrder();
       }
     } catch (err) {
@@ -332,6 +328,19 @@ export function AdminPhotoAlbumExperience({
         </div>
         <AlbumPricingBar pageCount={pageCount} selectedPhotos={draft.selectedPhotoIds.length} compact />
       </header>
+
+      {isSubmitted && !isPaid ? (
+        <div className="photo-album-success photo-album-submitted">
+          <Icon name="msg" size={18} />
+          <div>
+            <strong>Pedido enviado para a equipe Praesentia</strong>
+            <p>
+              Pedido {order?.id.slice(0, 8).toUpperCase()} · {order?.pageCount} páginas ·{" "}
+              {formatAlbumCurrency(order?.totalCents ?? 0)}. Vamos revisar pelo WhatsApp, enviar a cobrança e confirmar a produção.
+            </p>
+          </div>
+        </div>
+      ) : null}
 
       {isPaid ? (
         <div className="photo-album-success">
@@ -795,15 +804,16 @@ export function AdminPhotoAlbumExperience({
           </div>
           <p className="photo-album-review-note">
             Preview completo · {draft.pages.length} páginas · {formatAlbumCurrency(albumTotalCents(draft.pages.length))}
+            {!isPaid && !isSubmitted ? " · Ao enviar, abrimos o WhatsApp da Praesentia para revisão e cobrança." : ""}
           </p>
-          {isPaid ? null : (
-            <>
+          {isPaid || isSubmitted ? null : (
+            <div className="photo-album-review-actions">
               {submitError ? <p className="photo-album-error">{submitError}</p> : null}
               <button type="button" className="btn btn-coral" onClick={() => void submitAlbum()} disabled={submitState === "loading" || draft.pages.length < ALBUM_MIN_PAGES}>
-                <Icon name="print" size={16} />
-                {submitState === "loading" ? "Processando…" : "Pagar e enviar para produção"}
+                <Icon name="msg" size={16} />
+                {submitState === "loading" ? "Salvando pedido…" : "Enviar pedido pelo WhatsApp"}
               </button>
-            </>
+            </div>
           )}
         </section>
       ) : null}

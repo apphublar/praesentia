@@ -3195,9 +3195,10 @@
   gap: 28px;
   max-width: 460px;
   margin: 0 auto;
-  padding: 40px 20px 60px;
+  padding: 28px 32px calc(50px + env(safe-area-inset-bottom));
   text-align: center;
   justify-items: center;
+  min-width: 0;
 }
 
 .album-mobile-gate-icon {
@@ -3258,7 +3259,8 @@
 .photo-album-page {
   display: grid;
   gap: 20px;
-  padding-bottom: 40px;
+  padding: 28px 32px calc(50px + env(safe-area-inset-bottom));
+  min-width: 0;
 }
 
 .photo-album-header {
@@ -3971,6 +3973,23 @@
   color: #067647;
 }
 
+.photo-album-submitted {
+  background: #eff8ff;
+  border-color: #b2ddff;
+  color: #175cd3;
+}
+
+.photo-album-review-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.photo-album-review-actions .btn {
+  justify-self: start;
+}
+
 @media (max-width: 1100px) {
   .photo-album-header,
   .photo-album-editor,
@@ -4171,8 +4190,13 @@
   }
 
   /* Page */
+  .album-mobile-gate {
+    padding: 20px 18px calc(50px + env(safe-area-inset-bottom));
+  }
+
   .photo-album-page {
     gap: 14px;
+    padding: 20px 18px calc(50px + env(safe-area-inset-bottom));
   }
 
   .photo-album-panel {

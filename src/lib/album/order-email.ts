@@ -71,23 +71,29 @@ export async function sendAlbumOrderOpsEmail(input: {
   order: PhotoAlbumOrder;
   eventTitle: string;
   userEmail: string;
+  userName?: string;
 }) {
   const opsEmail = process.env.PHOTO_ALBUM_OPS_EMAIL?.trim();
   if (!opsEmail) return { ok: false as const };
 
   const total = formatAlbumCurrency(input.order.totalCents);
   const base = (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
+  const isSubmitted = input.order.status === "submitted";
 
   return sendEmail({
     to: opsEmail,
-    subject: `[Álbum] Novo pedido pago — ${input.eventTitle}`,
+    subject: isSubmitted
+      ? `[Álbum] Novo pedido para revisão — ${input.eventTitle}`
+      : `[Álbum] Novo pedido pago — ${input.eventTitle}`,
     html: `
       <div style="font-family:system-ui,sans-serif;line-height:1.5">
-        <p><strong>Novo álbum pago</strong></p>
+        <p><strong>${isSubmitted ? "Novo pedido de álbum aguardando revisão" : "Novo álbum pago"}</strong></p>
         <ul>
           <li>Evento: ${input.eventTitle}</li>
-          <li>Cliente: ${input.userEmail}</li>
+          <li>Cliente: ${input.userName?.trim() || input.userEmail}</li>
+          <li>E-mail: ${input.userEmail}</li>
           <li>Pedido: ${input.order.id}</li>
+          <li>Status: ${input.order.status}</li>
           <li>Páginas: ${input.order.pageCount}</li>
           <li>Total: ${total}</li>
         </ul>

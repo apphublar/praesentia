@@ -2,10 +2,10 @@ import { NextResponse } from "next/server";
 import { apiAuthErrorResponse } from "@/lib/auth/api";
 import { canManageEventById } from "@/lib/auth/event-access";
 import { requireSession } from "@/lib/auth/session";
+import { buildAlbumOrderWhatsAppMessage, buildAlbumOrderWhatsAppUrl } from "@/lib/album/album-whatsapp";
 import { albumTotalCents } from "@/lib/album/pricing";
+import { sendAlbumOrderOpsEmail } from "@/lib/album/order-email";
 import { validateAlbumDraft } from "@/lib/album/validate";
-import { resolveBillingAction } from "@/lib/billing/billing-action";
-import { BillingFulfillmentError, fulfillAlbumPurchase } from "@/lib/billing/fulfill-checkout";
 import { repositories } from "@/lib/db";
 import { hasCapsuleAccess } from "@/lib/plans/features";
 import { assertTrustedOrigin } from "@/lib/security/origin";
@@ -50,39 +50,34 @@ export async function POST(request: Request) {
 
     const pageCount = order.draft.pages.length;
     const totalCents = albumTotalCents(pageCount);
-    const submitted = await repositories.photoAlbumOrders.markSubmitted(order.id, { pageCount, totalCents });
+    const submitted =
+      order.status === "submitted"
+        ? { ...order, pageCount, totalCents }
+        : await repositories.photoAlbumOrders.markSubmitted(order.id, { pageCount, totalCents });
 
-    const resolution = await resolveBillingAction({
-      checkout: {
-        kind: "album",
-        userId: session.user.id,
-        userEmail: session.user.email,
-        eventId,
-        orderId: submitted.id,
-        pageCount,
-        totalCents
-      },
-      fulfill: () => fulfillAlbumPurchase(submitted.id, eventId, session.user.id)
+    const whatsappMessage = buildAlbumOrderWhatsAppMessage({
+      eventTitle: event.title,
+      userName: session.user.name,
+      order: submitted
     });
+    const whatsappUrl = buildAlbumOrderWhatsAppUrl(whatsappMessage);
 
-    if (resolution.mode === "checkout") {
-      return NextResponse.json({ mode: "checkout", checkoutUrl: resolution.checkoutUrl });
-    }
-    if (resolution.mode === "unavailable") {
-      return NextResponse.json({ error: resolution.error }, { status: 503 });
-    }
+    void sendAlbumOrderOpsEmail({
+      order: submitted,
+      eventTitle: event.title,
+      userEmail: session.user.email,
+      userName: session.user.name
+    }).catch((err) => console.error("[purchase-album ops email]", err));
 
     return NextResponse.json({
-      mode: "fulfilled",
-      order: resolution.result,
-      message: "Álbum enviado para produção."
+      mode: "whatsapp",
+      whatsappUrl,
+      order: submitted,
+      message: "Pedido salvo. Continue pelo WhatsApp para nossa equipe revisar e enviar a cobrança."
     });
   } catch (err) {
     const authError = apiAuthErrorResponse(err);
     if (authError) return authError;
-    if (err instanceof BillingFulfillmentError) {
-      return NextResponse.json({ error: err.message }, { status: 400 });
-    }
     console.error("[purchase-album]", err);
     return NextResponse.json({ error: "Erro ao processar pedido do álbum." }, { status: 500 });
   }
