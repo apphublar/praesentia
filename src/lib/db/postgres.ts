@@ -12,6 +12,7 @@ import type {
   MuralAccessRepository,
   MediaRepository,
   MemberRepository,
+  PhotoAlbumOrderRepository,
   SubscriptionRepository,
   UpdateEventInput,
   UserRepository
@@ -1443,6 +1444,8 @@ export const postgresAiCoverArtifacts: AiCoverArtifactRepository = {
 };
 
 import { BILLING_AUDIT_ACTIONS } from "@/lib/billing/payment-history";
+import type { PhotoAlbumOrder, PhotoAlbumOrderStatus } from "@/lib/album/order-types";
+import type { PhotoAlbumDraft } from "@/lib/album/types";
 
 export const postgresAudit: AuditRepository = {
   async record(input) {
@@ -1519,6 +1522,92 @@ export const postgresGuestMessages: GuestMessageRepository = {
   }
 };
 
+function rowToPhotoAlbumOrder(row: Record<string, unknown>): PhotoAlbumOrder {
+  return {
+    id: String(row.id),
+    eventId: String(row.event_id),
+    userId: String(row.user_id),
+    draft: (row.draft_json as PhotoAlbumDraft) ?? {},
+    status: String(row.status) as PhotoAlbumOrderStatus,
+    pageCount: Number(row.page_count),
+    totalCents: Number(row.total_cents),
+    submittedAt: row.submitted_at ? new Date(String(row.submitted_at)).toISOString() : undefined,
+    paidAt: row.paid_at ? new Date(String(row.paid_at)).toISOString() : undefined,
+    stripeSessionId: row.stripe_session_id ? String(row.stripe_session_id) : undefined,
+    createdAt: new Date(String(row.created_at)).toISOString(),
+    updatedAt: new Date(String(row.updated_at)).toISOString()
+  };
+}
+
+export const postgresPhotoAlbumOrders: PhotoAlbumOrderRepository = {
+  async findByEventId(eventId) {
+    const sql = getSql();
+    const rows = await sql`
+      select * from photo_album_orders where event_id = ${eventId} limit 1
+    `;
+    const row = rows[0];
+    return row ? rowToPhotoAlbumOrder(row as Record<string, unknown>) : null;
+  },
+  async upsertDraft(input) {
+    const sql = getSql();
+    const draftJson = JSON.parse(JSON.stringify(input.draft));
+    const rows = await sql`
+      insert into photo_album_orders (event_id, user_id, draft_json, page_count, total_cents, status, updated_at)
+      values (
+        ${input.eventId}, ${input.userId}, ${sql.json(draftJson)}, ${input.pageCount}, ${input.totalCents}, 'draft', now()
+      )
+      on conflict (event_id) do update set
+        draft_json = excluded.draft_json,
+        page_count = excluded.page_count,
+        total_cents = excluded.total_cents,
+        updated_at = now()
+      where photo_album_orders.status in ('draft', 'submitted')
+      returning *
+    `;
+    const row = rows[0];
+    if (!row) {
+      const existing = await this.findByEventId(input.eventId);
+      if (!existing) throw new Error("Não foi possível salvar o álbum.");
+      if (existing.status === "paid" || existing.status === "in_production" || existing.status === "shipped") {
+        throw new Error("Este álbum já foi pago e não pode ser alterado.");
+      }
+      return existing;
+    }
+    return rowToPhotoAlbumOrder(row as Record<string, unknown>);
+  },
+  async markSubmitted(orderId, input) {
+    const sql = getSql();
+    const rows = await sql`
+      update photo_album_orders
+      set status = 'submitted',
+          page_count = ${input.pageCount},
+          total_cents = ${input.totalCents},
+          submitted_at = coalesce(submitted_at, now()),
+          updated_at = now()
+      where id = ${orderId} and status in ('draft', 'submitted')
+      returning *
+    `;
+    const row = rows[0];
+    if (!row) throw new Error("Pedido de álbum não encontrado ou já pago.");
+    return rowToPhotoAlbumOrder(row as Record<string, unknown>);
+  },
+  async markPaid(orderId, stripeSessionId) {
+    const sql = getSql();
+    const rows = await sql`
+      update photo_album_orders
+      set status = 'paid',
+          paid_at = now(),
+          stripe_session_id = coalesce(${stripeSessionId ?? null}, stripe_session_id),
+          updated_at = now()
+      where id = ${orderId} and status in ('draft', 'submitted', 'paid')
+      returning *
+    `;
+    const row = rows[0];
+    if (!row) throw new Error("Pedido de álbum não encontrado.");
+    return rowToPhotoAlbumOrder(row as Record<string, unknown>);
+  }
+};
+
 export const postgresRepositories = {
   users: postgresUsers,
   events: postgresEvents,
@@ -1530,5 +1619,6 @@ export const postgresRepositories = {
   guestRsvps: postgresGuestRsvps,
   guestMessages: postgresGuestMessages,
   muralAccess: postgresMuralAccess,
-  subscriptions: postgresSubscriptions
+  subscriptions: postgresSubscriptions,
+  photoAlbumOrders: postgresPhotoAlbumOrders
 };

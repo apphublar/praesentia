@@ -84,6 +84,14 @@ export function buildAppNavGroups(event: Event | null): AppNavGroup[] {
           icon: "hourglass",
           requiresEvent: true,
           capsuleOnly: true
+        },
+        {
+          id: "album",
+          href: eventId ? `/dashboard/eventos/${eventId}/album` : "",
+          name: "Álbum de fotos",
+          icon: "print",
+          requiresEvent: true,
+          capsuleOnly: true
         }
       ]
     },
@@ -109,6 +117,7 @@ export function isAppNavItemActive(item: AppNavItem, pathname: string, event: Ev
   if (item.id === "mural" && event) return pathname === `/dashboard/eventos/${event.id}/mural`;
   if (item.id === "telao" && event) return pathname === `/dashboard/eventos/${event.id}/telao`;
   if (item.id === "capsula" && event) return pathname === `/dashboard/eventos/${event.id}/capsula`;
+  if (item.id === "album" && event) return pathname === `/dashboard/eventos/${event.id}/album`;
   if (item.id === "pagamentos") return pathname === "/dashboard/pagamentos";
   if (item.id === "sair") return false;
   return false;

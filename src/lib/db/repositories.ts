@@ -288,3 +288,16 @@ export interface AuditRepository {
     }[]
   >;
 }
+
+export interface PhotoAlbumOrderRepository {
+  findByEventId(eventId: string): Promise<import("@/lib/album/order-types").PhotoAlbumOrder | null>;
+  upsertDraft(input: {
+    eventId: string;
+    userId: string;
+    draft: import("@/lib/album/types").PhotoAlbumDraft;
+    pageCount: number;
+    totalCents: number;
+  }): Promise<import("@/lib/album/order-types").PhotoAlbumOrder>;
+  markSubmitted(orderId: string, input: { pageCount: number; totalCents: number }): Promise<import("@/lib/album/order-types").PhotoAlbumOrder>;
+  markPaid(orderId: string, stripeSessionId?: string): Promise<import("@/lib/album/order-types").PhotoAlbumOrder>;
+}

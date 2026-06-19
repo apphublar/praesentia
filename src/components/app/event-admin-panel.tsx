@@ -195,6 +195,15 @@ export function EventAdminPanel({
               <div className="card event-admin-shortcuts-card">
                 <Mono style={{ display: "block", marginBottom: 14 }}>Atalhos</Mono>
                 <div className="event-admin-shortcuts">
+                  {capsule ? (
+                    <Link className="event-admin-shortcut" href={`/dashboard/eventos/${event.id}/album`}>
+                      <span className="event-admin-shortcut-icon">
+                        <Icon name="print" size={16} />
+                      </span>
+                      <span className="event-admin-shortcut-label">Álbum de fotos</span>
+                      <Icon name="chevR" size={14} style={{ color: "var(--faint)", marginLeft: "auto" }} />
+                    </Link>
+                  ) : null}
                   {[
                     { label: "Compartilhar link", tab: "visao" as TabId, icon: "share" as IconName },
                     { label: "Ver confirmados", tab: "convidados" as TabId, icon: "users" as IconName },

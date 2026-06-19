@@ -1,4 +1,6 @@
 import { canBypassBilling } from "@/lib/billing/stripe-config";
+import { formatAlbumCurrency } from "@/lib/album/pricing";
+import { sendAlbumOrderConfirmationEmail, sendAlbumOrderOpsEmail } from "@/lib/album/order-email";
 import { repositories } from "@/lib/db";
 import { getEventEndDate } from "@/lib/events/phase";
 import { loadAiCoverAccountContext } from "@/lib/plans/ai-cover-account";
@@ -144,8 +146,52 @@ export async function fulfillAiInvitePlan(eventId: string, userId: string, plan:
   };
 }
 
-export async function fulfillCheckoutMetadata(metadata: CheckoutMetadata) {
-  const { kind, userId, eventId, plan, gb } = metadata;
+export async function fulfillAlbumPurchase(orderId: string, eventId: string, userId: string, stripeSessionId?: string) {
+  const order = await repositories.photoAlbumOrders.findByEventId(eventId);
+  if (!order || order.id !== orderId) throw new BillingFulfillmentError("Pedido de álbum não encontrado.");
+  if (order.status === "paid") return order;
+
+  const event = await repositories.events.findById(eventId);
+  if (!event) throw new BillingFulfillmentError("Evento não encontrado.");
+  if (!event.capsuleActivatedAt) throw new BillingFulfillmentError("Cápsula inativa para este evento.");
+
+  const updated = await repositories.photoAlbumOrders.markPaid(orderId, stripeSessionId);
+  const priceLabel = formatAlbumCurrency(updated.totalCents);
+
+  await repositories.audit.record({
+    actorUserId: userId,
+    eventId,
+    action: "event.album_purchased",
+    targetType: "photo_album_order",
+    targetId: orderId,
+    metadata: {
+      pageCount: updated.pageCount,
+      priceBrl: updated.totalCents / 100,
+      priceLabel,
+      devMode: canBypassBilling()
+    }
+  });
+
+  const user = await repositories.users.findById(userId);
+  if (user?.email) {
+    await sendAlbumOrderConfirmationEmail({
+      order: updated,
+      eventTitle: event.title,
+      userEmail: user.email,
+      userName: user.name
+    });
+  }
+  await sendAlbumOrderOpsEmail({
+    order: updated,
+    eventTitle: event.title,
+    userEmail: user?.email ?? "cliente"
+  });
+
+  return updated;
+}
+
+export async function fulfillCheckoutMetadata(metadata: CheckoutMetadata, stripeSessionId?: string) {
+  const { kind, userId, eventId, plan, gb, orderId } = metadata;
 
   switch (kind) {
     case "capsule":
@@ -162,6 +208,9 @@ export async function fulfillCheckoutMetadata(metadata: CheckoutMetadata) {
         throw new BillingFulfillmentError("Plano de versões inválido.");
       }
       return fulfillAiInvitePlan(eventId, userId, plan);
+    case "album":
+      if (!eventId || !orderId) throw new BillingFulfillmentError("Dados do álbum incompletos.");
+      return fulfillAlbumPurchase(orderId, eventId, userId, stripeSessionId);
     default:
       throw new BillingFulfillmentError("Tipo de checkout desconhecido.");
   }
@@ -176,6 +225,9 @@ export function parseCheckoutMetadata(raw: Record<string, string>): CheckoutMeta
     userId,
     eventId: raw.eventId || undefined,
     plan: raw.plan || undefined,
-    gb: raw.gb || undefined
+    gb: raw.gb || undefined,
+    orderId: raw.orderId || undefined,
+    pageCount: raw.pageCount || undefined,
+    totalCents: raw.totalCents || undefined
   };
 }

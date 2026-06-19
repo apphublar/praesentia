@@ -41,7 +41,7 @@ export async function POST(request: Request) {
         console.warn("[stripe-webhook] metadata ausente", session.id);
         return NextResponse.json({ received: true });
       }
-      await fulfillCheckoutMetadata(metadata);
+      await fulfillCheckoutMetadata(metadata, session.id);
     }
   } catch (err) {
     if (err instanceof BillingFulfillmentError) {

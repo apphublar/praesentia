@@ -2,7 +2,8 @@ export type CheckoutKind =
   | "capsule"
   | "plus"
   | "storage"
-  | "ai_invite_plan";
+  | "ai_invite_plan"
+  | "album";
 
 export type CheckoutMetadata = {
   kind: CheckoutKind;
@@ -10,6 +11,9 @@ export type CheckoutMetadata = {
   eventId?: string;
   plan?: string;
   gb?: string;
+  orderId?: string;
+  pageCount?: string;
+  totalCents?: string;
 };
 
 export function isStripeConfigured() {

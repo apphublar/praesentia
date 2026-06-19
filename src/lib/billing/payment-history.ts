@@ -4,7 +4,8 @@ export const BILLING_AUDIT_ACTIONS = [
   "subscription.storage_expanded",
   "event.storage_expanded",
   "event.ai_cover_pack_purchased",
-  "event.ai_invite_plan_purchased"
+  "event.ai_invite_plan_purchased",
+  "event.album_purchased"
 ] as const;
 
 export type BillingAuditAction = (typeof BILLING_AUDIT_ACTIONS)[number];
@@ -124,6 +125,20 @@ export function mapAuditLogToPayment(row: AuditLogRow, eventTitle?: string | nul
         title: `Pacote ${plan} · versões de convite`,
         description: devMode ? "Ativação em ambiente de teste" : "Versões extras para explorar estilos de convite",
         amountLabel: typeof metadata.priceLabel === "string" ? metadata.priceLabel : formatBrl(priceFromMetadata(metadata, 9.9)),
+        status: "paid",
+        eventId: row.eventId,
+        eventTitle: eventTitle ?? null,
+        createdAt: row.createdAt
+      };
+    }
+    case "event.album_purchased": {
+      const pages = typeof metadata.pageCount === "number" ? metadata.pageCount : null;
+      return {
+        id: row.id,
+        action: row.action,
+        title: "Álbum de fotos impresso",
+        description: pages ? `${pages} páginas · 30×30 cm capa dura` : "Álbum físico Praesentia",
+        amountLabel: typeof metadata.priceLabel === "string" ? metadata.priceLabel : formatBrl(priceFromMetadata(metadata, 170)),
         status: "paid",
         eventId: row.eventId,
         eventTitle: eventTitle ?? null,

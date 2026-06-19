@@ -14,11 +14,14 @@ import type {
   MuralAccessRepository,
   MediaRepository,
   MemberRepository,
+  PhotoAlbumOrderRepository,
   SubscriptionRepository,
   UpdateEventInput,
   UserRepository
 } from "@/lib/db/repositories";
 import { PLANS } from "@/lib/plans";
+import type { PhotoAlbumOrder } from "@/lib/album/order-types";
+import type { PhotoAlbumDraft } from "@/lib/album/types";
 import type { Event, GuestMessage, GuestRsvp, MediaItem, MuralAccessRequest, PlanTier, UserSubscription } from "@/types/domain";
 
 function createId(prefix: string) {
@@ -873,6 +876,62 @@ const inMemoryGuestMessages: GuestMessageRepository = {
   }
 };
 
+const photoAlbumOrderStore: PhotoAlbumOrder[] = [];
+
+const inMemoryPhotoAlbumOrders: PhotoAlbumOrderRepository = {
+  async findByEventId(eventId) {
+    return photoAlbumOrderStore.find((order) => order.eventId === eventId) ?? null;
+  },
+  async upsertDraft(input) {
+    const existing = photoAlbumOrderStore.find((order) => order.eventId === input.eventId);
+    if (existing && (existing.status === "paid" || existing.status === "in_production" || existing.status === "shipped")) {
+      throw new Error("Este álbum já foi pago e não pode ser alterado.");
+    }
+    const now = new Date().toISOString();
+    if (existing) {
+      existing.draft = input.draft;
+      existing.pageCount = input.pageCount;
+      existing.totalCents = input.totalCents;
+      existing.updatedAt = now;
+      return existing;
+    }
+    const order: PhotoAlbumOrder = {
+      id: createId("album"),
+      eventId: input.eventId,
+      userId: input.userId,
+      draft: input.draft as PhotoAlbumDraft,
+      status: "draft",
+      pageCount: input.pageCount,
+      totalCents: input.totalCents,
+      createdAt: now,
+      updatedAt: now
+    };
+    photoAlbumOrderStore.push(order);
+    return order;
+  },
+  async markSubmitted(orderId, input) {
+    const order = photoAlbumOrderStore.find((item) => item.id === orderId);
+    if (!order || (order.status !== "draft" && order.status !== "submitted")) {
+      throw new Error("Pedido de álbum não encontrado ou já pago.");
+    }
+    order.status = "submitted";
+    order.pageCount = input.pageCount;
+    order.totalCents = input.totalCents;
+    order.submittedAt = order.submittedAt ?? new Date().toISOString();
+    order.updatedAt = new Date().toISOString();
+    return order;
+  },
+  async markPaid(orderId, stripeSessionId) {
+    const order = photoAlbumOrderStore.find((item) => item.id === orderId);
+    if (!order) throw new Error("Pedido de álbum não encontrado.");
+    order.status = "paid";
+    order.paidAt = new Date().toISOString();
+    if (stripeSessionId) order.stripeSessionId = stripeSessionId;
+    order.updatedAt = new Date().toISOString();
+    return order;
+  }
+};
+
 export const repositories = {
   users: inMemoryUsers,
   events: inMemoryEvents,
@@ -884,5 +943,6 @@ export const repositories = {
   guestRsvps: inMemoryGuestRsvps,
   guestMessages: inMemoryGuestMessages,
   muralAccess: inMemoryMuralAccess,
-  subscriptions: inMemorySubscriptions
+  subscriptions: inMemorySubscriptions,
+  photoAlbumOrders: inMemoryPhotoAlbumOrders
 };
