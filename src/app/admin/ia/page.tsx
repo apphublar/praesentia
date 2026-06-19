@@ -1,11 +1,19 @@
+import { unstable_cache } from "next/cache";
 import { ADMIN_EXTERNAL_LINKS, formatUsd } from "@/lib/admin/constants";
 import { adminRepository } from "@/lib/db";
 
+const getAdminAiPageDataCached = unstable_cache(
+  async () =>
+    Promise.all([
+      adminRepository.getMetrics(),
+      adminRepository.listAiUsage({ limit: 150 })
+    ]),
+  ["admin-ai-page-data"],
+  { revalidate: 20 }
+);
+
 export default async function AdminAiPage() {
-  const [metrics, usage] = await Promise.all([
-    adminRepository.getMetrics(),
-    adminRepository.listAiUsage({ limit: 150 })
-  ]);
+  const [metrics, usage] = await getAdminAiPageDataCached();
 
   const totalUsageCost = usage.rows.reduce((sum, row) => sum + row.estimatedCostUsd, 0);
 

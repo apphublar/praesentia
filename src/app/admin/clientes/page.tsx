@@ -1,10 +1,17 @@
 import Link from "next/link";
+import { unstable_cache } from "next/cache";
 import { AdminClientsPanel } from "@/components/platform-admin/admin-clients-panel";
 import { adminRepository } from "@/lib/db";
 
 function appBaseUrl() {
   return process.env.NEXT_PUBLIC_APP_URL ?? "https://praesentia.com.br";
 }
+
+const getAdminUsersCached = unstable_cache(
+  async (search: string) => adminRepository.listUsers({ search, limit: 100 }),
+  ["admin-users-list"],
+  { revalidate: 20 }
+);
 
 export default async function AdminClientsPage({
   searchParams
@@ -13,7 +20,7 @@ export default async function AdminClientsPage({
 }) {
   const params = (await searchParams) ?? {};
   const search = params.q?.trim() ?? "";
-  const { users, total } = await adminRepository.listUsers({ search, limit: 100 });
+  const { users, total } = await getAdminUsersCached(search);
 
   return (
     <section className="platform-admin-section">

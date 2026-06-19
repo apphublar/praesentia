@@ -64,6 +64,14 @@ export function buildAppNavGroups(event: Event | null): AppNavGroup[] {
           capsuleOnly: true
         },
         {
+          id: "album",
+          href: eventId ? `/dashboard/eventos/${eventId}/album` : "",
+          name: "Álbum de fotos",
+          icon: "print",
+          requiresEvent: true,
+          capsuleOnly: true
+        },
+        {
           id: "telao",
           href: eventId ? `/dashboard/eventos/${eventId}/telao` : "",
           name: "Telão",
@@ -84,14 +92,6 @@ export function buildAppNavGroups(event: Event | null): AppNavGroup[] {
           icon: "hourglass",
           requiresEvent: true,
           capsuleOnly: true
-        },
-        {
-          id: "album",
-          href: eventId ? `/dashboard/eventos/${eventId}/album` : "",
-          name: "Álbum de fotos",
-          icon: "print",
-          requiresEvent: true,
-          capsuleOnly: true
         }
       ]
     },
@@ -99,7 +99,7 @@ export function buildAppNavGroups(event: Event | null): AppNavGroup[] {
       label: "Conta",
       items: [
         { id: "pagamentos", href: "/dashboard/pagamentos", name: "Compras", icon: "card" },
-        { id: "sair", href: "/api/auth/logout", name: "Sair", icon: "logout" }
+        { id: "conta", href: "/dashboard/conta", name: "Conta", icon: "user" }
       ]
     }
   ];
@@ -119,7 +119,7 @@ export function isAppNavItemActive(item: AppNavItem, pathname: string, event: Ev
   if (item.id === "capsula" && event) return pathname === `/dashboard/eventos/${event.id}/capsula`;
   if (item.id === "album" && event) return pathname === `/dashboard/eventos/${event.id}/album`;
   if (item.id === "pagamentos") return pathname === "/dashboard/pagamentos";
-  if (item.id === "sair") return false;
+  if (item.id === "conta") return pathname === "/dashboard/conta";
   return false;
 }
 
@@ -130,5 +130,7 @@ export function isAppNavItemLocked(item: AppNavItem, event: Event | null) {
 }
 
 export function isAppNavItemDisabled(item: AppNavItem, event: Event | null) {
-  return Boolean(item.requiresEvent && !event);
+  if (item.requiresEvent && !event) return true;
+  if (item.capsuleOnly && (!event || !hasCapsuleAccess(event))) return true;
+  return false;
 }

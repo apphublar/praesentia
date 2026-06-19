@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import type { Event, EventMember, GuestRsvp, MediaItem, MuralAccessRequest, UserSubscription } from "@/types/domain";
 import { ExpandStorageModal } from "@/components/app/expand-storage-modal";
@@ -32,13 +33,14 @@ const AdminConfigPanel = dynamic(
   { loading: () => <AdminTabLoading /> }
 );
 
-type TabId = "visao" | "convidados" | "checkin" | "mural" | "config";
+type TabId = "visao" | "convidados" | "checkin" | "mural" | "album" | "config";
 
 const TABS: { id: TabId; label: string; icon: IconName; capsuleOnly?: boolean }[] = [
   { id: "visao", label: "Visão geral", icon: "grid" },
   { id: "convidados", label: "Convidados", icon: "users" },
   { id: "checkin", label: "Check-in", icon: "qr" },
   { id: "mural", label: "Mural", icon: "camera", capsuleOnly: true },
+  { id: "album", label: "Álbum de fotos", icon: "print", capsuleOnly: true },
   { id: "config", label: "Configurações", icon: "gear" }
 ];
 
@@ -84,6 +86,7 @@ export function EventAdminPanel({
   muralAccessRequests: MuralAccessRequest[];
   needsRsvp: boolean;
 }) {
+  const router = useRouter();
   const [tab, setTab] = useState<TabId>("visao");
   const [visitedTabs, setVisitedTabs] = useState<Set<TabId>>(() => new Set(["visao"]));
   const [, startTransition] = useTransition();
@@ -110,6 +113,10 @@ export function EventAdminPanel({
   }, []);
 
   function selectTab(next: TabId) {
+    if (next === "album") {
+      router.push(`/dashboard/eventos/${event.id}/album`);
+      return;
+    }
     if (next === tab) return;
     startTransition(() => {
       setTab(next);

@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { unstable_cache } from "next/cache";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 import { repositories } from "@/lib/db";
@@ -19,6 +20,12 @@ export type Session = {
 };
 
 const DB_RETRY_DELAYS_MS = [300, 700, 1500] as const;
+
+const findUserByIdRevalidated = unstable_cache(
+  async (userId: string) => repositories.users.findById(userId),
+  ["auth-user-by-id"],
+  { revalidate: 15 }
+);
 
 function userFromPayload(payload: SessionPayload): User {
   return {
@@ -41,7 +48,7 @@ async function enrichSessionFromDatabase(payload: SessionPayload): Promise<Sessi
 
   for (let attempt = 0; attempt < 4; attempt += 1) {
     try {
-      const dbUser = await repositories.users.findById(payload.sub);
+      const dbUser = await findUserByIdRevalidated(payload.sub);
       if (dbUser) {
         return {
           user: {

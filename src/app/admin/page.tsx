@@ -1,9 +1,16 @@
+import { unstable_cache } from "next/cache";
 import { AdminMetricsGrid } from "@/components/platform-admin/admin-metrics-grid";
 import { ADMIN_EXTERNAL_LINKS } from "@/lib/admin/constants";
 import { adminRepository } from "@/lib/db";
 
+const getAdminMetricsCached = unstable_cache(
+  async () => adminRepository.getMetrics(),
+  ["admin-overview-metrics"],
+  { revalidate: 30 }
+);
+
 export default async function AdminOverviewPage() {
-  const metrics = await adminRepository.getMetrics();
+  const metrics = await getAdminMetricsCached();
 
   return (
     <>

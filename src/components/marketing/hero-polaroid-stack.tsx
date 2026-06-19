@@ -34,7 +34,7 @@ const heroPolaroids = [
 export function HeroPolaroidStack() {
   return (
     <div className="home-hero-visual">
-      {heroPolaroids.map((item) => (
+      {heroPolaroids.map((item, index) => (
         <article
           key={item.id}
           className="polaroid float home-hero-polaroid"
@@ -46,7 +46,13 @@ export function HeroPolaroidStack() {
           }}
         >
           <div className="polaroid-photo" style={{ height: item.photoHeight }}>
-            <img src={item.src} alt={item.alt} loading="eager" decoding="async" />
+            <img
+              src={item.src}
+              alt={item.alt}
+              loading={index === 0 ? "eager" : "lazy"}
+              fetchPriority={index === 0 ? "high" : "auto"}
+              decoding="async"
+            />
           </div>
           <div className="display-i home-hero-polaroid-caption">{item.caption}</div>
         </article>

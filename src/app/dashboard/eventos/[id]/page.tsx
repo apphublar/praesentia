@@ -1,7 +1,5 @@
-import { notFound } from "next/navigation";
 import { EventAdminPanel } from "@/components/app/event-admin-panel";
 import { loadManagedEventPage } from "@/lib/app/load-managed-event";
-import { getCachedEventById } from "@/lib/db/cached-queries";
 import { repositories } from "@/lib/db";
 import { safeRepositoryCall } from "@/lib/db/safe";
 import { loadAiCoverAccountContext } from "@/lib/plans/ai-cover-account";
@@ -10,9 +8,7 @@ import { getEventProfile } from "@/lib/events/event-profile";
 
 export default async function EventDashboardPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { session, event: managedEvent } = await loadManagedEventPage(id, `/dashboard/eventos/${id}`);
-  const event = (await getCachedEventById(id)) ?? managedEvent;
-  if (!event) notFound();
+  const { session, event } = await loadManagedEventPage(id, `/dashboard/eventos/${id}`);
 
   const profile = getEventProfile(event.eventType);
   const [media, eventMembers, guestRsvps, subscription, account, muralAccessRequests] = await Promise.all([

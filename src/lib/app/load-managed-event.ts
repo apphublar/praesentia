@@ -1,9 +1,7 @@
 import { notFound } from "next/navigation";
 import { canManageEvent } from "@/lib/auth/permissions";
 import { requirePageSession } from "@/lib/auth/session";
-import { getCachedEventById } from "@/lib/db/cached-queries";
-import { repositories } from "@/lib/db";
-import { safeRepositoryCall } from "@/lib/db/safe";
+import { getCachedEventById, getCachedEventOwnerId, getCachedMembership } from "@/lib/db/cached-queries";
 
 export async function loadManagedEventPage(eventId: string, loginNext: string) {
   const session = await requirePageSession(loginNext);
@@ -11,8 +9,8 @@ export async function loadManagedEventPage(eventId: string, loginNext: string) {
   if (!event) notFound();
 
   const [membership, ownerId] = await Promise.all([
-    safeRepositoryCall(() => repositories.members.findMembership(event.id, session.user.id), null, "members.findMembership"),
-    safeRepositoryCall(() => repositories.events.findOwnerId(event.id), null, "events.findOwnerId")
+    getCachedMembership(event.id, session.user.id),
+    getCachedEventOwnerId(event.id)
   ]);
 
   if (!canManageEvent(session.user, membership ?? undefined, ownerId)) {

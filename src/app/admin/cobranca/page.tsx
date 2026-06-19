@@ -1,6 +1,13 @@
+import { unstable_cache } from "next/cache";
 import { formatBrl } from "@/lib/admin/constants";
 import { mapAuditLogToPayment } from "@/lib/billing/payment-history";
 import { adminRepository } from "@/lib/db";
+
+const getAdminTransactionsCached = unstable_cache(
+  async () => adminRepository.listTransactions({ limit: 200 }),
+  ["admin-billing-transactions"],
+  { revalidate: 20 }
+);
 
 function statusLabel(status: string) {
   if (status === "paid") return "Pago";
@@ -11,7 +18,7 @@ function statusLabel(status: string) {
 }
 
 export default async function AdminBillingPage() {
-  const { rows, total } = await adminRepository.listTransactions({ limit: 200 });
+  const { rows, total } = await getAdminTransactionsCached();
   const paidTotal = rows.filter((r) => r.status === "paid").reduce((sum, r) => sum + r.amountBrl, 0);
 
   return (

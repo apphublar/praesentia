@@ -32,17 +32,18 @@ export default async function AdminPhotoAlbumPage({ params }: { params: Promise<
     );
   }
 
-  const order = await safeRepositoryCall(
-    () => repositories.photoAlbumOrders.findByEventId(event.id),
-    null,
-    "photoAlbumOrders.findByEventId"
-  );
-
-  const media = await safeRepositoryCall(
-    () => repositories.media.listPublishedByEvent(event.id),
-    [],
-    "media.listPublishedByEvent"
-  );
+  const [order, media] = await Promise.all([
+    safeRepositoryCall(
+      () => repositories.photoAlbumOrders.findByEventId(event.id),
+      null,
+      "photoAlbumOrders.findByEventId"
+    ),
+    safeRepositoryCall(
+      () => repositories.media.listPublishedByEvent(event.id),
+      [],
+      "media.listPublishedByEvent"
+    )
+  ]);
 
   return <AdminPhotoAlbumExperience event={event} media={media} initialOrder={order} />;
 }
