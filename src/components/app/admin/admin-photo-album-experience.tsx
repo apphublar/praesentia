@@ -323,10 +323,7 @@ export function AdminPhotoAlbumExperience({
         <div>
           <Mono>Linha do Tempo das Memórias™</Mono>
           <h1 className="serif-i">Álbum de fotos</h1>
-          <p>
-            Transforme as memórias digitais da Cápsula do Tempo em um legado físico. Você não está só escolhendo fotos —
-            está construindo uma história.
-          </p>
+          <p className="photo-album-header-desc">Transforme as memórias digitais da Cápsula do Tempo em um legado físico impresso.</p>
           {!isLocked ? (
             <p className="photo-album-save-hint">
               {saveState === "saving" ? "Salvando…" : saveState === "saved" ? "Rascunho salvo" : saveState === "error" ? "Erro ao salvar — tentando novamente" : null}

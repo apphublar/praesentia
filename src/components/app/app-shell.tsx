@@ -117,12 +117,14 @@ export function AppShell({ user, events, children }: { user: User; events: Event
 
   const navGroups = useMemo(() => buildAppNavGroups(activeEvent), [activeEvent]);
   const organizerNav = navGroups.find((group) => group.label === "Organizador")?.items ?? [];
+  const depoisNav = navGroups.find((group) => group.label === "Depois")?.items ?? [];
   const accountNav = navGroups.find((group) => group.label === "Conta")?.items ?? [];
   const mobileNav = [
     organizerNav.find((item) => item.id === "eventos"),
     organizerNav.find((item) => item.id === "admin"),
     organizerNav.find((item) => item.id === "criar"),
-    ...accountNav
+    depoisNav.find((item) => item.id === "album"),
+    accountNav.find((item) => item.id === "sair")
   ].filter((item): item is AppNavItem => Boolean(item));
 
   useEffect(() => {
