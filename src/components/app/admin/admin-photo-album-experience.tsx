@@ -73,8 +73,17 @@ export function AdminPhotoAlbumExperience({
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [submitState, setSubmitState] = useState<"idle" | "loading">("idle");
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+  const [bypassMobileGate, setBypassMobileGate] = useState(false);
   const hydratedRef = useRef(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 1024);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
 
   const isPaid = order?.status === "paid" || order?.status === "in_production" || order?.status === "shipped";
   const isLocked = isPaid;
@@ -274,6 +283,40 @@ export function AdminPhotoAlbumExperience({
   const coverPhoto = draft.cover.coverMediaId ? mediaById.get(draft.cover.coverMediaId) : undefined;
   const coverPhotoUrl = coverPhoto ? resolveMediaItemUrl(event.id, coverPhoto) : null;
 
+  if (isMobile && !bypassMobileGate) {
+    return (
+      <div className="album-mobile-gate">
+        <div className="album-mobile-gate-icon">
+          <Icon name="monitor" size={36} sw={1.4} />
+        </div>
+        <div className="album-mobile-gate-body">
+          <Mono>Álbum de fotos</Mono>
+          <h1 className="serif-i">Melhor no computador</h1>
+          <p>
+            Montar um álbum impresso envolve selecionar fotos, organizar páginas e configurar a capa — uma experiência
+            feita para a tela grande. Para o melhor resultado, acesse pelo seu computador ou notebook.
+          </p>
+          <p className="album-mobile-gate-hint">
+            Seu progresso fica salvo automaticamente — é só continuar de onde parou.
+          </p>
+        </div>
+        <div className="album-mobile-gate-actions">
+          <Link className="btn btn-coral" href={`/dashboard/eventos/${event.id}`}>
+            <Icon name="arrowL" size={15} />
+            Voltar ao painel do evento
+          </Link>
+          <button
+            type="button"
+            className="btn btn-ghost"
+            onClick={() => setBypassMobileGate(true)}
+          >
+            Continuar mesmo assim
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="photo-album-page">
       <header className="photo-album-header">
@@ -314,16 +357,18 @@ export function AdminPhotoAlbumExperience({
           const active = draft.step === step.id;
           const done = STEPS.findIndex((item) => item.id === draft.step) > index;
           return (
-            <button
-              key={step.id}
-              type="button"
-              className={`photo-album-step${active ? " is-active" : ""}${done ? " is-done" : ""}`}
-              onClick={() => goToStep(step.id)}
-              disabled={isLocked && step.id !== "review"}
-            >
-              <span>{index + 1}</span>
-              {step.label}
-            </button>
+            <div key={step.id} className="photo-album-step-wrapper">
+              {index > 0 && <span className="photo-album-step-connector" aria-hidden="true" />}
+              <button
+                type="button"
+                className={`photo-album-step${active ? " is-active" : ""}${done ? " is-done" : ""}`}
+                onClick={() => goToStep(step.id)}
+                disabled={isLocked && step.id !== "review"}
+              >
+                <span>{done ? "✓" : index + 1}</span>
+                {step.label}
+              </button>
+            </div>
           );
         })}
       </nav>
@@ -430,20 +475,22 @@ export function AdminPhotoAlbumExperience({
         ) : activePage ? (
           <section className="photo-album-editor">
             <aside className="photo-album-page-list card">
-              <div className="photo-album-page-list-head">
-                <strong>Páginas</strong>
-                <span>{draft.pages.length}</span>
-              </div>
-              {!isLocked ? (
-                <div className="photo-album-page-list-actions">
-                  <button type="button" className="btn btn-ghost btn-sm" onClick={addPage} disabled={draft.pages.length >= ALBUM_MAX_PAGES}>
-                    + Página
-                  </button>
-                  <button type="button" className="btn btn-ghost btn-sm" onClick={removePage} disabled={draft.pages.length <= ALBUM_MIN_PAGES}>
-                    Remover
-                  </button>
+              <div className="photo-album-page-list-top">
+                <div className="photo-album-page-list-head">
+                  <strong>Páginas</strong>
+                  <span>{draft.pages.length}</span>
                 </div>
-              ) : null}
+                {!isLocked ? (
+                  <div className="photo-album-page-list-actions">
+                    <button type="button" className="btn btn-ghost btn-sm" onClick={addPage} disabled={draft.pages.length >= ALBUM_MAX_PAGES}>
+                      + Página
+                    </button>
+                    <button type="button" className="btn btn-ghost btn-sm" onClick={removePage} disabled={draft.pages.length <= ALBUM_MIN_PAGES}>
+                      Remover
+                    </button>
+                  </div>
+                ) : null}
+              </div>
               <div className="photo-album-page-list-scroll">
                 {draft.pages.map((page, index) => (
                   <button
@@ -490,7 +537,11 @@ export function AdminPhotoAlbumExperience({
                 {previewMode === "spread" ? (
                   <div className="album-spread">
                     <AlbumPagePreview eventId={event.id} page={activePage} mediaById={mediaById} spread />
-                    <AlbumPagePreview eventId={event.id} page={draft.pages[activePageIndex + 1] || activePage} mediaById={mediaById} spread />
+                    {draft.pages[activePageIndex + 1] ? (
+                      <AlbumPagePreview eventId={event.id} page={draft.pages[activePageIndex + 1]} mediaById={mediaById} spread />
+                    ) : (
+                      <div className="album-spread-empty" aria-hidden="true" />
+                    )}
                   </div>
                 ) : (
                   <AlbumPagePreview eventId={event.id} page={activePage} mediaById={mediaById} />
@@ -728,14 +779,16 @@ export function AdminPhotoAlbumExperience({
         <section className="photo-album-panel card">
           <AlbumReviewStats pages={draft.pages} />
           <div className="photo-album-review-book">
-            <div className={`photo-album-cover-preview cover-${draft.cover.color} style-${draft.cover.style} is-3d`}>
-              <small className="mono">Praesentia — álbum</small>
-              {coverPhotoUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={coverPhotoUrl} alt="" className="photo-album-cover-photo" />
-              ) : null}
-              <strong className="display-i">{draft.cover.title}</strong>
-              <span>{new Date(event.date).getFullYear()}</span>
+            <div className="photo-album-cover-3d-stage">
+              <div className={`photo-album-cover-preview cover-${draft.cover.color} style-${draft.cover.style} is-3d`}>
+                <small className="mono">Praesentia — álbum</small>
+                {coverPhotoUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={coverPhotoUrl} alt="" className="photo-album-cover-photo" />
+                ) : null}
+                <strong className="display-i">{draft.cover.title}</strong>
+                <span>{new Date(event.date).getFullYear()}</span>
+              </div>
             </div>
             <div className="photo-album-review-pages photo-album-review-pages-full">
               {draft.pages.map((page) => (

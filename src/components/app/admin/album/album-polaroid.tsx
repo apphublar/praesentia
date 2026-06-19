@@ -1,6 +1,5 @@
 "use client";
 
-import { useMemo } from "react";
 import type { MediaItem } from "@/types/domain";
 import { resolveMediaItemUrl } from "@/lib/storage/media-url";
 import type { AlbumPhotoSlot } from "@/lib/album/types";
