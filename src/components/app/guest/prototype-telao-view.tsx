@@ -293,16 +293,6 @@ export function PrototypeTelaoView({
               >
                 <Icon name="eye" size={14} /> Ver inteira
               </button>
-              <a
-                className="btn btn-ghost btn-sm"
-                style={{ background: "rgba(20,16,12,.6)", color: "#fff", borderColor: "rgba(247,238,219,.28)" }}
-                href={resolveMediaItemUrl(event.id, mainItems[0]) ?? "#"}
-                download
-                target="_blank"
-                rel="noreferrer"
-              >
-                <Icon name="download" size={14} /> Baixar
-              </a>
             </>
           ) : null}
         </div>
@@ -372,36 +362,55 @@ export function PrototypeTelaoView({
 
         <div style={{ flex: 1, minHeight: 0, border: "1px solid var(--dark-line)", borderRadius: 14, padding: 10, overflow: "hidden" }}>
           <div className="mono" style={{ fontSize: 10, marginBottom: 8, color: "rgba(244,237,223,.5)" }}>
-            Histórico completo (fotos + recados)
+            Histórico completo de fotos
           </div>
-          <div style={{ height: "100%", overflowY: "auto", paddingRight: 2, display: "grid", gap: 8 }}>
-            {items.map((item) => {
-              if (item.type === "message") {
-                return (
-                  <div key={item.id} style={{ border: "1px solid rgba(247,238,219,.14)", borderRadius: 10, padding: 10, background: "rgba(247,238,219,.04)" }}>
-                    <div style={{ fontSize: 11, color: "var(--amber)", marginBottom: 6 }}>Recado</div>
-                    <div style={{ fontSize: 13, lineHeight: 1.4, color: "#fff" }}>
-                      {item.text}
-                    </div>
-                    <div style={{ fontSize: 11, color: "rgba(244,237,223,.6)", marginTop: 6 }}>
-                      — {item.authorName}
-                    </div>
-                  </div>
-                );
-              }
-              const url = resolveMediaItemUrl(event.id, item);
-              return (
-                <div key={item.id} style={{ border: "1px solid rgba(247,238,219,.14)", borderRadius: 10, overflow: "hidden", background: "rgba(247,238,219,.04)" }}>
-                  {url ? (
+          <div style={{ height: "100%", overflowY: "auto", paddingRight: 2, display: "grid", gap: 10, alignContent: "start" }}>
+            {photos.length > 0 ? (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 6 }}>
+                {photos.map((photo) => {
+                  const url = resolveMediaItemUrl(event.id, photo);
+                  return url ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={url} alt={item.caption || item.authorName} style={{ width: "100%", aspectRatio: "4 / 3", objectFit: "cover", display: "block" }} />
+                    <img
+                      key={photo.id}
+                      src={url}
+                      alt={photo.caption || photo.authorName}
+                      style={{
+                        width: "100%",
+                        aspectRatio: "1/1",
+                        objectFit: "cover",
+                        borderRadius: 8,
+                        border: mainItems.some((item) => item.id === photo.id) ? "2px solid var(--coral)" : "1px solid rgba(247,238,219,.14)"
+                      }}
+                    />
                   ) : (
-                    <StripePhoto color="var(--p-blue)" ratio="4 / 3" radius={0} />
-                  )}
-                  <div style={{ padding: "6px 8px", fontSize: 11, color: "rgba(244,237,223,.7)" }}>{item.authorName}</div>
+                    <StripePhoto key={photo.id} color="var(--p-blue)" ratio="1 / 1" radius={8} />
+                  );
+                })}
+              </div>
+            ) : (
+              <p style={{ margin: 0, color: "rgba(244,237,223,.65)", fontSize: 12 }}>Ainda não há fotos no histórico.</p>
+            )}
+
+            {recados.length > 0 ? (
+              <div style={{ borderTop: "1px solid rgba(247,238,219,.14)", paddingTop: 8 }}>
+                <div className="mono" style={{ fontSize: 10, color: "rgba(244,237,223,.5)", marginBottom: 6 }}>
+                  Histórico de recados
                 </div>
-              );
-            })}
+                <div style={{ display: "grid", gap: 6 }}>
+                  {recados.map((message) => (
+                    <div key={message.id} style={{ border: "1px solid rgba(247,238,219,.14)", borderRadius: 8, padding: "7px 8px" }}>
+                      <div style={{ fontSize: 11, lineHeight: 1.3, color: "#fff" }}>
+                        {message.text}
+                      </div>
+                      <div style={{ fontSize: 10, color: "rgba(244,237,223,.6)", marginTop: 4 }}>
+                        — {message.authorName}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
           </div>
         </div>
       </div>
