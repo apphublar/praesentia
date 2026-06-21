@@ -25,6 +25,7 @@ export function PrototypeTelaoView({
   const [feat, setFeat] = useState(0);
   const [rec, setRec] = useState(0);
   const [expandedImage, setExpandedImage] = useState<{ url: string; alt: string } | null>(null);
+  const [holdHighlightUntil, setHoldHighlightUntil] = useState(0);
 
   useEffect(() => {
     liveEventRef.current = liveEvent;
@@ -60,6 +61,7 @@ export function PrototypeTelaoView({
       if (payload.item.type !== "message") {
         // Every fresh photo must become the immediate highlight.
         setFeat(0);
+        setHoldHighlightUntil(Date.now() + 6_000);
       }
     });
     source.addEventListener("media.updated", (message) => {
@@ -79,10 +81,11 @@ export function PrototypeTelaoView({
   useEffect(() => {
     if (!photos.length) return;
     const a = setInterval(() => {
+      if (Date.now() < holdHighlightUntil) return;
       setFeat((current) => nextRandomIndex(photos.length, current));
     }, 3800);
     return () => clearInterval(a);
-  }, [photos.length]);
+  }, [holdHighlightUntil, photos.length]);
 
   useEffect(() => {
     if (!recados.length) return;
@@ -106,6 +109,7 @@ export function PrototypeTelaoView({
     if (firstPhotoIdRef.current && firstPhotoIdRef.current !== firstPhotoId) {
       // Snapshot/SSE inserted a newer first photo: promote it instantly.
       setFeat(0);
+      setHoldHighlightUntil(Date.now() + 6_000);
     }
     firstPhotoIdRef.current = firstPhotoId;
   }, [photos]);
@@ -186,7 +190,7 @@ export function PrototypeTelaoView({
                         ? { flex: 1 }
                         : isHero
                           ? { gridRow: "1 / span 2" }
-                          : { padding: "3%" })
+                          : null)
                     }}
                   >
                     {imageUrl ? (
@@ -199,7 +203,7 @@ export function PrototypeTelaoView({
                           height: viewMode === "single" ? "auto" : "100%",
                           maxWidth: "100%",
                           maxHeight: "100%",
-                          objectFit: viewMode === "single" || !isHero ? "contain" : "cover",
+                          objectFit: viewMode === "single" ? "contain" : "cover",
                           borderRadius: 12
                         }}
                       />
