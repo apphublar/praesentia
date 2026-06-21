@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Event, MediaItem } from "@/types/domain";
 import { Icon } from "@/components/app/ui/icon";
 import { Avatar, Mono, StripePhoto } from "@/components/app/ui/primitives";
+import { GuestPolaroidFrame } from "@/components/media/guest-polaroid-frame";
 import { resolveMediaItemUrl } from "@/lib/storage/media-url";
 
 export function PrototypeTelaoView({
@@ -15,19 +16,58 @@ export function PrototypeTelaoView({
   initialItems: MediaItem[];
   embedded?: boolean;
 }) {
-  const [items, setItems] = useState(initialItems.filter((i) => i.type !== "message" || i.text));
+  const [liveEvent, setLiveEvent] = useState(event);
+  const liveEventRef = useRef(event);
+  const [items, setItems] = useState(() => filterTelaoItems(initialItems, event));
   const photos = useMemo(() => items.filter((p) => p.type !== "message"), [items]);
   const recados = useMemo(() => items.filter((p) => p.type === "message"), [items]);
   const [feat, setFeat] = useState(0);
   const [rec, setRec] = useState(0);
 
   useEffect(() => {
+    liveEventRef.current = liveEvent;
+  }, [liveEvent]);
+
+  useEffect(() => {
     const source = new EventSource(`/api/events/${event.id}/stream`);
+    function refreshSnapshot() {
+      fetch(`/api/events/${event.id}`, { cache: "no-store" })
+        .then((response) => response.json() as Promise<{ event?: Event; media?: MediaItem[] }>)
+        .then((snapshot) => {
+          if (!snapshot.event || !snapshot.media) return;
+          setLiveEvent(snapshot.event);
+          setItems(filterTelaoItems(snapshot.media, snapshot.event));
+        })
+        .catch(() => undefined);
+    }
+
+    function upsertIncoming(item: MediaItem) {
+      setItems((current) =>
+        filterTelaoItems(
+          current.some((row) => row.id === item.id)
+            ? current.map((row) => (row.id === item.id ? item : row))
+            : [item, ...current],
+          liveEventRef.current
+        )
+      );
+    }
+
     source.addEventListener("media.created", (message) => {
       const payload = JSON.parse((message as MessageEvent).data) as { item: MediaItem };
-      setItems((current) => [payload.item, ...current.filter((item) => item.id !== payload.item.id)]);
+      upsertIncoming(payload.item);
     });
-    return () => source.close();
+    source.addEventListener("media.updated", (message) => {
+      const payload = JSON.parse((message as MessageEvent).data) as { item: MediaItem };
+      upsertIncoming(payload.item);
+    });
+    source.addEventListener("screen.changed", refreshSnapshot);
+    const sync = setInterval(refreshSnapshot, 12_000);
+
+    refreshSnapshot();
+    return () => {
+      clearInterval(sync);
+      source.close();
+    };
   }, [event.id]);
 
   useEffect(() => {
@@ -42,7 +82,22 @@ export function PrototypeTelaoView({
     return () => clearInterval(b);
   }, [recados.length]);
 
-  const f = photos[feat] ?? photos[0];
+  useEffect(() => {
+    if (!photos.length) {
+      setFeat(0);
+      return;
+    }
+    setFeat((current) => (current >= photos.length ? 0 : current));
+  }, [photos.length]);
+
+  useEffect(() => {
+    if (!recados.length) {
+      setRec(0);
+      return;
+    }
+    setRec((current) => (current >= recados.length ? 0 : current));
+  }, [recados.length]);
+
   const muralUrl = typeof window !== "undefined" ? `${window.location.origin}/evento/${event.slug}` : `/evento/${event.slug}`;
 
   return (
@@ -78,13 +133,33 @@ export function PrototypeTelaoView({
               style={{
                 position: "absolute",
                 inset: 0,
+                display: "grid",
+                placeItems: "center",
+                padding: "2.2%",
                 opacity: i === feat ? 1 : 0,
                 transition: "opacity 1s ease"
               }}
             >
               {url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                <GuestPolaroidFrame
+                  src={url}
+                  alt={p.caption || `Memória de ${p.authorName}`}
+                  caption={p.caption}
+                  captionStyle="polaroid"
+                  withTape
+                  className="telao-featured-polaroid"
+                  style={{
+                    width: "min(92%, 920px)",
+                    maxHeight: "92%",
+                    margin: "0 auto"
+                  }}
+                  footer={
+                    <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 8 }}>
+                      <Avatar name={p.authorName} size={30} />
+                      <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{p.authorName}</span>
+                    </div>
+                  }
+                />
               ) : (
                 <StripePhoto color="var(--p-green)" ratio="auto" radius={20} style={{ position: "absolute", inset: 0, height: "100%" }} />
               )}
@@ -97,27 +172,6 @@ export function PrototypeTelaoView({
             Ao vivo
           </span>
         </div>
-        {f ? (
-          <div
-            style={{
-              position: "absolute",
-              left: 0,
-              right: 0,
-              bottom: 0,
-              padding: "8% 2.6% 2.6%",
-              background: "linear-gradient(transparent,rgba(20,16,12,.85))",
-              zIndex: 2
-            }}
-          >
-            <div className="serif-i" style={{ fontSize: "clamp(22px,2.6vw,36px)", fontWeight: 600, color: "#fff", lineHeight: 1.05 }}>
-              {f.caption || f.authorName}
-            </div>
-            <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: "1%" }}>
-              <Avatar name={f.authorName} size={34} />
-              <span style={{ fontSize: 14, fontWeight: 600 }}>{f.authorName}</span>
-            </div>
-          </div>
-        ) : null}
       </div>
 
       <div style={{ flex: "1 1 36%", display: "flex", flexDirection: "column", gap: "4%", position: "relative", zIndex: 1 }}>
@@ -224,4 +278,16 @@ export function PrototypeTelaoView({
       </div>
     </div>
   );
+}
+
+function filterTelaoItems(items: MediaItem[], event: Event) {
+  if (!event.screen.enabled || event.screen.paused) return [];
+
+  return items.filter((item) => {
+    if (item.status !== "published" || !item.visibleOnScreen) return false;
+    if (item.type === "video" && !event.screen.showVideos) return false;
+    if (item.type === "message" && !event.screen.showMessages) return false;
+    if (item.type === "message" && !item.text) return false;
+    return true;
+  });
 }
