@@ -23,9 +23,11 @@ export function PrototypeTelaoView({
   const recados = useMemo(() => items.filter((p) => p.type === "message"), [items]);
   const [viewMode, setViewMode] = useState<"single" | "hero_two">("single");
   const [feat, setFeat] = useState(0);
-  const [rec, setRec] = useState(0);
+  const [recHighlight, setRecHighlight] = useState(0);
   const [expandedImage, setExpandedImage] = useState<{ url: string; alt: string } | null>(null);
   const [holdHighlightUntil, setHoldHighlightUntil] = useState(0);
+  const [holdMessageUntil, setHoldMessageUntil] = useState(0);
+  const firstMessageIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     liveEventRef.current = liveEvent;
@@ -62,6 +64,10 @@ export function PrototypeTelaoView({
         // Every fresh photo must become the immediate highlight.
         setFeat(0);
         setHoldHighlightUntil(Date.now() + 6_000);
+      } else {
+        // Always prioritize latest message for 10s.
+        setRecHighlight(0);
+        setHoldMessageUntil(Date.now() + 10_000);
       }
     });
     source.addEventListener("media.updated", (message) => {
@@ -89,9 +95,12 @@ export function PrototypeTelaoView({
 
   useEffect(() => {
     if (!recados.length) return;
-    const b = setInterval(() => setRec((r) => (r + 1) % recados.length), 5200);
+    const b = setInterval(() => {
+      if (Date.now() < holdMessageUntil) return;
+      setRecHighlight((current) => nextRandomIndex(recados.length, current));
+    }, 10_000);
     return () => clearInterval(b);
-  }, [recados.length]);
+  }, [holdMessageUntil, recados.length]);
 
   useEffect(() => {
     if (!photos.length) {
@@ -116,11 +125,22 @@ export function PrototypeTelaoView({
 
   useEffect(() => {
     if (!recados.length) {
-      setRec(0);
+      setRecHighlight(0);
+      firstMessageIdRef.current = null;
       return;
     }
-    setRec((current) => (current >= recados.length ? 0 : current));
+    setRecHighlight((current) => (current >= recados.length ? 0 : current));
   }, [recados.length]);
+
+  useEffect(() => {
+    const firstMessageId = recados[0]?.id ?? null;
+    if (!firstMessageId) return;
+    if (firstMessageIdRef.current && firstMessageIdRef.current !== firstMessageId) {
+      setRecHighlight(0);
+      setHoldMessageUntil(Date.now() + 10_000);
+    }
+    firstMessageIdRef.current = firstMessageId;
+  }, [recados]);
 
   const mainItems = useMemo(() => {
     if (photos.length === 0) return [] as MediaItem[];
@@ -199,8 +219,8 @@ export function PrototypeTelaoView({
                         src={imageUrl}
                         alt={item.caption || `Memória de ${item.authorName}`}
                         style={{
-                          width: viewMode === "single" ? "auto" : "100%",
-                          height: viewMode === "single" ? "auto" : "100%",
+                          width: viewMode === "single" ? "100%" : "100%",
+                          height: viewMode === "single" ? "100%" : "100%",
                           maxWidth: "100%",
                           maxHeight: "100%",
                           objectFit: viewMode === "single" ? "contain" : "cover",
@@ -314,55 +334,16 @@ export function PrototypeTelaoView({
             </div>
           </div>
           <div style={{ textAlign: "center" }}>
-            <div
-              style={{
-                width: 78,
-                height: 78,
-                borderRadius: 12,
-                background: "#fff",
-                display: "grid",
-                gridTemplateColumns: "repeat(7,1fr)",
-                gridTemplateRows: "repeat(7,1fr)",
-                gap: 2,
-                padding: 8
-              }}
-            >
-              {Array.from({ length: 49 }).map((_, i) => (
-                <span key={i} style={{ borderRadius: 1, background: i % 3 === 0 ? "var(--dark)" : "transparent" }} />
-              ))}
-            </div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={`https://quickchart.io/qr?size=180&text=${encodeURIComponent(muralUrl)}`}
+              alt={`QR Code para ${muralUrl}`}
+              style={{ width: 78, height: 78, borderRadius: 12, background: "#fff", padding: 5 }}
+            />
             <div className="mono" style={{ fontSize: 9, marginTop: 8, color: "rgba(244,237,223,.6)" }}>
               entre no mural
             </div>
             <div style={{ fontSize: 9, marginTop: 4, wordBreak: "break-all", maxWidth: 90 }}>{muralUrl.replace(/^https?:\/\//, "")}</div>
-          </div>
-        </div>
-
-        <div style={{ flex: 1, minHeight: 0 }}>
-          <div className="mono" style={{ fontSize: 10, marginBottom: "3%", color: "rgba(244,237,223,.5)" }}>
-            Chegando agora
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "3%" }}>
-            {photos.slice(0, 6).map((p, i) => {
-              const url = resolveMediaItemUrl(event.id, p);
-              return url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  key={p.id}
-                  src={url}
-                  alt=""
-                  style={{
-                    width: "100%",
-                    aspectRatio: "1/1",
-                    objectFit: "cover",
-                    borderRadius: 10,
-                    border: mainItems.some((item) => item.id === p.id) ? "2px solid var(--coral)" : "none"
-                  }}
-                />
-              ) : (
-                <StripePhoto key={p.id} color="var(--p-blue)" ratio="1 / 1" radius={10} />
-              );
-            })}
           </div>
         </div>
 
@@ -376,16 +357,53 @@ export function PrototypeTelaoView({
             }}
           >
             <div className="mono" style={{ fontSize: 10, color: "var(--amber)", marginBottom: 8 }}>
-              Recado no telão
+              Recados em destaque
             </div>
-            <div key={rec} className="fadeUp">
+            <div key={recHighlight} className="fadeUp">
               <p className="serif-i" style={{ margin: 0, fontSize: 16, lineHeight: 1.35, color: "#fff" }}>
-                "{recados[rec]?.text}"
+                "{recados[recHighlight]?.text}"
               </p>
-              <div style={{ fontSize: 12, color: "rgba(244,237,223,.6)", marginTop: 8 }}>— {recados[rec]?.authorName}</div>
+              <div style={{ fontSize: 12, color: "rgba(244,237,223,.6)", marginTop: 8 }}>
+                — {recados[recHighlight]?.authorName}
+              </div>
             </div>
           </div>
         ) : null}
+
+        <div style={{ flex: 1, minHeight: 0, border: "1px solid var(--dark-line)", borderRadius: 14, padding: 10, overflow: "hidden" }}>
+          <div className="mono" style={{ fontSize: 10, marginBottom: 8, color: "rgba(244,237,223,.5)" }}>
+            Histórico completo (fotos + recados)
+          </div>
+          <div style={{ height: "100%", overflowY: "auto", paddingRight: 2, display: "grid", gap: 8 }}>
+            {items.map((item) => {
+              if (item.type === "message") {
+                return (
+                  <div key={item.id} style={{ border: "1px solid rgba(247,238,219,.14)", borderRadius: 10, padding: 10, background: "rgba(247,238,219,.04)" }}>
+                    <div style={{ fontSize: 11, color: "var(--amber)", marginBottom: 6 }}>Recado</div>
+                    <div style={{ fontSize: 13, lineHeight: 1.4, color: "#fff" }}>
+                      {item.text}
+                    </div>
+                    <div style={{ fontSize: 11, color: "rgba(244,237,223,.6)", marginTop: 6 }}>
+                      — {item.authorName}
+                    </div>
+                  </div>
+                );
+              }
+              const url = resolveMediaItemUrl(event.id, item);
+              return (
+                <div key={item.id} style={{ border: "1px solid rgba(247,238,219,.14)", borderRadius: 10, overflow: "hidden", background: "rgba(247,238,219,.04)" }}>
+                  {url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={url} alt={item.caption || item.authorName} style={{ width: "100%", aspectRatio: "4 / 3", objectFit: "cover", display: "block" }} />
+                  ) : (
+                    <StripePhoto color="var(--p-blue)" ratio="4 / 3" radius={0} />
+                  )}
+                  <div style={{ padding: "6px 8px", fontSize: 11, color: "rgba(244,237,223,.7)" }}>{item.authorName}</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </div>
 
       {expandedImage ? (
