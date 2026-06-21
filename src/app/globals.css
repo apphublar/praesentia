@@ -821,18 +821,6 @@ p + a.btn,
   display: block;
 }
 
-.telao-featured-polaroid .guest-polaroid-media {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.telao-featured-polaroid .guest-polaroid-image {
-  max-height: min(72vh, 860px);
-  width: auto;
-  max-width: 100%;
-}
-
 .guest-polaroid-fallback {
   min-height: 120px;
   background: var(--bg-soft);

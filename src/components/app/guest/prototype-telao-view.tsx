@@ -3,8 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Event, MediaItem } from "@/types/domain";
 import { Icon } from "@/components/app/ui/icon";
-import { Avatar, Mono, StripePhoto } from "@/components/app/ui/primitives";
-import { GuestPolaroidFrame } from "@/components/media/guest-polaroid-frame";
+import { Mono, StripePhoto } from "@/components/app/ui/primitives";
 import { resolveMediaItemUrl } from "@/lib/storage/media-url";
 
 export function PrototypeTelaoView({
@@ -141,25 +140,28 @@ export function PrototypeTelaoView({
               }}
             >
               {url ? (
-                <GuestPolaroidFrame
-                  src={url}
-                  alt={p.caption || `Memória de ${p.authorName}`}
-                  caption={p.caption}
-                  captionStyle="polaroid"
-                  withTape
-                  className="telao-featured-polaroid"
+                <div
                   style={{
-                    width: "min(92%, 920px)",
-                    maxHeight: "92%",
-                    margin: "0 auto"
+                    width: "100%",
+                    height: "100%",
+                    display: "grid",
+                    placeItems: "center"
                   }}
-                  footer={
-                    <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 8 }}>
-                      <Avatar name={p.authorName} size={30} />
-                      <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{p.authorName}</span>
-                    </div>
-                  }
-                />
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={url}
+                    alt={p.caption || `Memória de ${p.authorName}`}
+                    style={{
+                      width: "auto",
+                      height: "auto",
+                      maxWidth: "100%",
+                      maxHeight: "100%",
+                      objectFit: "contain",
+                      borderRadius: 14
+                    }}
+                  />
+                </div>
               ) : (
                 <StripePhoto color="var(--p-green)" ratio="auto" radius={20} style={{ position: "absolute", inset: 0, height: "100%" }} />
               )}
