@@ -6,35 +6,21 @@ import { Icon } from "@/components/app/ui/icon";
 import { Mono, StripePhoto } from "@/components/app/ui/primitives";
 import { resolveMediaItemUrl } from "@/lib/storage/media-url";
 
-export type TelaoDisplayOptions = {
-  layout: "single" | "double" | "triple" | "hero_two";
-  fit: "contain" | "cover";
-  thumbs: 4 | 6 | 8;
-};
-
-const DEFAULT_DISPLAY_OPTIONS: TelaoDisplayOptions = {
-  layout: "single",
-  fit: "contain",
-  thumbs: 6
-};
-
 export function PrototypeTelaoView({
   event,
   initialItems,
-  embedded = false,
-  displayOptions
+  embedded = false
 }: {
   event: Event;
   initialItems: MediaItem[];
   embedded?: boolean;
-  displayOptions?: Partial<TelaoDisplayOptions>;
 }) {
   const [liveEvent, setLiveEvent] = useState(event);
   const liveEventRef = useRef(event);
   const [items, setItems] = useState(() => filterTelaoItems(initialItems, event));
   const photos = useMemo(() => items.filter((p) => p.type !== "message"), [items]);
   const recados = useMemo(() => items.filter((p) => p.type === "message"), [items]);
-  const options = { ...DEFAULT_DISPLAY_OPTIONS, ...displayOptions };
+  const [viewMode, setViewMode] = useState<"single" | "hero_two">("single");
   const [feat, setFeat] = useState(0);
   const [rec, setRec] = useState(0);
   const [expandedImage, setExpandedImage] = useState<{ url: string; alt: string } | null>(null);
@@ -115,14 +101,13 @@ export function PrototypeTelaoView({
 
   const mainItems = useMemo(() => {
     if (photos.length === 0) return [] as MediaItem[];
-    const count =
-      options.layout === "single" ? 1 : options.layout === "double" ? 2 : options.layout === "triple" ? 3 : 3;
+    const count = viewMode === "single" ? 1 : 3;
     const selected: MediaItem[] = [];
     for (let i = 0; i < Math.min(count, photos.length); i += 1) {
       selected.push(photos[(feat + i) % photos.length]);
     }
     return selected;
-  }, [feat, options.layout, photos]);
+  }, [feat, photos, viewMode]);
 
   const muralUrl = typeof window !== "undefined" ? `${window.location.origin}/evento/${event.slug}` : `/evento/${event.slug}`;
 
@@ -156,17 +141,17 @@ export function PrototypeTelaoView({
             position: "absolute",
             inset: 0,
             padding: "2.2%",
-            display: options.layout === "hero_two" ? "grid" : "flex",
+            display: viewMode === "hero_two" ? "grid" : "flex",
             gap: "1.8%",
-            gridTemplateColumns: options.layout === "hero_two" ? "2fr 1fr" : undefined,
-            gridTemplateRows: options.layout === "hero_two" ? "1fr 1fr" : undefined,
+            gridTemplateColumns: viewMode === "hero_two" ? "2fr 1fr" : undefined,
+            gridTemplateRows: viewMode === "hero_two" ? "1fr 1fr" : undefined,
             alignItems: "stretch"
           }}
         >
           {mainItems.length > 0
             ? mainItems.map((item, index) => {
                 const imageUrl = resolveMediaItemUrl(event.id, item);
-                const isHero = options.layout === "hero_two" && index === 0;
+                const isHero = viewMode === "hero_two" && index === 0;
                 return (
                   <div
                     key={item.id}
@@ -178,15 +163,11 @@ export function PrototypeTelaoView({
                       display: "grid",
                       placeItems: "center",
                       minHeight: 0,
-                      ...(options.layout === "single"
+                      ...(viewMode === "single"
                         ? { flex: 1 }
-                        : options.layout === "double"
-                          ? { flex: 1 }
-                          : options.layout === "triple"
-                            ? { flex: 1 }
-                            : isHero
-                              ? { gridRow: "1 / span 2" }
-                              : null)
+                        : isHero
+                          ? { gridRow: "1 / span 2" }
+                          : null)
                     }}
                   >
                     {imageUrl ? (
@@ -197,7 +178,7 @@ export function PrototypeTelaoView({
                         style={{
                           width: "100%",
                           height: "100%",
-                          objectFit: options.fit,
+                          objectFit: viewMode === "single" ? "contain" : "cover",
                           borderRadius: 12
                         }}
                       />
@@ -215,8 +196,34 @@ export function PrototypeTelaoView({
             Ao vivo
           </span>
         </div>
+        <div style={{ position: "absolute", right: "2.4%", top: "2.4%", display: "flex", gap: 8, zIndex: 3 }}>
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            style={{
+              background: viewMode === "single" ? "rgba(242,107,90,.85)" : "rgba(20,16,12,.6)",
+              color: "#fff",
+              borderColor: "rgba(247,238,219,.28)"
+            }}
+            onClick={() => setViewMode("single")}
+          >
+            <Icon name="image" size={14} /> 1
+          </button>
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            style={{
+              background: viewMode === "hero_two" ? "rgba(242,107,90,.85)" : "rgba(20,16,12,.6)",
+              color: "#fff",
+              borderColor: "rgba(247,238,219,.28)"
+            }}
+            onClick={() => setViewMode("hero_two")}
+          >
+            <Icon name="grid" size={14} /> 3
+          </button>
+        </div>
         {mainItems[0] ? (
-          <div style={{ position: "absolute", right: "2.4%", top: "2.4%", display: "flex", gap: 8, zIndex: 3 }}>
+          <div style={{ position: "absolute", right: "2.4%", top: "10.5%", display: "flex", gap: 8, zIndex: 3 }}>
             <button
               type="button"
               className="btn btn-ghost btn-sm"
@@ -301,7 +308,7 @@ export function PrototypeTelaoView({
             Chegando agora
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "3%" }}>
-            {photos.slice(0, options.thumbs).map((p, i) => {
+            {photos.slice(0, 6).map((p, i) => {
               const url = resolveMediaItemUrl(event.id, p);
               return url ? (
                 // eslint-disable-next-line @next/next/no-img-element
