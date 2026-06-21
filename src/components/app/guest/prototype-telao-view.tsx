@@ -6,22 +6,38 @@ import { Icon } from "@/components/app/ui/icon";
 import { Mono, StripePhoto } from "@/components/app/ui/primitives";
 import { resolveMediaItemUrl } from "@/lib/storage/media-url";
 
+export type TelaoDisplayOptions = {
+  layout: "single" | "double" | "triple" | "hero_two";
+  fit: "contain" | "cover";
+  thumbs: 4 | 6 | 8;
+};
+
+const DEFAULT_DISPLAY_OPTIONS: TelaoDisplayOptions = {
+  layout: "single",
+  fit: "contain",
+  thumbs: 6
+};
+
 export function PrototypeTelaoView({
   event,
   initialItems,
-  embedded = false
+  embedded = false,
+  displayOptions
 }: {
   event: Event;
   initialItems: MediaItem[];
   embedded?: boolean;
+  displayOptions?: Partial<TelaoDisplayOptions>;
 }) {
   const [liveEvent, setLiveEvent] = useState(event);
   const liveEventRef = useRef(event);
   const [items, setItems] = useState(() => filterTelaoItems(initialItems, event));
   const photos = useMemo(() => items.filter((p) => p.type !== "message"), [items]);
   const recados = useMemo(() => items.filter((p) => p.type === "message"), [items]);
+  const options = { ...DEFAULT_DISPLAY_OPTIONS, ...displayOptions };
   const [feat, setFeat] = useState(0);
   const [rec, setRec] = useState(0);
+  const [expandedImage, setExpandedImage] = useState<{ url: string; alt: string } | null>(null);
 
   useEffect(() => {
     liveEventRef.current = liveEvent;
@@ -97,6 +113,17 @@ export function PrototypeTelaoView({
     setRec((current) => (current >= recados.length ? 0 : current));
   }, [recados.length]);
 
+  const mainItems = useMemo(() => {
+    if (photos.length === 0) return [] as MediaItem[];
+    const count =
+      options.layout === "single" ? 1 : options.layout === "double" ? 2 : options.layout === "triple" ? 3 : 3;
+    const selected: MediaItem[] = [];
+    for (let i = 0; i < Math.min(count, photos.length); i += 1) {
+      selected.push(photos[(feat + i) % photos.length]);
+    }
+    return selected;
+  }, [feat, options.layout, photos]);
+
   const muralUrl = typeof window !== "undefined" ? `${window.location.origin}/evento/${event.slug}` : `/evento/${event.slug}`;
 
   return (
@@ -124,56 +151,96 @@ export function PrototypeTelaoView({
       />
 
       <div style={{ flex: "1 1 62%", position: "relative", borderRadius: 20, overflow: "hidden", minHeight: "70vh" }}>
-        {photos.map((p, i) => {
-          const url = resolveMediaItemUrl(event.id, p);
-          return (
-            <div
-              key={p.id}
-              style={{
-                position: "absolute",
-                inset: 0,
-                display: "grid",
-                placeItems: "center",
-                padding: "2.2%",
-                opacity: i === feat ? 1 : 0,
-                transition: "opacity 1s ease"
-              }}
-            >
-              {url ? (
-                <div
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    display: "grid",
-                    placeItems: "center"
-                  }}
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={url}
-                    alt={p.caption || `Memória de ${p.authorName}`}
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            padding: "2.2%",
+            display: options.layout === "hero_two" ? "grid" : "flex",
+            gap: "1.8%",
+            gridTemplateColumns: options.layout === "hero_two" ? "2fr 1fr" : undefined,
+            gridTemplateRows: options.layout === "hero_two" ? "1fr 1fr" : undefined,
+            alignItems: "stretch"
+          }}
+        >
+          {mainItems.length > 0
+            ? mainItems.map((item, index) => {
+                const imageUrl = resolveMediaItemUrl(event.id, item);
+                const isHero = options.layout === "hero_two" && index === 0;
+                return (
+                  <div
+                    key={item.id}
                     style={{
-                      width: "auto",
-                      height: "auto",
-                      maxWidth: "100%",
-                      maxHeight: "100%",
-                      objectFit: "contain",
-                      borderRadius: 14
+                      borderRadius: 16,
+                      overflow: "hidden",
+                      background: "#f7eedb",
+                      position: "relative",
+                      display: "grid",
+                      placeItems: "center",
+                      minHeight: 0,
+                      ...(options.layout === "single"
+                        ? { flex: 1 }
+                        : options.layout === "double"
+                          ? { flex: 1 }
+                          : options.layout === "triple"
+                            ? { flex: 1 }
+                            : isHero
+                              ? { gridRow: "1 / span 2" }
+                              : null)
                     }}
-                  />
-                </div>
-              ) : (
-                <StripePhoto color="var(--p-green)" ratio="auto" radius={20} style={{ position: "absolute", inset: 0, height: "100%" }} />
-              )}
-            </div>
-          );
-        })}
+                  >
+                    {imageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={imageUrl}
+                        alt={item.caption || `Memória de ${item.authorName}`}
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                          objectFit: options.fit,
+                          borderRadius: 12
+                        }}
+                      />
+                    ) : (
+                      <StripePhoto color="var(--p-green)" ratio="auto" radius={16} style={{ position: "absolute", inset: 0, height: "100%" }} />
+                    )}
+                  </div>
+                );
+              })
+            : null}
+        </div>
         <div style={{ position: "absolute", top: 0, left: 0, padding: "2.4%", display: "flex", gap: 10, alignItems: "center", zIndex: 2 }}>
           <span className="pulse" style={{ width: 9, height: 9, borderRadius: 99, background: "var(--coral)" }} />
           <span className="mono" style={{ color: "#fff", fontSize: 12, letterSpacing: ".18em" }}>
             Ao vivo
           </span>
         </div>
+        {mainItems[0] ? (
+          <div style={{ position: "absolute", right: "2.4%", top: "2.4%", display: "flex", gap: 8, zIndex: 3 }}>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              style={{ background: "rgba(20,16,12,.6)", color: "#fff", borderColor: "rgba(247,238,219,.28)" }}
+              onClick={() => {
+                const url = resolveMediaItemUrl(event.id, mainItems[0]);
+                if (!url) return;
+                setExpandedImage({ url, alt: mainItems[0].caption || `Memória de ${mainItems[0].authorName}` });
+              }}
+            >
+              <Icon name="eye" size={14} /> Ver inteira
+            </button>
+            <a
+              className="btn btn-ghost btn-sm"
+              style={{ background: "rgba(20,16,12,.6)", color: "#fff", borderColor: "rgba(247,238,219,.28)" }}
+              href={resolveMediaItemUrl(event.id, mainItems[0]) ?? "#"}
+              download
+              target="_blank"
+              rel="noreferrer"
+            >
+              <Icon name="download" size={14} /> Baixar
+            </a>
+          </div>
+        ) : null}
       </div>
 
       <div style={{ flex: "1 1 36%", display: "flex", flexDirection: "column", gap: "4%", position: "relative", zIndex: 1 }}>
@@ -234,7 +301,7 @@ export function PrototypeTelaoView({
             Chegando agora
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "3%" }}>
-            {photos.slice(0, 6).map((p, i) => {
+            {photos.slice(0, options.thumbs).map((p, i) => {
               const url = resolveMediaItemUrl(event.id, p);
               return url ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -247,7 +314,7 @@ export function PrototypeTelaoView({
                     aspectRatio: "1/1",
                     objectFit: "cover",
                     borderRadius: 10,
-                    border: i === feat ? "2px solid var(--coral)" : "none"
+                    border: mainItems.some((item) => item.id === p.id) ? "2px solid var(--coral)" : "none"
                   }}
                 />
               ) : (
@@ -278,6 +345,54 @@ export function PrototypeTelaoView({
           </div>
         ) : null}
       </div>
+
+      {expandedImage ? (
+        <div
+          onClick={() => setExpandedImage(null)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 90,
+            background: "rgba(12,9,6,.85)",
+            display: "grid",
+            placeItems: "center",
+            padding: "2.5%"
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => setExpandedImage(null)}
+            style={{
+              position: "absolute",
+              top: 20,
+              right: 20,
+              border: "1px solid rgba(247,238,219,.25)",
+              background: "rgba(20,16,12,.6)",
+              color: "#fff",
+              borderRadius: 10,
+              padding: "8px 10px",
+              cursor: "pointer"
+            }}
+          >
+            Fechar
+          </button>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={expandedImage.url}
+            alt={expandedImage.alt}
+            onClick={(event) => event.stopPropagation()}
+            style={{
+              maxWidth: "96vw",
+              maxHeight: "92vh",
+              width: "auto",
+              height: "auto",
+              objectFit: "contain",
+              borderRadius: 12,
+              background: "#111"
+            }}
+          />
+        </div>
+      ) : null}
     </div>
   );
 }
