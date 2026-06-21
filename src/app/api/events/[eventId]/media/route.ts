@@ -9,7 +9,7 @@ import { checkRateLimit } from "@/lib/security/rate-limit";
 import { assertTrustedOrigin } from "@/lib/security/origin";
 import { sanitizeText } from "@/lib/security/sanitize";
 import { resolveStorageContext } from "@/lib/storage/context";
-import { assessGuestPhotoUpload, countConfirmedGuests } from "@/lib/storage/guest-upload-limits";
+import { assessGuestPhotoUpload } from "@/lib/storage/guest-upload-limits";
 import { canAcceptStorageUpload, buildStorageLimitMessage } from "@/lib/storage/quota";
 import { buildMediaKey, createUploadUrl, getPublicMediaUrl, isEventMediaKey } from "@/lib/storage/r2";
 import { resolveStoredMediaUrl } from "@/lib/storage/media-url";
@@ -49,11 +49,6 @@ export async function POST(request: Request, context: { params: Promise<{ eventI
     contributor.kind === "guest"
       ? eventItems.filter((item) => item.guestRsvpId === contributor.guestRsvpId)
       : eventItems.filter((item) => item.userId === contributor.userId);
-  const [rsvps, members] = await Promise.all([
-    repositories.guestRsvps.listByEvent(eventId),
-    repositories.members.listByEvent(eventId)
-  ]);
-  const confirmedGuestCount = countConfirmedGuests(rsvps.length, members);
 
   if (action === "finalize_upload") {
     const key = sanitizeText(body?.key, 260);
@@ -72,9 +67,6 @@ export async function POST(request: Request, context: { params: Promise<{ eventI
 
     if (!isManager && mediaType === "photo") {
       const photoCheck = assessGuestPhotoUpload({
-        confirmedGuestCount,
-        eventItems,
-        guestPhotoCount: userItems.filter((item) => item.type === "photo").length,
         incomingBytes: size,
         poolUsedBytes: storageContext.poolUsedBytes,
         snapshot: storageContext.snapshot,
@@ -145,9 +137,6 @@ export async function POST(request: Request, context: { params: Promise<{ eventI
 
   if (!isManager && !validation.isVideo) {
     const photoCheck = assessGuestPhotoUpload({
-      confirmedGuestCount,
-      eventItems,
-      guestPhotoCount: userItems.filter((item) => item.type === "photo").length,
       incomingBytes: size,
       poolUsedBytes: storageContext.poolUsedBytes,
       snapshot: storageContext.snapshot,

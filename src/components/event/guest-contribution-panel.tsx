@@ -43,7 +43,6 @@ export function GuestContributionPanel({
   const [state, setState] = useState<SubmitState>(idleState);
 
   const messageCount = useMemo(() => items.filter((item) => item.type === "message").length, [items]);
-  const photoCount = useMemo(() => items.filter((item) => item.type === "photo").length, [items]);
 
   const myItems = useMemo(() => {
     if (muralGuestMode && guestRsvpId) return items.filter((item) => item.guestRsvpId === guestRsvpId);
@@ -138,29 +137,25 @@ export function GuestContributionPanel({
         <span className="pill">seu espaço no mural</span>
         <h2>Compartilhar no evento</h2>
         <p>
-          Envie <strong>1 foto</strong> com título curto e <strong>1 recado de carinho</strong> para o homenageado.
+          Envie fotos com título curto e <strong>1 recado de carinho</strong> para o homenageado.
           Vídeos são exclusivos do organizador.
         </p>
       </div>
 
-      {photoCount >= 1 ? (
-        <p className="cover-field-help">Você já enviou sua foto deste evento.</p>
-      ) : (
-        <div className="guest-upload-grid">
-          <label className="field field-file">
-            <span>Foto do momento</span>
-            <input type="file" accept={PHOTO_ACCEPT} onChange={(event) => setFile(event.target.files?.[0] ?? null)} />
-            <span className="field-file-preview">{file ? file.name : "JPG, PNG ou WEBP"}</span>
-          </label>
-          <label className="field">
-            <span>Título curto da foto</span>
-            <input value={caption} onChange={(e) => setCaption(e.target.value)} maxLength={80} placeholder="Ex: Momento especial!" />
-          </label>
-          <button className="btn guest-action" type="button" disabled={state.loading || !file} onClick={submitFile}>
-            {state.loading ? "Enviando..." : "Enviar foto"}
-          </button>
-        </div>
-      )}
+      <div className="guest-upload-grid">
+        <label className="field field-file">
+          <span>Foto do momento</span>
+          <input type="file" accept={PHOTO_ACCEPT} onChange={(event) => setFile(event.target.files?.[0] ?? null)} />
+          <span className="field-file-preview">{file ? file.name : "JPG, PNG ou WEBP"}</span>
+        </label>
+        <label className="field">
+          <span>Título curto da foto</span>
+          <input value={caption} onChange={(e) => setCaption(e.target.value)} maxLength={80} placeholder="Ex: Momento especial!" />
+        </label>
+        <button className="btn guest-action" type="button" disabled={state.loading || !file} onClick={submitFile}>
+          {state.loading ? "Enviando..." : "Enviar foto"}
+        </button>
+      </div>
 
       {messageCount >= 1 ? (
         <p className="cover-field-help">Você já enviou seu recado de carinho.</p>
