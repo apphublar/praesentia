@@ -17,6 +17,7 @@ export function PrototypeTelaoView({
 }) {
   const [liveEvent, setLiveEvent] = useState(event);
   const liveEventRef = useRef(event);
+  const firstPhotoIdRef = useRef<string | null>(null);
   const [items, setItems] = useState(() => filterTelaoItems(initialItems, event));
   const photos = useMemo(() => items.filter((p) => p.type !== "message"), [items]);
   const recados = useMemo(() => items.filter((p) => p.type === "message"), [items]);
@@ -56,6 +57,10 @@ export function PrototypeTelaoView({
     source.addEventListener("media.created", (message) => {
       const payload = JSON.parse((message as MessageEvent).data) as { item: MediaItem };
       upsertIncoming(payload.item);
+      if (payload.item.type !== "message") {
+        // Every fresh photo must become the immediate highlight.
+        setFeat(0);
+      }
     });
     source.addEventListener("media.updated", (message) => {
       const payload = JSON.parse((message as MessageEvent).data) as { item: MediaItem };
@@ -73,7 +78,9 @@ export function PrototypeTelaoView({
 
   useEffect(() => {
     if (!photos.length) return;
-    const a = setInterval(() => setFeat((f) => (f + 1) % photos.length), 3800);
+    const a = setInterval(() => {
+      setFeat((current) => nextRandomIndex(photos.length, current));
+    }, 3800);
     return () => clearInterval(a);
   }, [photos.length]);
 
@@ -86,10 +93,22 @@ export function PrototypeTelaoView({
   useEffect(() => {
     if (!photos.length) {
       setFeat(0);
+      firstPhotoIdRef.current = null;
       return;
     }
     setFeat((current) => (current >= photos.length ? 0 : current));
   }, [photos.length]);
+
+  useEffect(() => {
+    const firstPhotoId = photos[0]?.id ?? null;
+    if (!firstPhotoId) return;
+
+    if (firstPhotoIdRef.current && firstPhotoIdRef.current !== firstPhotoId) {
+      // Snapshot/SSE inserted a newer first photo: promote it instantly.
+      setFeat(0);
+    }
+    firstPhotoIdRef.current = firstPhotoId;
+  }, [photos]);
 
   useEffect(() => {
     if (!recados.length) {
@@ -167,7 +186,7 @@ export function PrototypeTelaoView({
                         ? { flex: 1 }
                         : isHero
                           ? { gridRow: "1 / span 2" }
-                          : null)
+                          : { padding: "3%" })
                     }}
                   >
                     {imageUrl ? (
@@ -176,9 +195,11 @@ export function PrototypeTelaoView({
                         src={imageUrl}
                         alt={item.caption || `Memória de ${item.authorName}`}
                         style={{
-                          width: "100%",
-                          height: "100%",
-                          objectFit: viewMode === "single" ? "contain" : "cover",
+                          width: viewMode === "single" ? "auto" : "100%",
+                          height: viewMode === "single" ? "auto" : "100%",
+                          maxWidth: "100%",
+                          maxHeight: "100%",
+                          objectFit: viewMode === "single" || !isHero ? "contain" : "cover",
                           borderRadius: 12
                         }}
                       />
@@ -196,61 +217,71 @@ export function PrototypeTelaoView({
             Ao vivo
           </span>
         </div>
-        <div style={{ position: "absolute", right: "2.4%", top: "2.4%", display: "flex", gap: 8, zIndex: 3 }}>
+      </div>
+
+      <div style={{ flex: "1 1 36%", display: "flex", flexDirection: "column", gap: "4%", position: "relative", zIndex: 1 }}>
+        <div
+          style={{
+            display: "flex",
+            gap: 8,
+            flexWrap: "wrap",
+            background: "rgba(20,16,12,.45)",
+            border: "1px solid rgba(247,238,219,.16)",
+            borderRadius: 14,
+            padding: 10
+          }}
+        >
           <button
             type="button"
             className="btn btn-ghost btn-sm"
             style={{
-              background: viewMode === "single" ? "rgba(242,107,90,.85)" : "rgba(20,16,12,.6)",
+              background: viewMode === "single" ? "rgba(242,107,90,.9)" : "rgba(20,16,12,.6)",
               color: "#fff",
               borderColor: "rgba(247,238,219,.28)"
             }}
             onClick={() => setViewMode("single")}
           >
-            <Icon name="image" size={14} /> 1
+            <Icon name="image" size={14} /> 1 imagem
           </button>
           <button
             type="button"
             className="btn btn-ghost btn-sm"
             style={{
-              background: viewMode === "hero_two" ? "rgba(242,107,90,.85)" : "rgba(20,16,12,.6)",
+              background: viewMode === "hero_two" ? "rgba(242,107,90,.9)" : "rgba(20,16,12,.6)",
               color: "#fff",
               borderColor: "rgba(247,238,219,.28)"
             }}
             onClick={() => setViewMode("hero_two")}
           >
-            <Icon name="grid" size={14} /> 3
+            <Icon name="grid" size={14} /> 3 imagens
           </button>
+          {mainItems[0] ? (
+            <>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                style={{ background: "rgba(20,16,12,.6)", color: "#fff", borderColor: "rgba(247,238,219,.28)" }}
+                onClick={() => {
+                  const url = resolveMediaItemUrl(event.id, mainItems[0]);
+                  if (!url) return;
+                  setExpandedImage({ url, alt: mainItems[0].caption || `Memória de ${mainItems[0].authorName}` });
+                }}
+              >
+                <Icon name="eye" size={14} /> Ver inteira
+              </button>
+              <a
+                className="btn btn-ghost btn-sm"
+                style={{ background: "rgba(20,16,12,.6)", color: "#fff", borderColor: "rgba(247,238,219,.28)" }}
+                href={resolveMediaItemUrl(event.id, mainItems[0]) ?? "#"}
+                download
+                target="_blank"
+                rel="noreferrer"
+              >
+                <Icon name="download" size={14} /> Baixar
+              </a>
+            </>
+          ) : null}
         </div>
-        {mainItems[0] ? (
-          <div style={{ position: "absolute", right: "2.4%", top: "10.5%", display: "flex", gap: 8, zIndex: 3 }}>
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm"
-              style={{ background: "rgba(20,16,12,.6)", color: "#fff", borderColor: "rgba(247,238,219,.28)" }}
-              onClick={() => {
-                const url = resolveMediaItemUrl(event.id, mainItems[0]);
-                if (!url) return;
-                setExpandedImage({ url, alt: mainItems[0].caption || `Memória de ${mainItems[0].authorName}` });
-              }}
-            >
-              <Icon name="eye" size={14} /> Ver inteira
-            </button>
-            <a
-              className="btn btn-ghost btn-sm"
-              style={{ background: "rgba(20,16,12,.6)", color: "#fff", borderColor: "rgba(247,238,219,.28)" }}
-              href={resolveMediaItemUrl(event.id, mainItems[0]) ?? "#"}
-              download
-              target="_blank"
-              rel="noreferrer"
-            >
-              <Icon name="download" size={14} /> Baixar
-            </a>
-          </div>
-        ) : null}
-      </div>
-
-      <div style={{ flex: "1 1 36%", display: "flex", flexDirection: "column", gap: "4%", position: "relative", zIndex: 1 }}>
         <div style={{ display: "flex", gap: "4%", alignItems: "center" }}>
           <div style={{ flex: 1 }}>
             <div className="mono" style={{ color: "var(--amber)", fontSize: 11 }}>
@@ -414,4 +445,13 @@ function filterTelaoItems(items: MediaItem[], event: Event) {
     if (item.type === "message" && !item.text) return false;
     return true;
   });
+}
+
+function nextRandomIndex(length: number, current: number) {
+  if (length <= 1) return 0;
+  let candidate = current;
+  while (candidate === current) {
+    candidate = Math.floor(Math.random() * length);
+  }
+  return candidate;
 }
