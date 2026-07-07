@@ -6,6 +6,7 @@ import { requirePlatformAdmin } from "@/lib/auth/session";
 import {
   fulfillAiInvitePlan,
   fulfillCapsulePurchase,
+  fulfillPlusSubscription,
   fulfillStoragePurchase
 } from "@/lib/billing/fulfill-checkout";
 import { getAppBaseUrl, getAuthRecoveryCallbackUrl } from "@/lib/app-url";
@@ -51,22 +52,45 @@ export async function adminSaveUserNotes(userId: string, notes: string): Promise
   }
 }
 
-export async function adminActivateCapsule(eventId: string, userId: string): Promise<AdminActionState> {
+export async function adminActivateCapsule(
+  eventId: string,
+  userId: string,
+  plan: "capsule" | "family" = "capsule"
+): Promise<AdminActionState> {
   try {
     const session = await assertAdmin();
-    await fulfillCapsulePurchase(eventId, userId, "capsule");
+    await fulfillCapsulePurchase(eventId, userId, plan);
     await repositories.audit.record({
       actorUserId: session.user.id,
       eventId,
-      action: "admin.capsule_granted",
+      action: plan === "family" ? "admin.plus_event_granted" : "admin.capsule_granted",
       targetType: "event",
       targetId: eventId,
-      metadata: { grantedTo: userId, priceBrl: 0, priceLabel: "Cortesia admin" }
+      metadata: { grantedTo: userId, priceBrl: 0, priceLabel: "Cortesia admin", plan }
     });
     revalidatePath("/admin/clientes");
-    return { ok: true, message: "Cápsula liberada para o evento." };
+    return { ok: true, message: plan === "family" ? "Vaga Plus liberada para o evento." : "Cápsula liberada para o evento." };
   } catch (error) {
-    return { error: error instanceof Error ? error.message : "Falha ao liberar cápsula." };
+    return { error: error instanceof Error ? error.message : "Falha ao liberar plano." };
+  }
+}
+
+export async function adminActivatePlus(userId: string): Promise<AdminActionState> {
+  try {
+    const session = await assertAdmin();
+    const subscription = await fulfillPlusSubscription(userId);
+    await repositories.audit.record({
+      actorUserId: session.user.id,
+      eventId: null,
+      action: "admin.plus_granted",
+      targetType: "subscription",
+      targetId: subscription.id,
+      metadata: { grantedTo: userId, priceBrl: 0, priceLabel: "Cortesia admin", plan: "family" }
+    });
+    revalidatePath("/admin/clientes");
+    return { ok: true, message: "Cápsula Plus liberado para o cliente." };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Falha ao liberar Cápsula Plus." };
   }
 }
 

@@ -5,7 +5,6 @@ import { SupabaseLoginForm } from "@/components/auth/supabase-login-form";
 import { AppNav } from "@/components/layout/app-nav";
 import { loginRequiresMfaVerification } from "@/lib/auth/mfa";
 import { isPlatformAdmin, getCurrentSession } from "@/lib/auth/session";
-import { PLATFORM_ADMIN_EMAIL } from "@/lib/auth/platform-admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { isDevelopmentBypassAllowed } from "@/lib/env";
 
@@ -33,7 +32,7 @@ function loginNotice(error?: string, success?: string) {
     case "missing-code":
       return { text: "Link de autenticação inválido ou expirado.", tone: "error" as const };
     case "not-admin":
-      return { text: `Acesso ao super admin restrito ao e-mail ${PLATFORM_ADMIN_EMAIL}.`, tone: "error" as const };
+      return { text: "Acesso restrito. Entre com uma conta autorizada.", tone: "error" as const };
     default:
       return null;
   }
@@ -87,19 +86,6 @@ export default async function LoginPage({
       <main className="shell login-page">
         <div className="login-page-grid">
           <div className="login-page-main">
-            {wantsAdmin ? (
-              <section className="card login-admin-banner">
-                <span className="pill">super admin</span>
-                <h2 className="display" style={{ fontSize: 22, margin: "10px 0 6px" }}>
-                  Acesso ao painel de controle
-                </h2>
-                <p style={{ margin: 0, lineHeight: 1.55, color: "var(--ink-soft)" }}>
-                  Entre com <strong>{PLATFORM_ADMIN_EMAIL}</strong>. Após o login você será enviado para{" "}
-                  <strong>/admin</strong>. Se ainda não tem conta, use a aba <strong>Criar conta</strong> com esse
-                  e-mail.
-                </p>
-              </section>
-            ) : null}
             <section className="card login-intro">
               <span className="pill">acesso</span>
               <h1 className="display-i">Sua conta Praesentia</h1>

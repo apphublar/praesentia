@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
 import {
   adminActivateCapsule,
+  adminActivatePlus,
   adminAddCreativeAttempts,
   adminAddStorage,
   adminBlockUser,
@@ -144,6 +145,19 @@ export function AdminClientsPanel({
               <button type="button" className="btn btn-secondary" disabled={pending} onClick={() => run(() => adminAddCreativeAttempts(selected.id, "inspiracao"))}>
                 +5 tentativas inspiração
               </button>
+              {!selected.hasActiveSubscription ? (
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  disabled={pending}
+                  onClick={() => {
+                    if (!window.confirm("Liberar Cápsula Plus manualmente para este cliente por 12 meses?")) return;
+                    run(() => adminActivatePlus(selected.id));
+                  }}
+                >
+                  Liberar Plus
+                </button>
+              ) : null}
               <button
                 type="button"
                 className="btn btn-secondary"
@@ -210,14 +224,24 @@ export function AdminClientsPanel({
                       <td>
                         <div className="platform-admin-row-actions">
                           {!event.capsuleActivatedAt ? (
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-secondary"
-                              disabled={pending}
-                              onClick={() => run(() => adminActivateCapsule(event.id, selected.id))}
-                            >
-                              Liberar cápsula
-                            </button>
+                            <>
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-secondary"
+                                disabled={pending}
+                                onClick={() => run(() => adminActivateCapsule(event.id, selected.id))}
+                              >
+                                Liberar plano Cápsula
+                              </button>
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-secondary"
+                                disabled={pending}
+                                onClick={() => run(() => adminActivateCapsule(event.id, selected.id, "family"))}
+                              >
+                                Usar vaga Plus
+                              </button>
+                            </>
                           ) : null}
                           <button
                             type="button"
