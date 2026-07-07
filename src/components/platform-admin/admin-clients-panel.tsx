@@ -2,13 +2,13 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import {
-  adminActivateCapsule,
   adminAddCreativeAttempts,
   adminAddStorage,
   adminBlockUser,
   adminDeleteUser,
   adminRequestPasswordReset,
-  adminSaveUserNotes
+  adminSaveUserNotes,
+  adminSetEventPlan
 } from "@/app/admin/actions";
 import { formatBrl } from "@/lib/admin/constants";
 import type { AdminUserEventRow, AdminUserRow } from "@/lib/db/admin-types";
@@ -209,25 +209,41 @@ export function AdminClientsPanel({
                       <td>{event.storageUsedGb.toFixed(1)}/{event.storageLimitGb.toFixed(0)} GB</td>
                       <td>
                         <div className="platform-admin-row-actions">
-                          {!event.capsuleActivatedAt ? (
-                            <>
+                            {event.capsuleActivatedAt ? (
                               <button
                                 type="button"
                                 className="btn btn-sm btn-secondary"
                                 disabled={pending}
-                                onClick={() => run(() => adminActivateCapsule(event.id, selected.id))}
+                                onClick={() => {
+                                  if (!window.confirm("Voltar este evento para o plano gratuito?")) return;
+                                  run(() => adminSetEventPlan(event.id, selected.id, "free"));
+                                }}
+                              >
+                                Definir Gratuito
+                              </button>
+                            ) : null}
+                            {event.planTier !== "capsule" || !event.capsuleActivatedAt ? (
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-secondary"
+                                disabled={pending}
+                                onClick={() => run(() => adminSetEventPlan(event.id, selected.id, "capsule"))}
                               >
                                 Liberar Cápsula
                               </button>
+                            ) : null}
+                            {event.planTier !== "family" || !event.capsuleActivatedAt ? (
                               <button
                                 type="button"
                                 className="btn btn-sm btn-secondary"
                                 disabled={pending}
-                                onClick={() => run(() => adminActivateCapsule(event.id, selected.id, "family"))}
+                                onClick={() => run(() => adminSetEventPlan(event.id, selected.id, "family"))}
                               >
                                 Liberar Cápsula Plus
                               </button>
-                            </>
+                            ) : null}
+                          {!event.capsuleActivatedAt ? (
+                            <span className="mono">bloqueado</span>
                           ) : null}
                           <button
                             type="button"

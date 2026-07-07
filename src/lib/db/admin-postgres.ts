@@ -50,8 +50,12 @@ export const postgresAdmin: AdminRepository = {
             where s.user_id = u.id and s.status = 'active'
           )
           or exists (
-            select 1 from events e
-            where e.owner_id = u.id and e.capsule_activated_at is not null
+            select 1
+            from event_members em
+            join events e on e.id = em.event_id
+            where em.user_id = u.id
+              and em.role in ('owner', 'manager')
+              and e.capsule_activated_at is not null
           )
         )
     `;
@@ -168,7 +172,8 @@ export const postgresAdmin: AdminRepository = {
           limit 1
         ), 0)::bigint as subscription_extra_bytes
       from users u
-      left join events e on e.owner_id = u.id
+      left join event_members em on em.user_id = u.id and em.role in ('owner', 'manager')
+      left join events e on e.id = em.event_id
       where u.role = 'user'
         and (${!hasSearch} or lower(u.name) like ${term} or lower(u.email) like ${term})
       group by u.id
@@ -250,7 +255,8 @@ export const postgresAdmin: AdminRepository = {
           limit 1
         ), 0)::bigint as subscription_extra_bytes
       from users u
-      left join events e on e.owner_id = u.id
+      left join event_members em on em.user_id = u.id and em.role in ('owner', 'manager')
+      left join events e on e.id = em.event_id
       where u.id = ${userId}
       group by u.id
       limit 1
@@ -260,12 +266,14 @@ export const postgresAdmin: AdminRepository = {
 
     const eventRows = await sql`
       select
-        id, title, slug, plan_tier::text, capsule_activated_at, phase::text, date,
-        ai_cover_generations_count, ai_cover_edits_count, cover_source::text,
-        storage_used_bytes, storage_limit_bytes, extra_storage_bytes, created_at
-      from events
-      where owner_id = ${userId}
-      order by created_at desc
+        e.id, e.title, e.slug, e.plan_tier::text, e.capsule_activated_at, e.phase::text, e.date,
+        e.ai_cover_generations_count, e.ai_cover_edits_count, e.cover_source::text,
+        e.storage_used_bytes, e.storage_limit_bytes, e.extra_storage_bytes, e.created_at
+      from event_members em
+      join events e on e.id = em.event_id
+      where em.user_id = ${userId}
+        and em.role in ('owner', 'manager')
+      order by e.created_at desc
     `;
 
     const extraBytes = Number(userRow.event_extra_bytes ?? 0) + Number(userRow.subscription_extra_bytes ?? 0);

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { adminRepository, repositories } from "@/lib/db";
+import { getSql } from "@/lib/db/client";
 import { requirePlatformAdmin } from "@/lib/auth/session";
 import {
   fulfillAiInvitePlan,
@@ -10,6 +11,8 @@ import {
   fulfillStoragePurchase
 } from "@/lib/billing/fulfill-checkout";
 import { getAppBaseUrl, getAuthRecoveryCallbackUrl } from "@/lib/app-url";
+import { bytesFromGb, PLANS } from "@/lib/plans";
+import type { PlanTier } from "@/types/domain";
 import type { AiInviteUpgradePlan } from "@/lib/plans/ai-invite-plans";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -106,6 +109,94 @@ export async function adminActivatePlus(userId: string): Promise<AdminActionStat
     return { ok: true, message: "Cápsula Plus liberado para o cliente." };
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Falha ao liberar Cápsula Plus." };
+  }
+}
+
+export async function adminSetEventPlan(
+  eventId: string,
+  userId: string,
+  plan: PlanTier
+): Promise<AdminActionState> {
+  try {
+    const session = await assertAdmin();
+    const event = await repositories.events.findById(eventId);
+    if (!event) return { error: "Evento não encontrado." };
+
+    if (plan === "family") {
+      const existingSubscription = await repositories.subscriptions.findActiveByUser(userId);
+      if (!existingSubscription) {
+        const subscription = await fulfillPlusSubscription(userId);
+        await repositories.audit.record({
+          actorUserId: session.user.id,
+          eventId: null,
+          action: "admin.plus_granted",
+          targetType: "subscription",
+          targetId: subscription.id,
+          metadata: { grantedTo: userId, priceBrl: 0, priceLabel: "Cortesia admin", plan: "family" }
+        });
+      }
+    }
+
+    const planConfig = PLANS[plan];
+    const storageLimitBytes = plan === "family" ? 0 : bytesFromGb(planConfig.storageGb);
+    const extraStorageBytes = plan === "free" ? 0 : Math.round(event.extraStorageGb * 1024 ** 3);
+    const wasFamily = event.plan.tier === "family" && event.capsuleActivatedAt;
+    const willBeFamily = plan === "family";
+    const sql = getSql();
+    await sql.begin(async (tx) => {
+      if (wasFamily && !willBeFamily) {
+        await tx`
+          update user_subscriptions
+          set events_used_this_period = greatest(events_used_this_period - 1, 0), updated_at = now()
+          where user_id = ${userId}
+            and status = 'active'
+            and current_period_start <= now()
+            and current_period_end >= now()
+        `;
+      }
+      if (!wasFamily && willBeFamily) {
+        await tx`
+          update user_subscriptions
+          set events_used_this_period = events_used_this_period + 1, updated_at = now()
+          where user_id = ${userId}
+            and status = 'active'
+            and current_period_start <= now()
+            and current_period_end >= now()
+        `;
+      }
+      await tx`
+        update events
+        set
+          plan_tier = ${plan},
+          storage_limit_bytes = ${storageLimitBytes},
+          extra_storage_bytes = ${extraStorageBytes},
+          capsule_activated_at = ${plan === "free" ? null : new Date().toISOString()},
+          updated_at = now()
+        where id = ${eventId}
+      `;
+      await tx`
+        update screen_settings
+        set enabled = ${plan !== "free"}, updated_at = now()
+        where event_id = ${eventId}
+      `;
+    });
+
+    await repositories.audit.record({
+      actorUserId: session.user.id,
+      eventId,
+      action: "admin.event_plan_set",
+      targetType: "event",
+      targetId: eventId,
+      metadata: { grantedTo: userId, from: event.plan.tier, to: plan, priceBrl: 0, priceLabel: "Cortesia admin" }
+    });
+
+    revalidatePath("/admin/clientes");
+    revalidatePath("/dashboard");
+    revalidatePath(`/dashboard/eventos/${eventId}`);
+    return { ok: true, message: `Plano do evento alterado para ${planConfig.label}.` };
+  } catch (error) {
+    console.error("[admin] adminSetEventPlan failed", error);
+    return { error: error instanceof Error ? error.message : "Falha ao alterar plano do evento." };
   }
 }
 
