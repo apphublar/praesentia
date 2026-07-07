@@ -59,6 +59,20 @@ export async function adminActivateCapsule(
 ): Promise<AdminActionState> {
   try {
     const session = await assertAdmin();
+    if (plan === "family") {
+      const existingSubscription = await repositories.subscriptions.findActiveByUser(userId);
+      if (!existingSubscription) {
+        const subscription = await fulfillPlusSubscription(userId);
+        await repositories.audit.record({
+          actorUserId: session.user.id,
+          eventId: null,
+          action: "admin.plus_granted",
+          targetType: "subscription",
+          targetId: subscription.id,
+          metadata: { grantedTo: userId, priceBrl: 0, priceLabel: "Cortesia admin", plan: "family" }
+        });
+      }
+    }
     await fulfillCapsulePurchase(eventId, userId, plan);
     await repositories.audit.record({
       actorUserId: session.user.id,
@@ -69,6 +83,7 @@ export async function adminActivateCapsule(
       metadata: { grantedTo: userId, priceBrl: 0, priceLabel: "Cortesia admin", plan }
     });
     revalidatePath("/admin/clientes");
+    revalidatePath(`/dashboard/eventos/${eventId}`);
     return { ok: true, message: plan === "family" ? "Vaga Plus liberada para o evento." : "Cápsula liberada para o evento." };
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Falha ao liberar plano." };
