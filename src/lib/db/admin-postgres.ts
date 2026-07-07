@@ -319,6 +319,56 @@ export const postgresAdmin: AdminRepository = {
     return { user, events };
   },
 
+  async listRecentEvents({ search = "", limit = 20 } = {}) {
+    const sql = getSql();
+    const term = `%${search.trim().toLowerCase()}%`;
+    const hasSearch = search.trim() !== "";
+    const rows = await sql`
+      select
+        e.id,
+        e.title,
+        e.slug,
+        e.plan_tier::text,
+        e.capsule_activated_at,
+        e.created_at,
+        u.name as owner_name,
+        u.email as owner_email
+      from events e
+      join users u on u.id = e.owner_id
+      where ${!hasSearch}
+        or lower(e.title) like ${term}
+        or lower(e.slug) like ${term}
+        or lower(u.name) like ${term}
+        or lower(u.email) like ${term}
+      order by e.created_at desc
+      limit ${limit}
+    `;
+
+    return rows.map((row) => ({
+      id: String(row.id),
+      title: String(row.title),
+      slug: String(row.slug),
+      ownerName: String(row.owner_name),
+      ownerEmail: String(row.owner_email),
+      planTier: String(row.plan_tier),
+      capsuleActivatedAt: row.capsule_activated_at ? new Date(String(row.capsule_activated_at)).toISOString() : null,
+      createdAt: new Date(String(row.created_at)).toISOString()
+    }));
+  },
+
+  async attachEventToUser(eventId, userId) {
+    const sql = getSql();
+    await sql.begin(async (tx) => {
+      await tx`update events set owner_id = ${userId}, updated_at = now() where id = ${eventId}`;
+      await tx`
+        insert into event_members (event_id, user_id, role, rsvp_status, access_status)
+        values (${eventId}, ${userId}, 'owner', 'confirmed', 'active')
+        on conflict (event_id, user_id) do update
+        set role = 'owner', rsvp_status = 'confirmed', access_status = 'active', updated_at = now()
+      `;
+    });
+  },
+
   async setUserBlocked(userId, blocked, actorUserId) {
     const sql = getSql();
     await sql`

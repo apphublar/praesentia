@@ -58,6 +58,17 @@ export type AdminUserEventRow = {
   createdAt: string;
 };
 
+export type AdminEventLookupRow = {
+  id: string;
+  title: string;
+  slug: string;
+  ownerName: string;
+  ownerEmail: string;
+  planTier: string;
+  capsuleActivatedAt: string | null;
+  createdAt: string;
+};
+
 export type AdminTransactionRow = {
   id: string;
   action: string;
@@ -91,6 +102,8 @@ export interface AdminRepository {
   getMetrics(): Promise<AdminMetrics>;
   listUsers(options?: { search?: string; limit?: number; offset?: number }): Promise<{ users: AdminUserRow[]; total: number }>;
   getUserDetail(userId: string): Promise<{ user: AdminUserRow; events: AdminUserEventRow[] } | null>;
+  listRecentEvents(options?: { search?: string; limit?: number }): Promise<AdminEventLookupRow[]>;
+  attachEventToUser(eventId: string, userId: string): Promise<void>;
   setUserBlocked(userId: string, blocked: boolean, actorUserId: string): Promise<void>;
   setUserNotes(userId: string, notes: string, actorUserId: string): Promise<void>;
   deleteUserAccount(userId: string): Promise<void>;

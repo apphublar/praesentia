@@ -200,6 +200,28 @@ export async function adminSetEventPlan(
   }
 }
 
+export async function adminAttachEventToUser(eventId: string, userId: string): Promise<AdminActionState> {
+  try {
+    const session = await assertAdmin();
+    await adminRepository.attachEventToUser(eventId, userId);
+    await repositories.audit.record({
+      actorUserId: session.user.id,
+      eventId,
+      action: "admin.event_attached_to_user",
+      targetType: "event",
+      targetId: eventId,
+      metadata: { attachedTo: userId }
+    });
+    revalidatePath("/admin/clientes");
+    revalidatePath("/dashboard");
+    revalidatePath(`/dashboard/eventos/${eventId}`);
+    return { ok: true, message: "Evento vinculado ao cliente." };
+  } catch (error) {
+    console.error("[admin] adminAttachEventToUser failed", error);
+    return { error: error instanceof Error ? error.message : "Falha ao vincular evento." };
+  }
+}
+
 export async function adminAddStorage(eventId: string, userId: string, gb: number): Promise<AdminActionState> {
   try {
     const session = await assertAdmin();

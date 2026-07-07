@@ -95,6 +95,24 @@ export const inMemoryAdmin: AdminRepository = {
     };
   },
 
+  async listRecentEvents() {
+    return events.slice(0, 20).map((event) => {
+      const owner = users.find((user) => user.id === "usr_owner") ?? users[0];
+      return {
+        id: event.id,
+        title: event.title,
+        slug: event.slug,
+        ownerName: owner?.name ?? "Cliente",
+        ownerEmail: owner?.email ?? "cliente",
+        planTier: event.plan.tier,
+        capsuleActivatedAt: event.capsuleActivatedAt ?? null,
+        createdAt: new Date().toISOString()
+      };
+    });
+  },
+
+  async attachEventToUser() {},
+
   async setUserBlocked() {},
   async setUserNotes() {},
   async deleteUserAccount(userId) {

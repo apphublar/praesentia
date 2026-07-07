@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import {
+  adminAttachEventToUser,
   adminAddCreativeAttempts,
   adminAddStorage,
   adminBlockUser,
@@ -11,7 +12,7 @@ import {
   adminSetEventPlan
 } from "@/app/admin/actions";
 import { formatBrl } from "@/lib/admin/constants";
-import type { AdminUserEventRow, AdminUserRow } from "@/lib/db/admin-types";
+import type { AdminEventLookupRow, AdminUserEventRow, AdminUserRow } from "@/lib/db/admin-types";
 
 function whatsAppLink(message: string) {
   return `https://wa.me/?text=${encodeURIComponent(message)}`;
@@ -30,6 +31,8 @@ export function AdminClientsPanel({
   const [error, setError] = useState<string | null>(null);
   const [events, setEvents] = useState<AdminUserEventRow[]>([]);
   const [detailUser, setDetailUser] = useState<AdminUserRow | null>(null);
+  const [recentEvents, setRecentEvents] = useState<AdminEventLookupRow[]>([]);
+  const [eventSearch, setEventSearch] = useState("");
   const [resetLink, setResetLink] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -55,9 +58,17 @@ export function AdminClientsPanel({
     setNotes(data.user?.adminNotes ?? "");
   }
 
+  async function loadRecentEvents(search = eventSearch) {
+    const response = await fetch(`/api/admin/events?q=${encodeURIComponent(search)}`, { cache: "no-store" });
+    if (!response.ok) return;
+    const data = await response.json();
+    setRecentEvents(data.events ?? []);
+  }
+
   function selectUser(userId: string) {
     setSelectedId(userId);
     setDetailUser(null);
+    setRecentEvents([]);
     setMessage(null);
     setError(null);
     setResetLink(null);
@@ -278,6 +289,67 @@ export function AdminClientsPanel({
                 </tbody>
               </table>
             </div>
+
+            {events.length === 0 ? (
+              <div className="platform-admin-empty-tools">
+                <p className="platform-admin-lead">
+                  Nenhum evento vinculado a este cliente. Busque eventos recentes para vincular o evento correto antes de liberar o plano.
+                </p>
+                <div className="platform-admin-search" style={{ marginBottom: 10 }}>
+                  <input
+                    type="search"
+                    placeholder="Buscar evento, slug ou e-mail do dono"
+                    value={eventSearch}
+                    onChange={(event) => setEventSearch(event.target.value)}
+                  />
+                  <button type="button" className="btn btn-secondary" disabled={pending} onClick={() => loadRecentEvents()}>
+                    Buscar eventos
+                  </button>
+                </div>
+                {recentEvents.length > 0 ? (
+                  <div className="platform-admin-table-wrap">
+                    <table className="platform-admin-table">
+                      <thead>
+                        <tr>
+                          <th>Evento encontrado</th>
+                          <th>Dono atual</th>
+                          <th>Plano</th>
+                          <th>Ações</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {recentEvents.map((event) => (
+                          <tr key={event.id}>
+                            <td>
+                              <strong>{event.title}</strong>
+                              <small>{event.slug}</small>
+                            </td>
+                            <td>
+                              <strong>{event.ownerName}</strong>
+                              <small>{event.ownerEmail}</small>
+                            </td>
+                            <td>{event.capsuleActivatedAt ? event.planTier : "free"}</td>
+                            <td>
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-secondary"
+                                disabled={pending}
+                                onClick={() => {
+                                  if (!window.confirm("Vincular este evento ao cliente selecionado?")) return;
+                                  run(() => adminAttachEventToUser(event.id, visibleUser.id));
+                                }}
+                              >
+                                Vincular a este cliente
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
 
             {message ? <p className="platform-admin-notice">{message}</p> : null}
             {error ? <p className="platform-admin-error">{error}</p> : null}
