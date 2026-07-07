@@ -29,10 +29,12 @@ export function AdminClientsPanel({
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [events, setEvents] = useState<AdminUserEventRow[]>([]);
+  const [detailUser, setDetailUser] = useState<AdminUserRow | null>(null);
   const [resetLink, setResetLink] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   const selected = useMemo(() => users.find((u) => u.id === selectedId) ?? null, [users, selectedId]);
+  const visibleUser = detailUser?.id === selectedId ? detailUser : selected;
 
   useEffect(() => {
     const first = users[0]?.id;
@@ -45,15 +47,17 @@ export function AdminClientsPanel({
   }, [selectedId]);
 
   async function loadEvents(userId: string) {
-    const response = await fetch(`/api/admin/users/${userId}`);
+    const response = await fetch(`/api/admin/users/${userId}`, { cache: "no-store" });
     if (!response.ok) return;
     const data = await response.json();
     setEvents(data.events ?? []);
+    setDetailUser(data.user ?? null);
     setNotes(data.user?.adminNotes ?? "");
   }
 
   function selectUser(userId: string) {
     setSelectedId(userId);
+    setDetailUser(null);
     setMessage(null);
     setError(null);
     setResetLink(null);
@@ -98,27 +102,27 @@ export function AdminClientsPanel({
       </section>
 
       <section className="card platform-admin-detail">
-        {!selected ? (
+        {!visibleUser ? (
           <p>Selecione um cliente.</p>
         ) : (
           <>
             <div className="platform-admin-detail-head">
               <div>
-                <h2>{selected.name}</h2>
-                <p>{selected.email}</p>
+                <h2>{visibleUser.name}</h2>
+                <p>{visibleUser.email}</p>
               </div>
-              <span className={`platform-admin-badge${selected.blockedAt ? " is-danger" : ""}`}>
-                {selected.blockedAt ? "Bloqueado" : "Ativo"}
+              <span className={`platform-admin-badge${visibleUser.blockedAt ? " is-danger" : ""}`}>
+                {visibleUser.blockedAt ? "Bloqueado" : "Ativo"}
               </span>
             </div>
 
             <div className="platform-admin-kv">
-              <div><b>Eventos</b><span>{selected.eventCount}</span></div>
-              <div><b>Cápsulas</b><span>{selected.paidEventCount}</span></div>
-              <div><b>Faturado</b><span>{formatBrl(selected.totalRevenueBrl)}</span></div>
-              <div><b>GB extra</b><span>{selected.storageExtraGb.toFixed(1)} GB</span></div>
-              <div><b>Tentativas IA</b><span>{selected.aiInvitePoolRemaining}</span></div>
-              <div><b>Plus</b><span>{selected.hasActiveSubscription ? "Sim" : "Não"}</span></div>
+              <div><b>Eventos</b><span>{visibleUser.eventCount}</span></div>
+              <div><b>Cápsulas</b><span>{visibleUser.paidEventCount}</span></div>
+              <div><b>Faturado</b><span>{formatBrl(visibleUser.totalRevenueBrl)}</span></div>
+              <div><b>GB extra</b><span>{visibleUser.storageExtraGb.toFixed(1)} GB</span></div>
+              <div><b>Tentativas IA</b><span>{visibleUser.aiInvitePoolRemaining}</span></div>
+              <div><b>Plus</b><span>{visibleUser.hasActiveSubscription ? "Sim" : "Não"}</span></div>
             </div>
 
             <label className="platform-admin-field">
@@ -127,28 +131,28 @@ export function AdminClientsPanel({
             </label>
 
             <div className="platform-admin-actions">
-              <button type="button" className="btn" disabled={pending} onClick={() => run(() => adminSaveUserNotes(selected.id, notes))}>
+              <button type="button" className="btn" disabled={pending} onClick={() => run(() => adminSaveUserNotes(visibleUser.id, notes))}>
                 Salvar notas
               </button>
               <button
                 type="button"
                 className="btn btn-secondary"
                 disabled={pending}
-                onClick={() => run(() => adminBlockUser(selected.id, !selected.blockedAt))}
+                onClick={() => run(() => adminBlockUser(visibleUser.id, !visibleUser.blockedAt))}
               >
-                {selected.blockedAt ? "Desbloquear" : "Bloquear"}
+                {visibleUser.blockedAt ? "Desbloquear" : "Bloquear"}
               </button>
-              <button type="button" className="btn btn-secondary" disabled={pending} onClick={() => run(() => adminAddCreativeAttempts(selected.id, "criativo"))}>
+              <button type="button" className="btn btn-secondary" disabled={pending} onClick={() => run(() => adminAddCreativeAttempts(visibleUser.id, "criativo"))}>
                 +15 tentativas criativas
               </button>
-              <button type="button" className="btn btn-secondary" disabled={pending} onClick={() => run(() => adminAddCreativeAttempts(selected.id, "inspiracao"))}>
+              <button type="button" className="btn btn-secondary" disabled={pending} onClick={() => run(() => adminAddCreativeAttempts(visibleUser.id, "inspiracao"))}>
                 +5 tentativas inspiração
               </button>
               <button
                 type="button"
                 className="btn btn-secondary"
                 disabled={pending}
-                onClick={() => run(() => adminRequestPasswordReset(selected.id))}
+                onClick={() => run(() => adminRequestPasswordReset(visibleUser.id))}
               >
                 Redefinir senha (WhatsApp)
               </button>
@@ -166,7 +170,7 @@ export function AdminClientsPanel({
               ) : null}
               <a
                 className="btn btn-secondary"
-                href={whatsAppLink(`Olá ${selected.name}, aqui é da equipe Praesentia.`)}
+                href={whatsAppLink(`Olá ${visibleUser.name}, aqui é da equipe Praesentia.`)}
                 target="_blank"
                 rel="noreferrer"
               >
@@ -178,7 +182,7 @@ export function AdminClientsPanel({
                 disabled={pending}
                 onClick={() => {
                   if (!window.confirm("Excluir permanentemente esta conta?")) return;
-                  run(() => adminDeleteUser(selected.id));
+                  run(() => adminDeleteUser(visibleUser.id));
                 }}
               >
                 Excluir conta
@@ -216,7 +220,7 @@ export function AdminClientsPanel({
                                 disabled={pending}
                                 onClick={() => {
                                   if (!window.confirm("Voltar este evento para o plano gratuito?")) return;
-                                  run(() => adminSetEventPlan(event.id, selected.id, "free"));
+                                  run(() => adminSetEventPlan(event.id, visibleUser.id, "free"));
                                 }}
                               >
                                 Definir Gratuito
@@ -227,7 +231,7 @@ export function AdminClientsPanel({
                                 type="button"
                                 className="btn btn-sm btn-secondary"
                                 disabled={pending}
-                                onClick={() => run(() => adminSetEventPlan(event.id, selected.id, "capsule"))}
+                                onClick={() => run(() => adminSetEventPlan(event.id, visibleUser.id, "capsule"))}
                               >
                                 Liberar Cápsula
                               </button>
@@ -237,7 +241,7 @@ export function AdminClientsPanel({
                                 type="button"
                                 className="btn btn-sm btn-secondary"
                                 disabled={pending}
-                                onClick={() => run(() => adminSetEventPlan(event.id, selected.id, "family"))}
+                                onClick={() => run(() => adminSetEventPlan(event.id, visibleUser.id, "family"))}
                               >
                                 Liberar Cápsula Plus
                               </button>
@@ -249,7 +253,7 @@ export function AdminClientsPanel({
                             type="button"
                             className="btn btn-sm btn-secondary"
                             disabled={pending}
-                            onClick={() => run(() => adminAddStorage(event.id, selected.id, 5))}
+                            onClick={() => run(() => adminAddStorage(event.id, visibleUser.id, 5))}
                           >
                             +5 GB
                           </button>
@@ -257,7 +261,7 @@ export function AdminClientsPanel({
                             type="button"
                             className="btn btn-sm btn-secondary"
                             disabled={pending}
-                            onClick={() => run(() => adminAddStorage(event.id, selected.id, 10))}
+                            onClick={() => run(() => adminAddStorage(event.id, visibleUser.id, 10))}
                           >
                             +10 GB
                           </button>
